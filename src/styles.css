@@ -1,0 +1,18 @@
+/* Global reset to avoid white frame and ensure full-bleed dark gradient */
+html, body, app-root {
+	height: 100%;
+	margin: 0;
+}
+
+/* Apply the dark blue gradient globally so no white border appears */
+body {
+	background: radial-gradient(1200px 400px at 10% 10%, rgba(91,124,255,0.06), transparent 10%), linear-gradient(180deg, #0b1020, #0f1b3d);
+	color: #ffffff;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+app-root {
+	display: block;
+}
+
