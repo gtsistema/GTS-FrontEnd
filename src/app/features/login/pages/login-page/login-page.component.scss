@@ -14,7 +14,7 @@
   align-items: center;
   justify-content: center;
   padding: 2rem;
-  background: radial-gradient(1200px 400px at 10% 10%, rgba(91,124,255,0.06), transparent 10%), linear-gradient(180deg, var(--bg1), var(--bg2));
+  background: radial-gradient(1200px 400px at 10% 10%, rgba(59, 96, 247, 0.06), transparent 10%), linear-gradient(180deg, var(--bg1), var(--bg2));
 }
 
 .card {
@@ -29,13 +29,30 @@
   color: var(--text);
 }
 
+.login-header {
+    text-align: center;
+}
+
 .title {
-  font-size: 1.6rem;
-  margin: 0 0 1.25rem 0;
-  font-weight: 600;
+  font-size: 2rem;
+  margin: 0 0 0.5rem 0;
+  font-weight: 700;
+  color: #f2f2f4;
+}
+
+.subtitle {
+  margin: 0;
+  color: rgba(242, 242, 244, 0.75);
+  font-size: 0.85rem;
+  font-weight: 400;
   display: flex;
   align-items: baseline;
-  gap: 8px;
+  gap: 4px;
+}
+
+.subtitle .dot {
+  color: #383a92;
+  font-size: 1rem;
 }
 
 .title .dot {
@@ -131,20 +148,7 @@ input:focus {
   transform: none;
 }
 
-.create {
-  margin-top: 12px;
-  text-align: center;
-}
 
-.create a {
-  color: var(--muted);
-  text-decoration: none;
-  font-weight: 600;
-}
-
-.create a:hover {
-  color: var(--accent);
-}
 
 @media (max-width: 520px) {
   .card {

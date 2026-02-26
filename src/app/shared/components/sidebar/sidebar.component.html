@@ -1,0 +1,67 @@
+<aside class="sidebar" [class.collapsed]="isCollapsed()">
+  <div class="sidebar-header">
+    <h1 class="logo" [class.hidden]="isCollapsed()">GTSistema</h1>
+    <button class="toggle-btn" (click)="toggleSidebar()" aria-label="Toggle sidebar">
+      <span class="material-symbols-outlined icon">menu</span>
+    </button>
+  </div>
+
+  <nav class="sidebar-nav">
+    <ul class="menu">
+      <li *ngFor="let item of menuItems">
+        @if (item.children?.length) {
+          <div class="menu-group">
+            <button
+              type="button"
+              class="menu-item menu-item-parent"
+              [class.active]="isActive(item.route)"
+              (click)="toggleCadastro()"
+              [attr.aria-expanded]="cadastroExpanded()"
+            >
+              <span class="material-symbols-outlined icon">{{ item.icon }}</span>
+              <span class="label" [class.hidden]="isCollapsed()">{{ item.label }}</span>
+              <span class="material-symbols-outlined icon chevron" [class.hidden]="isCollapsed()">
+                {{ cadastroExpanded() ? 'expand_less' : 'expand_more' }}
+              </span>
+            </button>
+            @if (cadastroExpanded() && !isCollapsed()) {
+              <ul class="submenu">
+                @for (sub of item.children; track sub.route) {
+                  <li>
+                    <a
+                      [routerLink]="sub.route"
+                      class="menu-item submenu-item"
+                      routerLinkActive="active"
+                      [routerLinkActiveOptions]="{ exact: false }"
+                    >
+                      <span class="label">{{ sub.label }}</span>
+                    </a>
+                  </li>
+                }
+              </ul>
+            }
+          </div>
+        } @else {
+          <a
+            [routerLink]="item.route"
+            [class.active]="isActive(item.route)"
+            class="menu-item"
+            routerLinkActive="active"
+            [routerLinkActiveOptions]="{ exact: false }"
+          >
+            <span class="material-symbols-outlined icon">{{ item.icon }}</span>
+            <span class="label" [class.hidden]="isCollapsed()">{{ item.label }}</span>
+          </a>
+        }
+      </li>
+    </ul>
+  </nav>
+
+  <div class="sidebar-footer">
+    <p class="version" [class.hidden]="isCollapsed()">v1.0.0</p>
+    <button class="logout-btn" (click)="logout()" [title]="isCollapsed() ? 'Logout' : ''">
+      <span class="material-symbols-outlined icon">logout</span>
+      <span class="label" [class.hidden]="isCollapsed()">Sair</span>
+    </button>
+  </div>
+</aside>
