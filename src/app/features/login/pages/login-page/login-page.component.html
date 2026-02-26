@@ -1,0 +1,51 @@
+<div class="login-page">
+  <div class="card" role="main" aria-labelledby="login-title">
+    <div class="login-header">
+      <h1 class="title">GTSistema</h1>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate class="form">
+      <div *ngIf="loginError" class="error global-error"><small>{{ loginError }}</small></div>
+      <div class="field">
+        <label for="username">Usuário</label>
+        <input
+          id="username"
+          type="text"
+          formControlName="username"
+          autocomplete="username"
+          placeholder="Usuário"
+          aria-describedby="username-error"
+        />
+        <div id="username-error" class="error" *ngIf="username?.touched && username?.invalid">
+          <small *ngIf="username?.errors?.['required']">Usuário é obrigatório.</small>
+          <small *ngIf="username?.errors?.['minlength']">Mínimo de 3 caracteres.</small>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="password">Senha</label>
+        <input
+          id="password"
+          type="password"
+          formControlName="password"
+          autocomplete="current-password"
+          placeholder="Mínimo 5 caracteres"
+          aria-describedby="password-error"
+        />
+
+        <div class="forgot">
+          <a routerLink="/forgot">Esqueceu a senha?</a>
+        </div>
+
+        <div id="password-error" class="error" *ngIf="password?.touched && password?.invalid">
+          <small *ngIf="password?.errors?.['required']">Senha é obrigatória.</small>
+          <small *ngIf="password?.errors?.['minlength']">Mínimo de 5 caracteres.</small>
+        </div>
+      </div>
+
+      <button class="btn" type="submit" [disabled]="form.invalid || loading">
+        {{ loading ? 'Entrando...' : 'Entrar' }}
+      </button>
+    </form>
+  </div>
+</div>

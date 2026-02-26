@@ -1,0 +1,58 @@
+<div class="navbar">
+  <button 
+    class="hamburger" 
+    (click)="toggleSidebar()" 
+    aria-label="Abrir menu"
+  >
+    ☰
+  </button>
+  <span class="navbar-title">Menu</span>
+  <button
+    class="btn-collapse"
+    (click)="toggleCollapse()"
+    [title]="isCollapsed ? 'Expandir' : 'Recolher'"
+    aria-label="Recolher/Expandir sidebar"
+  >
+    {{ isCollapsed ? '»' : '«' }}
+  </button>
+</div>
+
+<div 
+  class="sidebar"
+  [class.open]="isOpen"
+  [class.collapsed]="isCollapsed"
+>
+  <nav class="sidebar-nav">
+    <a
+      href="javascript:void(0)"
+      (click)="navigateTo('/configuracoes')"
+      class="sidebar-link"
+      title="Configurações"
+    >
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2v4M12 16v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M2 12h4m12 0h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"></path>
+        <circle cx="12" cy="12" r="2.5"></circle>
+      </svg>
+      <span class="label">Configurações</span>
+    </a>
+    <a
+      href="javascript:void(0)"
+      (click)="logout()"
+      class="sidebar-link danger"
+      title="Sair"
+    >
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M10 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3"></path>
+        <path d="M16 17l4-4m0 0l-4-4m4 4H9"></path>
+      </svg>
+      <span class="label">Sair</span>
+    </a>
+  </nav>
+</div>
+
+<!-- Overlay para fechar menu ao clicar fora (mobile) -->
+<div
+  class="sidebar-overlay"
+  [class.open]="isOpen"
+  (click)="closeSidebar()"
+></div>

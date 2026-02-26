@@ -1,0 +1,25 @@
+:host {
+  --sidebar-width: 260px;
+}
+
+.layout {
+  display: flex;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0b1020 0%, #0f1b3d 100%);
+}
+
+.main-content {
+  flex: 1;
+  margin-left: var(--sidebar-width);
+  transition: margin-left 0.3s ease;
+}
+
+.layout.sidebar-collapsed .main-content {
+  margin-left: 80px;
+}
+
+@media (max-width: 768px) {
+  .main-content {
+    margin-left: 80px;
+  }
+}
