@@ -1,0 +1,221 @@
+<div class="page">
+  <header class="header">
+    <div class="container header__inner">
+      <h1 class="header__title">{{ id ? 'Editar' : 'Novo' }} Estacionamento</h1>
+      <a class="btn btn--secondary" routerLink="/app/cadastro/estacionamento">Voltar</a>
+    </div>
+  </header>
+
+  <div class="page__content">
+    <div class="container">
+      @if (loading) {
+        <p class="loading">Carregando...</p>
+      } @else {
+        @if (erro) {
+          <p class="error-banner">{{ erro }}</p>
+        }
+
+        <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form">
+          <input type="hidden" formControlName="id" />
+          <input type="hidden" formControlName="pessoaId" />
+
+          <div class="layout-grid">
+            <section class="card card--span-5">
+            <div class="card__header">
+              <h2 class="card__title">Estacionamento</h2>
+              <p class="card__description">Campos obrigatórios marcados com *</p>
+            </div>
+            <div class="form-grid">
+              <div class="field field--full">
+                <label class="field__label" for="descricao">Nome do Estacionamento <span class="required">*</span></label>
+                <input
+                  id="descricao"
+                  class="field__input"
+                  type="text"
+                  formControlName="descricao"
+                  placeholder="Nome do Estacionamento"
+                />
+                @if (form.get('descricao')?.invalid && form.get('descricao')?.touched) {
+                  <span class="field__error">
+                    @if (form.get('descricao')?.errors?.['required']) { Nome obrigatório. }
+                    @if (form.get('descricao')?.errors?.['minlength']) { Mín. 2 caracteres. }
+                  </span>
+                }
+              </div>
+            </div>
+          </section>
+
+            <section class="card card--span-7" formGroupName="pessoa">
+              <div class="card__header">
+                <h2 class="card__title">Pessoa (responsável)</h2>
+                <p class="card__description">Campos obrigatórios marcados com *</p>
+              </div>
+              <div class="form-grid form-grid--pessoa">
+              <div class="field field--full">
+                <label class="field__label" for="nomeRazaoSocial">Razão Social <span class="required">*</span></label>
+                <input
+                  id="nomeRazaoSocial"
+                  class="field__input"
+                  type="text"
+                  formControlName="nomeRazaoSocial"
+                  placeholder="Razão Social"
+                />
+                @if (form.get('pessoa.nomeRazaoSocial')?.invalid && form.get('pessoa.nomeRazaoSocial')?.touched) {
+                  <span class="field__error">Obrigatório. Mín. 2 caracteres.</span>
+                }
+              </div>
+              <div class="field field--full">
+                <label class="field__label" for="nomeFantasia">Nome Fantasia</label>
+                <input
+                  id="nomeFantasia"
+                  class="field__input"
+                  type="text"
+                  formControlName="nomeFantasia"
+                  placeholder="Opcional"
+                />
+              </div>
+              <div class="field">
+                <label class="field__label" for="documento">CNPJ <span class="required">*</span></label>
+                <input
+                  id="documento"
+                  class="field__input"
+                  type="text"
+                  formControlName="documento"
+                  placeholder="00.000.000/0001-00"
+                  maxlength="18"
+                  appCnpjFormat
+                />
+                @if (form.get('pessoa.documento')?.invalid && form.get('pessoa.documento')?.touched) {
+                  <span class="field__error">{{ documentoErrorMessage }}</span>
+                }
+              </div>
+              <div class="field">
+                <label class="field__label" for="email">E-mail <span class="required">*</span></label>
+                <input
+                  id="email"
+                  class="field__input"
+                  type="email"
+                  formControlName="email"
+                  placeholder="email@exemplo.com"
+                />
+                @if (form.get('pessoa.email')?.invalid && form.get('pessoa.email')?.touched) {
+                  <span class="field__error">
+                    @if (form.get('pessoa.email')?.errors?.['required']) { Obrigatório. }
+                    @if (form.get('pessoa.email')?.errors?.['email']) { E-mail inválido. }
+                  </span>
+                }
+              </div>
+              <div class="field field--inline">
+                <label class="field__label field__label--checkbox">
+                  <input type="checkbox" formControlName="ativo" />
+                  Ativo
+                </label>
+              </div>
+            </div>
+            </section>
+          </div>
+
+          <section class="card card--accordion" [class.card--open]="complementaresOpen">
+          <button type="button" class="card__trigger" (click)="toggleComplementares()" [attr.aria-expanded]="complementaresOpen">
+            <h2 class="card__title">Dados complementares <span class="card__badge">TODO backend</span></h2>
+            <span class="card__chevron" aria-hidden="true">{{ complementaresOpen ? '▼' : '▶' }}</span>
+          </button>
+          @if (complementaresOpen) {
+            <div class="card__body">
+              <p class="card__description">Campos opcionais para integração futura.</p>
+
+              <h3 class="card__subtitle">Responsável legal</h3>
+              <div class="form-grid">
+                <div class="field">
+                  <label class="field__label" for="responsavelLegalNome">Responsável legal</label>
+                  <input id="responsavelLegalNome" class="field__input" type="text" formControlName="responsavelLegalNome" />
+                </div>
+                <div class="field">
+                  <label class="field__label" for="responsavelLegalCpf">CPF resp. legal</label>
+                  <input id="responsavelLegalCpf" class="field__input" type="text" formControlName="responsavelLegalCpf" maxlength="14" />
+                </div>
+                <div class="field">
+                  <label class="field__label" for="contatoTelefone">Telefone</label>
+                  <input id="contatoTelefone" class="field__input" type="tel" formControlName="contatoTelefone" />
+                </div>
+              </div>
+
+              <h3 class="card__subtitle">Estrutura</h3>
+              <div class="form-grid">
+                <div class="field">
+                  <label class="field__label" for="capacidadeVeiculos">Capacidade (veíc.)</label>
+                  <input id="capacidadeVeiculos" class="field__input" type="number" formControlName="capacidadeVeiculos" min="0" />
+                </div>
+                <div class="field">
+                  <label class="field__label" for="tamanho">Tamanho (m²)</label>
+                  <input id="tamanho" class="field__input" type="text" formControlName="tamanho" placeholder="Ex: 500" />
+                </div>
+                <div class="field field--inline field--switches">
+                  <label class="field__label field__label--checkbox"><input type="checkbox" formControlName="possuiSeguranca" /> Segurança</label>
+                  <label class="field__label field__label--checkbox"><input type="checkbox" formControlName="possuiBanheiro" /> Banheiro</label>
+                </div>
+              </div>
+
+              <h3 class="card__subtitle">Valores</h3>
+              <div class="form-grid">
+                <div class="field field--full">
+                  <label class="field__label">Taxa ou Mensalidade</label>
+                  <div class="segmented">
+                    <label class="segmented__item">
+                      <input type="radio" formControlName="tipoTaxaMensalidade" [value]="'taxa'" />
+                      Taxa (%)
+                    </label>
+                    <label class="segmented__item">
+                      <input type="radio" formControlName="tipoTaxaMensalidade" [value]="'mensalidade'" />
+                      Mensalidade (R$)
+                    </label>
+                  </div>
+                  @if (isTaxa) {
+                    <div class="field__input-wrap">
+                      <input id="taxaPercentual" class="field__input" type="number" formControlName="taxaPercentual" min="0" max="100" step="0.01" placeholder="0" />
+                      <span class="field__suffix">%</span>
+                    </div>
+                  }
+                  @if (isMensalidade) {
+                    <div class="field__input-wrap">
+                      <span class="field__prefix">R$</span>
+                      <input id="mensalidadeValor" class="field__input" type="number" formControlName="mensalidadeValor" min="0" step="0.01" placeholder="0,00" />
+                    </div>
+                  }
+                </div>
+              </div>
+
+              <h3 class="card__subtitle">Contrato</h3>
+              <div class="form-grid">
+                <div class="field field--full">
+                  <label class="field__label" for="contrato">Contrato</label>
+                  <input id="contrato" class="field__input" type="text" formControlName="contrato" placeholder="Número / texto e datas" />
+                </div>
+              </div>
+
+              <h3 class="card__subtitle">Localização</h3>
+              <div class="form-grid">
+                <div class="field">
+                  <label class="field__label" for="latitude">Latitude</label>
+                  <input id="latitude" class="field__input" type="number" formControlName="latitude" step="any" />
+                </div>
+                <div class="field">
+                  <label class="field__label" for="longitude">Longitude</label>
+                  <input id="longitude" class="field__input" type="number" formControlName="longitude" step="any" />
+                </div>
+              </div>
+            </div>
+          }
+        </section>
+
+        <footer class="actions">
+          <button type="button" class="btn btn--secondary" (click)="cancelar()">Cancelar</button>
+          <button type="submit" class="btn btn--primary" [disabled]="form.invalid || salvando">
+            {{ salvando ? 'Salvando...' : 'Salvar' }}
+          </button>
+        </footer>
+        </form>
+      }
+    </div>
+  </div>
+</div>

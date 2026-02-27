@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { EstacionamentoLayoutComponent } from './estacionamento-layout.component';
 
 export const CADASTRO_ROUTES: Routes = [
   {
@@ -8,10 +9,30 @@ export const CADASTRO_ROUTES: Routes = [
   },
   {
     path: 'estacionamento',
-    loadComponent: () =>
-      import(
-        './pages/cadastro-estacionamento-page/cadastro-estacionamento-page.component'
-      ).then((m) => m.CadastroEstacionamentoPageComponent)
+    component: EstacionamentoLayoutComponent,
+    children: [
+      {
+        path: '',
+        loadComponent: () =>
+          import('./pages/estacionamento-list/estacionamento-list.component').then(
+            (m) => m.EstacionamentoListComponent
+          )
+      },
+      {
+        path: 'novo',
+        loadComponent: () =>
+          import('./pages/estacionamento-form/estacionamento-form.component').then(
+            (m) => m.EstacionamentoFormComponent
+          )
+      },
+      {
+        path: 'editar/:id',
+        loadComponent: () =>
+          import('./pages/estacionamento-form/estacionamento-form.component').then(
+            (m) => m.EstacionamentoFormComponent
+          )
+      }
+    ]
   },
   {
     path: 'transportadora',

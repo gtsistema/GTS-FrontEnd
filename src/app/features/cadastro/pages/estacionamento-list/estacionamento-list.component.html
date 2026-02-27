@@ -1,0 +1,65 @@
+<div class="page-container">
+  <div class="page-header">
+    <h1 class="page-title">Cadastro Estacionamento</h1>
+    <div class="header-actions">
+      <input
+        type="text"
+        class="search-input"
+        placeholder="Buscar por nome ou documento"
+        [(ngModel)]="busca"
+        (ngModelChange)="aplicarBusca()"
+      />
+      <a class="btn btn-primary" routerLink="/app/cadastro/estacionamento/novo">Novo</a>
+    </div>
+  </div>
+
+  <div class="page-content">
+    @if (erro) {
+      <p class="error-msg">{{ erro }}</p>
+    }
+    @if (loading) {
+      <p class="loading-msg">Carregando...</p>
+    } @else {
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Id</th>
+              <th>Descrição</th>
+              <th>Tipo</th>
+              <th>Nome / Razão Social</th>
+              <th>Documento</th>
+              <th>E-mail</th>
+              <th>Ativo</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of filtrados; track item.id) {
+              <tr>
+                <td>{{ item.id }}</td>
+                <td>{{ item.descricao }}</td>
+                <td>{{ tipoPessoaLabel(item.tipoPessoa) }}</td>
+                <td>{{ item.nomeRazaoSocial }}</td>
+                <td>{{ item.documento }}</td>
+                <td>{{ item.email }}</td>
+                <td>{{ item.ativo ? 'Sim' : 'Não' }}</td>
+                <td>
+                  <a
+                    class="btn-link"
+                    [routerLink]="['/app/cadastro/estacionamento/editar', item.id]"
+                  >
+                    Editar
+                  </a>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      @if (filtrados.length === 0 && !loading) {
+        <p class="empty-msg">Nenhum registro encontrado.</p>
+      }
+    }
+  </div>
+</div>
