@@ -1,4 +1,9 @@
-<aside class="sidebar" [class.collapsed]="isCollapsed()">
+<aside
+  class="sidebar"
+  [class.collapsed]="isCollapsed()"
+  [class.sidebar--mobile-open]="isMobile() && mobileOpen()"
+  [class.sidebar--mobile]="isMobile()"
+>
   <div class="sidebar-header">
     <h1 class="logo" [class.hidden]="isCollapsed()">GTSistema</h1>
     <button class="toggle-btn" (click)="toggleSidebar()" aria-label="Toggle sidebar">

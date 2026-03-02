@@ -2,6 +2,12 @@ import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 
 export type ThemeMode = 'dark' | 'light' | 'auto';
+
+/** Modos exibidos no switcher: apenas Dark e White (light). */
+export const THEME_SWITCHER_MODES: { value: ThemeMode; label: string }[] = [
+  { value: 'dark', label: 'Background Dark' },
+  { value: 'light', label: 'Background White' }
+];
 export type AccentColor = 'blue' | 'purple' | 'green' | 'orange';
 
 export interface ThemeConfig {

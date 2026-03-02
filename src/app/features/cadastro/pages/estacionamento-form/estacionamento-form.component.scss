@@ -1,33 +1,31 @@
-// ========== Tokens (escala 8/12/16/24/32)
+// ========== Tokens locais (espaçamento e dimensões); cores vêm do tema (styles.css)
 :host {
+  --space-4: 4px;
+  --space-6: 6px;
   --space-8: 8px;
+  --space-10: 10px;
   --space-12: 12px;
   --space-16: 16px;
+  --space-20: 20px;
   --space-24: 24px;
-  --space-32: 32px;
 
   --radius-sm: 10px;
   --radius-md: 12px;
   --radius-lg: 16px;
 
-  --input-height: 44px;
-  --input-padding-x: 14px;
-  --input-padding-y: 12px;
+  --input-height: 40px;
+  --input-padding-x: 12px;
 
-  --color-bg: rgba(255, 255, 255, 0.04);
-  --color-border: rgba(255, 255, 255, 0.08);
-  --color-text: rgba(255, 255, 255, 0.95);
-  --color-text-muted: rgba(255, 255, 255, 0.6);
-  --color-accent: #5b7cff;
-  --color-error: rgba(244, 67, 54, 0.9);
-  --color-focus-ring: rgba(91, 124, 255, 0.35);
+  --label-size: 0.8125rem;   /* ~13px */
+  --input-size: 0.9375rem;   /* ~15px */
 
-  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.12);
-  --max-width: 1480px;
-  --container-padding: 32px;
+  --max-width: 1160px;
+  --container-padding: 24px;
+  --card-padding: 20px;
+  --field-gap: 14px;
 }
 
-// ========== Page
+// ========== Page (compacto)
 .page {
   height: 100%;
   display: flex;
@@ -44,12 +42,12 @@
   justify-content: space-between;
   gap: var(--space-16);
   flex-wrap: wrap;
-  padding: var(--space-24) 0;
+  padding: var(--space-16) 0;
 }
 
 .header__title {
   margin: 0;
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   font-weight: 700;
   color: var(--color-text);
 }
@@ -83,8 +81,8 @@
 
 .loading,
 .error-banner {
-  margin: 0 0 var(--space-16) 0;
-  font-size: 0.9rem;
+  margin: 0 0 var(--space-12) 0;
+  font-size: var(--input-size);
   color: var(--color-text-muted);
 }
 
@@ -93,29 +91,28 @@
   padding: var(--space-12) var(--space-16);
   background: rgba(244, 67, 54, 0.08);
   border-radius: var(--radius-sm);
+  border: 1px solid rgba(244, 67, 54, 0.25);
 }
 
-// ========== Layout grid (12 colunas)
+// ========== Layout grid: 2 colunas desktop, 1 mobile; gap 20–24px
 .layout-grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: var(--space-24);
-  margin-bottom: var(--space-32);
+  gap: var(--space-20);
+  margin-bottom: var(--space-24);
   min-width: 0;
   overflow: visible;
 }
 
 @media (min-width: 1024px) {
   .layout-grid {
-    grid-template-columns: repeat(12, minmax(0, 1fr));
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-24);
   }
 
-  .card--span-5 {
-    grid-column: span 5;
-  }
-
+  .card--span-5,
   .card--span-7 {
-    grid-column: span 7;
+    grid-column: span 1;
   }
 }
 
@@ -126,51 +123,57 @@
   }
 }
 
+// ========== Cards: surface + borda sutil + sombra leve
 .card {
-  background: var(--color-bg);
-  border: 1px solid var(--color-border);
+  background: var(--surface, var(--color-bg));
+  border: 1px solid var(--border, var(--color-border));
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-card);
+  box-shadow: var(--shadow, 0 1px 3px rgba(0, 0, 0, 0.08));
   min-width: 0;
   overflow: visible;
 }
 
 .card__header {
-  padding: var(--space-24) var(--space-24) 0;
-  margin-bottom: var(--space-16);
+  padding: var(--card-padding) var(--card-padding) 0;
+  margin-bottom: var(--space-12);
 }
 
 .card__title {
-  margin: 0 0 var(--space-8) 0;
-  font-size: 1.05rem;
+  margin: 0 0 var(--space-4) 0;
+  font-size: 1rem;
   font-weight: 600;
   color: var(--color-text);
 }
 
 .card__description {
   margin: 0;
-  font-size: 0.8rem;
+  font-size: var(--label-size);
   color: var(--color-text-muted);
   line-height: 1.4;
 }
 
 .card__body {
-  padding: 0 var(--space-24) var(--space-24);
+  padding: 0 var(--card-padding) var(--card-padding);
 }
 
 .card__body .card__description {
-  margin-bottom: var(--space-24);
+  margin-bottom: var(--space-16);
 }
 
 .card__subtitle {
-  margin: var(--space-24) 0 var(--space-12) 0;
-  font-size: 0.9rem;
+  margin: var(--space-16) 0 var(--space-8) 0;
+  font-size: var(--label-size);
   font-weight: 600;
   color: var(--color-text-muted);
 }
 
 .card__subtitle:first-child {
   margin-top: 0;
+}
+
+.card > .card__subtitle {
+  padding-left: var(--card-padding);
+  padding-right: var(--card-padding);
 }
 
 .card__badge {
@@ -180,13 +183,13 @@
   margin-left: var(--space-8);
 }
 
-// Accordion
+// Accordion (Dados complementares – colapsado por padrão)
 .card--accordion .card__trigger {
   width: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-24);
+  padding: var(--space-16) var(--card-padding);
   border: none;
   background: transparent;
   color: var(--color-text);
@@ -197,7 +200,7 @@
 }
 
 .card--accordion .card__trigger:hover {
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--surface-2, rgba(255, 255, 255, 0.03));
 }
 
 .card__trigger .card__title {
@@ -211,15 +214,53 @@
 
 .card--accordion .card__body {
   border-top: 1px solid var(--color-border);
-  padding-top: var(--space-24);
+  padding-top: var(--space-16);
 }
 
-// ========== Form grid
-.form-grid {
+// Valores + Localização (dentro do accordion)
+.valores-local-row {
   display: grid;
   grid-template-columns: 1fr;
   gap: var(--space-16);
-  padding: 0 var(--space-24) var(--space-24);
+  margin-bottom: 0;
+}
+
+@media (min-width: 768px) {
+  .valores-local-row {
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+}
+
+.valores-local-col .card__subtitle {
+  margin-top: 0;
+}
+
+.valores-local-col .form-grid {
+  padding-bottom: 0;
+}
+
+.form-grid--compact {
+  gap: var(--field-gap);
+  padding-bottom: 0;
+}
+
+@media (min-width: 768px) {
+  .form-grid--compact {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.field--compact .field__input {
+  max-width: 160px;
+}
+
+// ========== Form grid: gap 12–16px, padding card
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--field-gap);
+  padding: 0 var(--card-padding) var(--card-padding);
   min-width: 0;
   overflow: visible;
 }
@@ -231,7 +272,7 @@
 @media (min-width: 1024px) {
   .form-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: var(--space-16) var(--space-24);
+    gap: var(--field-gap) var(--space-20);
   }
 }
 
@@ -260,13 +301,13 @@
 // ========== Field
 .field {
   min-width: 0;
-  overflow: visible; // evita recorte de autocomplete/dropdown
+  overflow: visible;
 }
 
 .field__label {
   display: block;
-  margin-bottom: var(--space-8);
-  font-size: 0.85rem;
+  margin-bottom: var(--space-6);
+  font-size: var(--label-size);
   font-weight: 500;
   color: var(--color-text-muted);
 }
@@ -283,37 +324,50 @@
   margin-right: var(--space-8);
 }
 
+// Inputs: SEMPRE visíveis (fundo + borda + texto + placeholder por tema)
 .field__input,
 select.field__input {
   width: 100%;
   min-width: 0;
   height: var(--input-height);
   padding: 0 var(--input-padding-x);
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--input-border, var(--color-border));
   border-radius: var(--radius-md);
-  background: rgba(10, 14, 28, 0.5);
-  color: var(--color-text);
-  font-size: 0.9rem;
+  background: var(--input-bg);
+  color: var(--input-text, var(--color-text));
+  font-size: var(--input-size);
   box-sizing: border-box;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
 }
 
 .field__input::placeholder {
-  color: var(--color-text-muted);
-  opacity: 0.8;
+  color: var(--input-placeholder, var(--color-text-muted));
+  opacity: 1;
+}
+
+.field__input:hover,
+select.field__input:hover {
+  border-color: var(--input-border, var(--color-border));
 }
 
 .field__input:focus,
 select.field__input:focus {
   outline: none;
-  border-color: var(--color-accent);
-  box-shadow: 0 0 0 3px var(--color-focus-ring);
+  border-color: var(--focus, #5b7cff);
+  box-shadow: 0 0 0 3px var(--focus-ring, rgba(91, 124, 255, 0.25));
+}
+
+.field__input:disabled,
+select.field__input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: var(--surface-2, rgba(0, 0, 0, 0.05));
 }
 
 .field__error {
   display: block;
-  margin-top: var(--space-8);
-  font-size: 0.8rem;
+  margin-top: var(--space-6);
+  font-size: 0.75rem;
   color: var(--color-error);
   line-height: 1.3;
 }
@@ -322,20 +376,67 @@ select.field__input:focus {
   color: var(--color-error);
 }
 
-// Inline (checkbox row)
-.field--inline {
+// File upload
+.file-upload {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
+  gap: var(--space-12);
 }
 
+.file-upload__input {
+  position: absolute;
+  width: 0.1px;
+  height: 0.1px;
+  opacity: 0;
+  overflow: hidden;
+  z-index: -1;
+}
+
+.file-upload__btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 var(--input-padding-x);
+  height: var(--input-height);
+  border: 1px solid var(--input-border, var(--color-border));
+  border-radius: var(--radius-md);
+  background: var(--input-bg);
+  color: var(--input-text, var(--color-text));
+  font-size: var(--input-size);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.file-upload__btn:hover {
+  border-color: var(--focus, #5b7cff);
+  background: var(--surface-2, rgba(91, 124, 255, 0.08));
+}
+
+.file-upload__remove {
+  padding: 0 var(--space-12);
+  height: var(--input-height);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: var(--label-size);
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.file-upload__remove:hover {
+  color: var(--color-error);
+  border-color: rgba(244, 67, 54, 0.4);
+}
+
+.field--inline,
 .field--switches {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-16);
+  gap: var(--space-12);
   align-items: center;
 }
 
-// Input with prefix/suffix
 .field__input-wrap {
   display: inline-flex;
   align-items: center;
@@ -351,16 +452,15 @@ select.field__input:focus {
 
 .field__prefix,
 .field__suffix {
-  font-size: 0.9rem;
+  font-size: var(--input-size);
   color: var(--color-text-muted);
 }
 
-// Segmented control (Taxa / Mensalidade)
 .segmented {
   display: inline-flex;
   gap: 0;
   padding: 2px;
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--surface-2, rgba(255, 255, 255, 0.06));
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   margin-bottom: var(--space-8);
@@ -369,8 +469,8 @@ select.field__input:focus {
 .segmented__item {
   display: inline-flex;
   align-items: center;
-  padding: var(--space-8) var(--space-16);
-  font-size: 0.85rem;
+  padding: var(--space-8) var(--space-12);
+  font-size: var(--label-size);
   color: var(--color-text-muted);
   cursor: pointer;
   border-radius: 8px;
@@ -383,15 +483,15 @@ select.field__input:focus {
 
 .segmented__item:has(input:checked) {
   background: rgba(91, 124, 255, 0.15);
-  color: var(--color-accent);
+  color: #5b7cff;
 }
 
 // ========== Buttons
 .btn {
-  padding: var(--space-12) var(--space-24);
+  padding: var(--space-10) var(--space-20);
   border-radius: var(--radius-md);
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: var(--input-size);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -401,7 +501,7 @@ select.field__input:focus {
 }
 
 .btn--primary {
-  background: var(--color-accent);
+  background: #5b7cff;
   color: #fff;
 }
 
@@ -416,7 +516,7 @@ select.field__input:focus {
 }
 
 .btn--secondary:hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--surface-2, rgba(255, 255, 255, 0.06));
 }
 
 .btn:disabled {
@@ -424,24 +524,24 @@ select.field__input:focus {
   cursor: not-allowed;
 }
 
-// ========== Actions (footer)
+// ========== Actions (footer compacto)
 .actions {
   display: flex;
   justify-content: flex-end;
-  gap: var(--space-16);
-  padding-top: var(--space-32);
-  margin-top: var(--space-8);
+  gap: var(--space-12);
+  padding-top: var(--space-24);
+  margin-top: 0;
   border-top: 1px solid var(--color-border);
 }
 
 // ========== Responsive
 @media (max-width: 640px) {
   :host {
-    --container-padding: 24px;
+    --container-padding: 16px;
   }
 
   .header__inner {
-    padding: var(--space-16) 0;
+    padding: var(--space-12) 0;
   }
 
   .card__header,
@@ -454,6 +554,11 @@ select.field__input:focus {
     padding-left: var(--space-16);
     padding-right: var(--space-16);
     padding-bottom: var(--space-16);
+  }
+
+  .card > .card__subtitle {
+    padding-left: var(--space-16);
+    padding-right: var(--space-16);
   }
 
   .card__body {

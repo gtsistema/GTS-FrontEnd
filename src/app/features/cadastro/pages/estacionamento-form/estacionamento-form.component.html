@@ -43,6 +43,32 @@
                 }
               </div>
             </div>
+            <h3 class="card__subtitle">Contrato</h3>
+            <div class="form-grid">
+              <div class="field field--full">
+                <label class="field__label">Anexar PDF (contrato)</label>
+                <div class="file-upload">
+                  <input
+                    type="file"
+                    class="file-upload__input"
+                    accept=".pdf,application/pdf"
+                    (change)="onContratoPdfChange($event)"
+                    #contratoPdfInput
+                  />
+                  <button type="button" class="file-upload__btn" (click)="contratoPdfInput.click()">
+                    {{ contratoPdf ? contratoPdf.name : 'Selecionar PDF' }}
+                  </button>
+                  @if (contratoPdf) {
+                    <button type="button" class="file-upload__remove" (click)="removerContratoPdf(); contratoPdfInput.value = ''" aria-label="Remover PDF">
+                      Remover
+                    </button>
+                  }
+                </div>
+                @if (contratoPdfError) {
+                  <span class="field__error">{{ contratoPdfError }}</span>
+                }
+              </div>
+            </div>
           </section>
 
             <section class="card card--span-7" formGroupName="pessoa">
@@ -156,52 +182,49 @@
                 </div>
               </div>
 
-              <h3 class="card__subtitle">Valores</h3>
-              <div class="form-grid">
-                <div class="field field--full">
-                  <label class="field__label">Taxa ou Mensalidade</label>
-                  <div class="segmented">
-                    <label class="segmented__item">
-                      <input type="radio" formControlName="tipoTaxaMensalidade" [value]="'taxa'" />
-                      Taxa (%)
-                    </label>
-                    <label class="segmented__item">
-                      <input type="radio" formControlName="tipoTaxaMensalidade" [value]="'mensalidade'" />
-                      Mensalidade (R$)
-                    </label>
+              <div class="valores-local-row">
+                <div class="valores-local-col">
+                  <h3 class="card__subtitle">Valores</h3>
+                  <div class="form-grid form-grid--compact">
+                    <div class="field">
+                      <label class="field__label">Taxa ou Mensalidade</label>
+                      <div class="segmented">
+                        <label class="segmented__item">
+                          <input type="radio" formControlName="tipoTaxaMensalidade" [value]="'taxa'" />
+                          Taxa (%)
+                        </label>
+                        <label class="segmented__item">
+                          <input type="radio" formControlName="tipoTaxaMensalidade" [value]="'mensalidade'" />
+                          Mensalidade (R$)
+                        </label>
+                      </div>
+                      @if (isTaxa) {
+                        <div class="field__input-wrap">
+                          <input id="taxaPercentual" class="field__input" type="number" formControlName="taxaPercentual" min="0" max="100" step="0.01" placeholder="0" />
+                          <span class="field__suffix">%</span>
+                        </div>
+                      }
+                      @if (isMensalidade) {
+                        <div class="field__input-wrap">
+                          <span class="field__prefix">R$</span>
+                          <input id="mensalidadeValor" class="field__input" type="number" formControlName="mensalidadeValor" min="0" step="0.01" placeholder="0,00" />
+                        </div>
+                      }
+                    </div>
                   </div>
-                  @if (isTaxa) {
-                    <div class="field__input-wrap">
-                      <input id="taxaPercentual" class="field__input" type="number" formControlName="taxaPercentual" min="0" max="100" step="0.01" placeholder="0" />
-                      <span class="field__suffix">%</span>
+                </div>
+                <div class="valores-local-col">
+                  <h3 class="card__subtitle">Localização</h3>
+                  <div class="form-grid form-grid--compact">
+                    <div class="field field--compact">
+                      <label class="field__label" for="latitude">Latitude</label>
+                      <input id="latitude" class="field__input" type="number" formControlName="latitude" step="any" placeholder="Ex: -23.55" />
                     </div>
-                  }
-                  @if (isMensalidade) {
-                    <div class="field__input-wrap">
-                      <span class="field__prefix">R$</span>
-                      <input id="mensalidadeValor" class="field__input" type="number" formControlName="mensalidadeValor" min="0" step="0.01" placeholder="0,00" />
+                    <div class="field field--compact">
+                      <label class="field__label" for="longitude">Longitude</label>
+                      <input id="longitude" class="field__input" type="number" formControlName="longitude" step="any" placeholder="Ex: -46.63" />
                     </div>
-                  }
-                </div>
-              </div>
-
-              <h3 class="card__subtitle">Contrato</h3>
-              <div class="form-grid">
-                <div class="field field--full">
-                  <label class="field__label" for="contrato">Contrato</label>
-                  <input id="contrato" class="field__input" type="text" formControlName="contrato" placeholder="Número / texto e datas" />
-                </div>
-              </div>
-
-              <h3 class="card__subtitle">Localização</h3>
-              <div class="form-grid">
-                <div class="field">
-                  <label class="field__label" for="latitude">Latitude</label>
-                  <input id="latitude" class="field__input" type="number" formControlName="latitude" step="any" />
-                </div>
-                <div class="field">
-                  <label class="field__label" for="longitude">Longitude</label>
-                  <input id="longitude" class="field__input" type="number" formControlName="longitude" step="any" />
+                  </div>
                 </div>
               </div>
             </div>

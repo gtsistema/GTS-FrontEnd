@@ -27,6 +27,9 @@ export class EstacionamentoFormComponent implements OnInit {
   erro: string | null = null;
   /** Accordion "Dados complementares": inicia fechado. */
   complementaresOpen = false;
+  /** PDF do contrato anexado (não enviado na API atual; preparado para integração futura). */
+  contratoPdf: File | null = null;
+  contratoPdfError: string | null = null;
 
   constructor(
     private fb: FormBuilder,
@@ -153,6 +156,30 @@ export class EstacionamentoFormComponent implements OnInit {
 
   toggleComplementares(): void {
     this.complementaresOpen = !this.complementaresOpen;
+  }
+
+  onContratoPdfChange(event: Event): void {
+    this.contratoPdfError = null;
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    if (file.type !== 'application/pdf') {
+      this.contratoPdfError = 'Apenas arquivos PDF são aceitos.';
+      input.value = '';
+      return;
+    }
+    const maxMb = 10;
+    if (file.size > maxMb * 1024 * 1024) {
+      this.contratoPdfError = `O arquivo deve ter no máximo ${maxMb} MB.`;
+      input.value = '';
+      return;
+    }
+    this.contratoPdf = file;
+  }
+
+  removerContratoPdf(): void {
+    this.contratoPdf = null;
+    this.contratoPdfError = null;
   }
 
   get documentoErrorMessage(): string | null {

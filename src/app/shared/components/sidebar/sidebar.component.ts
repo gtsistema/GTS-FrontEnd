@@ -1,4 +1,4 @@
-import { Component, OnInit, output, signal } from '@angular/core';
+import { Component, OnInit, output, signal, input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
@@ -23,6 +23,10 @@ interface MenuItem {
   styleUrls: ['./sidebar.component.scss']
 })
 export class SidebarComponent implements OnInit {
+  mobileOpen = input<boolean>(false);
+  isMobile = input<boolean>(false);
+  closeMobile = output<void>();
+
   isCollapsed = signal(false);
   collapsedChange = output<boolean>();
   currentRoute = '';
@@ -66,6 +70,10 @@ export class SidebarComponent implements OnInit {
   }
 
   toggleSidebar() {
+    if (this.isMobile() && this.mobileOpen()) {
+      this.closeMobile.emit();
+      return;
+    }
     const next = !this.isCollapsed();
     this.isCollapsed.set(next);
     this.collapsedChange.emit(next);
