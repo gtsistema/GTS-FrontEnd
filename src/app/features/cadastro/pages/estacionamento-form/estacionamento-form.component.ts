@@ -109,6 +109,10 @@ export class EstacionamentoFormComponent implements OnInit {
             this.form.patchValue({ pessoa: { documento: formatCnpj(String(doc)) } });
           }
           this.atualizarValidadoresDocumento();
+          if (dto.responsavelLegalNome || dto.responsavelLegalCpf || dto.contatoTelefone ||
+              dto.capacidadeVeiculos != null || dto.tamanho || dto.tipoTaxaMensalidade) {
+            this.complementaresOpen = true;
+          }
         } else {
           this.erro = 'Registro não encontrado.';
         }
@@ -138,7 +142,10 @@ export class EstacionamentoFormComponent implements OnInit {
     };
     this.salvando = true;
     this.erro = null;
-    this.estacionamentoService.gravar(dto).subscribe({
+    const request$ = this.id
+      ? this.estacionamentoService.alterar(dto)
+      : this.estacionamentoService.gravar(dto);
+    request$.subscribe({
       next: () => {
         this.salvando = false;
         this.router.navigate(['/app/cadastro/estacionamento']);

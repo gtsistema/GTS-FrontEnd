@@ -1,6 +1,5 @@
 :host {
   --accent: #5b7cff;
-  --text: rgba(255, 255, 255, 0.95);
 }
 
 .modal-overlay {
@@ -27,15 +26,16 @@
 }
 
 .modal-content {
-  background: rgba(10, 14, 28, 0.95);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
   border-radius: 16px;
   padding: 2rem;
   max-width: 400px;
   width: 90%;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--shadow);
   backdrop-filter: blur(18px);
   animation: slideUp 0.3s ease;
+  color: var(--text-primary);
 }
 
 @keyframes slideUp {
@@ -51,14 +51,14 @@
 
 .modal-header {
   margin-bottom: 1.5rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid var(--card-border);
   padding-bottom: 1rem;
 }
 
 .modal-header h2 {
   margin: 0;
   font-size: 1.5rem;
-  color: var(--text);
+  color: var(--text-primary);
   font-weight: 600;
 }
 
@@ -68,7 +68,7 @@
 
 .modal-body p {
   margin: 0;
-  color: rgba(255, 255, 255, 0.72);
+  color: var(--text-muted);
   font-size: 1rem;
   line-height: 1.5;
 }

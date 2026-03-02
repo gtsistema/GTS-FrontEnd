@@ -1,0 +1,7 @@
+{
+  "/api": {
+    "target": "https://gtsbackend.azurewebsites.net",
+    "secure": true,
+    "changeOrigin": true
+  }
+}

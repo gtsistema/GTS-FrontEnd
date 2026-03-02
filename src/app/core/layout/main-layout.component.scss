@@ -62,7 +62,7 @@
   transition: background 0.2s ease, color 0.2s ease;
 
   &:hover {
-    background: rgba(255, 255, 255, 0.08);
+    background: var(--topbar-btn-hover);
     color: var(--accent, #5b7cff);
   }
 

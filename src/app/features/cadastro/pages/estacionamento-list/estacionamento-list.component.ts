@@ -5,6 +5,8 @@ import { FormsModule } from '@angular/forms';
 import { EstacionamentoService } from '../../services/estacionamento.service';
 import { EstacionamentoListItemDTO, TipoPessoa } from '../../models/estacionamento.dto';
 
+const TAMANHO_PAGINA = 50;
+
 @Component({
   selector: 'app-estacionamento-list',
   standalone: true,
@@ -14,12 +16,19 @@ import { EstacionamentoListItemDTO, TipoPessoa } from '../../models/estacionamen
 })
 export class EstacionamentoListComponent implements OnInit {
   itens: EstacionamentoListItemDTO[] = [];
-  filtrados: EstacionamentoListItemDTO[] = [];
   busca = '';
   loading = true;
   erro: string | null = null;
+  numeroPagina = 1;
+  totalCount = 0;
+  tamanhoPagina = TAMANHO_PAGINA;
 
   constructor(private estacionamentoService: EstacionamentoService) {}
+
+  get totalPaginas(): number {
+    if (this.tamanhoPagina <= 0) return 0;
+    return Math.max(1, Math.ceil(this.totalCount / this.tamanhoPagina));
+  }
 
   ngOnInit(): void {
     this.carregar();
@@ -28,30 +37,37 @@ export class EstacionamentoListComponent implements OnInit {
   carregar(): void {
     this.loading = true;
     this.erro = null;
-    this.estacionamentoService.listar().subscribe({
-      next: (lista) => {
-        this.itens = lista;
-        this.aplicarBusca();
-        this.loading = false;
-      },
-      error: () => {
-        this.erro = 'Erro ao carregar a lista.';
-        this.loading = false;
-      }
-    });
+    this.estacionamentoService
+      .buscar({
+        NumeroPagina: this.numeroPagina,
+        TamanhoPagina: this.tamanhoPagina,
+        ...(this.busca.trim() ? { Descricao: this.busca.trim() } : {})
+      })
+      .subscribe({
+        next: (paged) => {
+          this.itens = paged.items;
+          this.totalCount = paged.totalCount;
+          this.numeroPagina = paged.numeroPagina;
+          this.tamanhoPagina = paged.tamanhoPagina;
+          this.loading = false;
+        },
+        error: () => {
+          this.erro = 'Erro ao carregar a lista.';
+          this.loading = false;
+        }
+      });
   }
 
-  aplicarBusca(): void {
-    const q = this.busca.trim().toLowerCase();
-    if (!q) {
-      this.filtrados = [...this.itens];
-      return;
-    }
-    this.filtrados = this.itens.filter(
-      (x) =>
-        (x.nomeRazaoSocial && x.nomeRazaoSocial.toLowerCase().includes(q)) ||
-        (x.documento && x.documento.replace(/\D/g, '').includes(q.replace(/\D/g, '')))
-    );
+  buscar(): void {
+    this.numeroPagina = 1;
+    this.carregar();
+  }
+
+  irParaPagina(pagina: number): void {
+    const p = Math.max(1, Math.min(pagina, this.totalPaginas));
+    if (p === this.numeroPagina) return;
+    this.numeroPagina = p;
+    this.carregar();
   }
 
   tipoPessoaLabel(tipo: TipoPessoa): string {

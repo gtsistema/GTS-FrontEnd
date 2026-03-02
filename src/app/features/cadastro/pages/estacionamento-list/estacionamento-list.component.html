@@ -1,14 +1,14 @@
 <div class="page-container">
   <div class="page-header">
-    <h1 class="page-title">Cadastro Estacionamento</h1>
     <div class="header-actions">
       <input
         type="text"
         class="search-input"
         placeholder="Buscar por nome ou documento"
         [(ngModel)]="busca"
-        (ngModelChange)="aplicarBusca()"
+        (keyup.enter)="buscar()"
       />
+      <button type="button" class="btn btn-secondary" (click)="buscar()">Buscar</button>
       <a class="btn btn-primary" routerLink="/app/cadastro/estacionamento/novo">Novo</a>
     </div>
   </div>
@@ -35,7 +35,7 @@
             </tr>
           </thead>
           <tbody>
-            @for (item of filtrados; track item.id) {
+            @for (item of itens; track item.id) {
               <tr>
                 <td>{{ item.id }}</td>
                 <td>{{ item.descricao }}</td>
@@ -57,8 +57,33 @@
           </tbody>
         </table>
       </div>
-      @if (filtrados.length === 0 && !loading) {
+      @if (itens.length === 0 && !loading) {
         <p class="empty-msg">Nenhum registro encontrado.</p>
+      }
+      @if (totalPaginas > 1 && itens.length > 0) {
+        <nav class="paginacao" aria-label="Paginação">
+          <span class="paginacao__info">
+            Página {{ numeroPagina }} de {{ totalPaginas }} ({{ totalCount }} registro(s))
+          </span>
+          <div class="paginacao__btns">
+            <button
+              type="button"
+              class="btn btn-secondary btn--sm"
+              [disabled]="numeroPagina <= 1"
+              (click)="irParaPagina(numeroPagina - 1)"
+            >
+              Anterior
+            </button>
+            <button
+              type="button"
+              class="btn btn-secondary btn--sm"
+              [disabled]="numeroPagina >= totalPaginas"
+              (click)="irParaPagina(numeroPagina + 1)"
+            >
+              Próxima
+            </button>
+          </div>
+        </nav>
       }
     }
   </div>

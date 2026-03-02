@@ -1,10 +1,14 @@
 import { Component } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { RouterOutlet } from '@angular/router';
 
 @Component({
   selector: 'app-estacionamento-layout',
   standalone: true,
-  imports: [RouterOutlet],
-  template: '<router-outlet></router-outlet>'
+  imports: [CommonModule, RouterOutlet],
+  templateUrl: './estacionamento-layout.component.html',
+  styleUrls: ['./estacionamento-layout.component.scss']
 })
-export class EstacionamentoLayoutComponent {}
+export class EstacionamentoLayoutComponent {
+  activeTab: 'estacionamentos' | 'usuarios' = 'estacionamentos';
+}

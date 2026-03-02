@@ -28,3 +28,85 @@ export interface EstacionamentoListItemDTO {
   email: string;
   ativo: boolean;
 }
+
+/** Endereço retornado em ObterPorId (pessoa.enderecos) */
+export interface EnderecoDTO {
+  pessoaId: number;
+  principal: boolean;
+  tipoEndereco: number;
+  cep: string;
+  logradouro: string;
+  numero: string;
+  complemento: string;
+  bairro: string;
+  cidade: string;
+  estado: string;
+}
+
+/** Contato retornado em ObterPorId (pessoa.contatos) */
+export interface ContatoDTO {
+  pessoaId: number;
+  principal: boolean;
+  tipoContato: number;
+  numero: string;
+  observacao: string;
+}
+
+/** Pessoa aninhada no resultado de ObterPorId */
+export interface PessoaObterPorIdDTO {
+  tipoPessoa: TipoPessoa;
+  nomeRazaoSocial: string;
+  nomeFantasia: string;
+  documento: string;
+  email: string;
+  ativo: boolean;
+  enderecos?: EnderecoDTO[];
+  contatos?: ContatoDTO[];
+  id: number;
+  dataCriacao: string;
+  dataAtualizacao: string | null;
+}
+
+/** Resultado bruto de GET /api/Estacionamento/ObterPorId/:id (campo result) */
+export interface EstacionamentoObterPorIdResultDTO {
+  pessoaId: number;
+  capacidadeVeiculo: number;
+  tamanhoTerreno: string;
+  resposanvelLegal: string;
+  responsavelCpf: string;
+  possuiSeguranca: boolean;
+  possuiBanheiro: boolean;
+  tipoCobranca: number;
+  cobrancaPorcentagem: number;
+  cobrancaValor: number;
+  pessoa: PessoaObterPorIdDTO;
+  id: number;
+  dataCriacao: string;
+  dataAtualizacao: string | null;
+}
+
+/** Resposta da API (wrapper success / result) */
+export interface ApiResponseDTO<T> {
+  success: boolean;
+  message: string;
+  result: T;
+}
+
+/** Parâmetros para GET /api/Estacionamento/Buscar (Swagger) */
+export interface EstacionamentoBuscarParams {
+  Descricao?: string;
+  DataInicial?: string;
+  DataFinal?: string;
+  NumeroPagina: number;
+  TamanhoPagina: number;
+  Propriedade?: string;
+  Sort?: string;
+}
+
+/** Resultado paginado (backend pode retornar result como array ou como este objeto) */
+export interface PagedResultDTO<T> {
+  items: T[];
+  totalCount: number;
+  numeroPagina: number;
+  tamanhoPagina: number;
+}
