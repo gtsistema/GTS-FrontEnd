@@ -1,27 +1,43 @@
 <div class="page-container">
-  <div class="page-header">
-    <h1 class="page-title">Cadastro Estacionamento</h1>
-    <nav class="tabs" role="tablist">
-      <button
-        type="button"
-        class="tab"
-        role="tab"
-        [class.tab--active]="activeTab === 'estacionamentos'"
-        (click)="activeTab = 'estacionamentos'"
-      >
-        Estacionamentos Cadastrados
-      </button>
-      <button
-        type="button"
-        class="tab"
-        role="tab"
-        [class.tab--active]="activeTab === 'usuarios'"
-        (click)="activeTab = 'usuarios'"
-      >
-        Usuários
-      </button>
-    </nav>
-  </div>
+  <header class="page-header">
+    <div class="page-header__row page-header__row--1">
+      <h1 class="page-title">Cadastro Estacionamento</h1>
+    </div>
+    <div class="page-header__row page-header__row--2">
+      <nav class="tabs" role="tablist">
+        <button
+          type="button"
+          class="tab"
+          role="tab"
+          [class.tab--active]="activeTab === 'estacionamentos'"
+          (click)="activeTab = 'estacionamentos'"
+        >
+          Estacionamentos Cadastrados
+        </button>
+        <button
+          type="button"
+          class="tab"
+          role="tab"
+          [class.tab--active]="activeTab === 'usuarios'"
+          (click)="activeTab = 'usuarios'"
+        >
+          Usuários
+        </button>
+      </nav>
+      <div class="page-header__actions">
+        <input
+          type="text"
+          class="search-input input-control"
+          placeholder="Pesquise"
+          [ngModel]="toolbar.searchTerm()"
+          (ngModelChange)="toolbar.setSearchTerm($event)"
+          (keyup.enter)="onBuscar()"
+        />
+        <button type="button" class="btn btn-secondary" (click)="onBuscar()">Buscar</button>
+        <a class="btn btn-primary" routerLink="/app/cadastro/estacionamento/novo">Novo</a>
+      </div>
+    </div>
+  </header>
 
   <div class="page-content">
     @if (activeTab === 'usuarios') {

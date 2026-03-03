@@ -1,8 +1,10 @@
-import { Component } from '@angular/core';
+import { ChangeDetectorRef, Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators, FormGroup } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { finalize } from 'rxjs';
 import { AuthService } from '../../../../core/services/auth.service';
+import { ToastService } from '../../../../core/api/services/toast.service';
 
 @Component({
   selector: 'app-login-page',
@@ -13,24 +15,18 @@ import { AuthService } from '../../../../core/services/auth.service';
 })
 export class LoginPageComponent {
   readonly form: FormGroup;
-  loginError: string | null = null;
   loading = false;
 
   constructor(
     private fb: FormBuilder,
     private router: Router,
-    private authService: AuthService
+    private authService: AuthService,
+    private toast: ToastService,
+    private cdr: ChangeDetectorRef
   ) {
     this.form = this.fb.group({
       username: ['', [Validators.required, Validators.minLength(3)]],
       password: ['', [Validators.required, Validators.minLength(5)]],
-    });
-
-    // Limpar mensagem de erro quando usuário digita
-    this.form.valueChanges.subscribe(() => {
-      if (this.loginError) {
-        this.loginError = null;
-      }
     });
   }
 
@@ -49,21 +45,26 @@ export class LoginPageComponent {
     }
 
     const { username, password } = this.form.value;
-    this.loginError = null;
     this.loading = true;
 
-    this.authService.login(username, password).subscribe({
-      next: (success) => {
+    this.authService.login(username, password).pipe(
+      finalize(() => {
         this.loading = false;
-        if (success) {
+        this.cdr.detectChanges();
+      })
+    ).subscribe({
+      next: (result) => {
+        if (result.success) {
+          this.toast.success('Login realizado com sucesso.');
           this.router.navigate(['/app/dashboard']);
         } else {
-          this.loginError = 'Usuário ou senha inválidos.';
+          this.toast.error(result.message);
+          this.cdr.detectChanges();
         }
       },
       error: () => {
-        this.loading = false;
-        this.loginError = 'Erro ao conectar. Tente novamente.';
+        this.toast.error('Erro ao conectar. Tente novamente.');
+        this.cdr.detectChanges();
       }
     });
   }

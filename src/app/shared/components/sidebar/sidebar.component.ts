@@ -1,4 +1,4 @@
-import { Component, OnInit, output, signal, input } from '@angular/core';
+import { Component, OnInit, output, input, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
@@ -23,12 +23,14 @@ interface MenuItem {
   styleUrls: ['./sidebar.component.scss']
 })
 export class SidebarComponent implements OnInit {
+  /** Controlado pelo MainLayout (hamburger na topbar). */
+  collapsed = input<boolean>(false);
   mobileOpen = input<boolean>(false);
   isMobile = input<boolean>(false);
   closeMobile = output<void>();
-
-  isCollapsed = signal(false);
   collapsedChange = output<boolean>();
+
+  isCollapsed = computed(() => this.collapsed());
   currentRoute = '';
   cadastroExpanded = signal(false);
 
@@ -69,14 +71,15 @@ export class SidebarComponent implements OnInit {
     this.cadastroExpanded.set(!this.cadastroExpanded());
   }
 
-  toggleSidebar() {
-    if (this.isMobile() && this.mobileOpen()) {
-      this.closeMobile.emit();
-      return;
+  /** Botão hambúrguer no header da sidebar: no mobile fecha o drawer; no desktop alterna expandida/recolhida. */
+  onToggleClick(): void {
+    if (this.isMobile()) {
+      if (this.mobileOpen()) {
+        this.closeMobile.emit();
+      }
+    } else {
+      this.collapsedChange.emit(!this.isCollapsed());
     }
-    const next = !this.isCollapsed();
-    this.isCollapsed.set(next);
-    this.collapsedChange.emit(next);
   }
 
   isActive(route: string): boolean {

@@ -4,13 +4,18 @@
   [class.sidebar--mobile-open]="isMobile() && mobileOpen()"
   [class.sidebar--mobile]="isMobile()"
 >
-  <div class="sidebar-header">
-    <h1 class="logo" [class.hidden]="isCollapsed()">GTSistema</h1>
-    <button class="toggle-btn" (click)="toggleSidebar()" aria-label="Toggle sidebar">
-      <span class="material-symbols-outlined icon">menu</span>
+  <header class="sidebar-header">
+    <span class="sidebar-header__logo" [class.sidebar-header__logo--hidden]="isCollapsed()">GTSistema</span>
+    <button
+      type="button"
+      class="sidebar-header__toggle"
+      (click)="onToggleClick()"
+      [attr.aria-label]="isCollapsed() ? 'Expandir menu' : 'Recolher menu'"
+      [attr.aria-expanded]="!isCollapsed()"
+    >
+      <span class="material-symbols-outlined" aria-hidden="true">menu</span>
     </button>
-  </div>
-
+  </header>
   <nav class="sidebar-nav">
     <ul class="menu">
       <li *ngFor="let item of menuItems">

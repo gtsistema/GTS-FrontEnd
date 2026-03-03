@@ -1,19 +1,4 @@
-<div class="page-container">
-  <div class="page-header">
-    <div class="header-actions">
-      <input
-        type="text"
-        class="search-input"
-        placeholder="Buscar por nome ou documento"
-        [(ngModel)]="busca"
-        (keyup.enter)="buscar()"
-      />
-      <button type="button" class="btn btn-secondary" (click)="buscar()">Buscar</button>
-      <a class="btn btn-primary" routerLink="/app/cadastro/estacionamento/novo">Novo</a>
-    </div>
-  </div>
-
-  <div class="page-content">
+<div class="page-content">
     @if (erro) {
       <p class="error-msg">{{ erro }}</p>
     }
@@ -41,7 +26,7 @@
                 <td>{{ item.descricao }}</td>
                 <td>{{ tipoPessoaLabel(item.tipoPessoa) }}</td>
                 <td>{{ item.nomeRazaoSocial }}</td>
-                <td>{{ item.documento }}</td>
+                <td>{{ formatDocumento(item) }}</td>
                 <td>{{ item.email }}</td>
                 <td>{{ item.ativo ? 'Sim' : 'Não' }}</td>
                 <td>
@@ -87,4 +72,3 @@
       }
     }
   </div>
-</div>

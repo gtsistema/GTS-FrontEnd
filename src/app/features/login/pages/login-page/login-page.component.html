@@ -5,7 +5,6 @@
     </div>
 
     <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate class="form">
-      <div *ngIf="loginError" class="error global-error"><small>{{ loginError }}</small></div>
       <div class="field">
         <label for="username">Usuário</label>
         <input

@@ -10,10 +10,23 @@ html, body {
   -webkit-overflow-scrolling: touch;
 }
 
+/* ========== Container global (alinhamento topbar + conteúdo) ========== */
+:root {
+  --content-max-width: 1360px;
+  --content-padding: 24px;
+  --content-padding-mobile: 16px;
+  --topbar-height: 56px;
+}
+
+@media (max-width: 768px) {
+  :root {
+    --content-padding: var(--content-padding-mobile);
+  }
+}
+
 /* ========== Tema: Background Dark ========== */
 html.theme-dark body {
-  background: radial-gradient(1200px 400px at 10% 10%, rgba(91, 124, 255, 0.08), transparent 10%),
-    linear-gradient(180deg, #151d32 0%, #1a2742 100%);
+  background: #151d32;
   color: rgba(255, 255, 255, 0.95);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -44,14 +57,17 @@ html.theme-dark {
   --text: rgba(255, 255, 255, 0.95);
   --muted: rgba(255, 255, 255, 0.6);
   --border: rgba(255, 255, 255, 0.12);
-  --shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --primary: #5b7cff;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.1);
 
-  --input-bg: rgba(28, 36, 58, 0.9);
-  --input-border: rgba(91, 124, 255, 0.35);
+  --input-bg: rgba(28, 36, 58, 0.95);
+  --input-border: rgba(255, 255, 255, 0.15);
   --input-text: rgba(255, 255, 255, 0.95);
-  --input-placeholder: rgba(255, 255, 255, 0.45);
-  --focus: rgba(91, 124, 255, 0.6);
-  --focus-ring: rgba(91, 124, 255, 0.35);
+  --input-placeholder: rgba(255, 255, 255, 0.5);
+  --focus: #5b7cff;
+  --focus-ring: 0 0 0 2px rgba(91, 124, 255, 0.4);
   --danger: rgba(244, 67, 54, 0.9);
 
   --color-text: var(--text);
@@ -59,12 +75,12 @@ html.theme-dark {
   --color-bg: var(--surface);
   --color-border: var(--border);
   --color-error: var(--danger);
+  --topbar-glass: rgba(255, 255, 255, 0.06);
 }
 
 /* ========== Tema: Background White ========== */
 html.theme-light body {
-  background: radial-gradient(1200px 400px at 10% 10%, rgba(91, 124, 255, 0.06), transparent 10%),
-    linear-gradient(180deg, #f0f4fa 0%, #e8eef7 100%);
+  background: #f0f4fa;
   color: #1a2332;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -95,14 +111,17 @@ html.theme-light {
   --text: #1a2332;
   --muted: #64748b;
   --border: #cbd5e1;
-  --shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --border-subtle: rgba(0, 0, 0, 0.06);
+  --primary: #5b7cff;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
 
   --input-bg: #ffffff;
   --input-border: #cbd5e1;
   --input-text: #1a2332;
   --input-placeholder: #94a3b8;
   --focus: #5b7cff;
-  --focus-ring: rgba(91, 124, 255, 0.35);
+  --focus-ring: 0 0 0 2px rgba(91, 124, 255, 0.35);
   --danger: #b91c1c;
 
   --color-text: var(--text);
@@ -110,6 +129,7 @@ html.theme-light {
   --color-bg: var(--surface-2);
   --color-border: var(--border);
   --color-error: var(--danger);
+  --topbar-glass: rgba(255, 255, 255, 0.85);
 }
 
 /* Fallback quando nenhum tema está aplicado (usa cores escuras) */
@@ -129,7 +149,9 @@ html:not(.theme-dark):not(.theme-light) {
   --input-text: rgba(255, 255, 255, 0.95);
   --input-placeholder: rgba(255, 255, 255, 0.45);
   --border: rgba(255, 255, 255, 0.12);
-  --shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --primary: #5b7cff;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
   --danger: rgba(244, 67, 54, 0.9);
 }
 html:not(.theme-dark):not(.theme-light) body {
@@ -148,4 +170,42 @@ app-root {
 .page-container {
   max-width: 100%;
   box-sizing: border-box;
+}
+
+/* Utilitário: input com altura e contraste padronizados */
+.input-control {
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--input-border);
+  border-radius: 8px;
+  background: var(--input-bg);
+  color: var(--input-text);
+  font-size: 0.9375rem;
+  box-sizing: border-box;
+}
+
+.input-control::placeholder {
+  color: var(--input-placeholder);
+}
+
+.input-control:focus {
+  outline: none;
+  border-color: var(--focus);
+  box-shadow: var(--focus-ring);
+}
+
+/* Botão base 40px para alinhar com tabs/inputs */
+.btn-bar {
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 8px;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
 }

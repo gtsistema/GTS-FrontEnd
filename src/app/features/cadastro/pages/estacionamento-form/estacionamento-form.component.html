@@ -158,11 +158,26 @@
                 </div>
                 <div class="field">
                   <label class="field__label" for="responsavelLegalCpf">CPF resp. legal</label>
-                  <input id="responsavelLegalCpf" class="field__input" type="text" formControlName="responsavelLegalCpf" maxlength="14" />
+                  <input
+                    id="responsavelLegalCpf"
+                    class="field__input"
+                    type="text"
+                    formControlName="responsavelLegalCpf"
+                    appCpfFormat
+                    maxlength="14"
+                    placeholder="000.000.000-00"
+                  />
                 </div>
                 <div class="field">
                   <label class="field__label" for="contatoTelefone">Telefone</label>
-                  <input id="contatoTelefone" class="field__input" type="tel" formControlName="contatoTelefone" />
+                  <input
+                    id="contatoTelefone"
+                    class="field__input"
+                    type="tel"
+                    formControlName="contatoTelefone"
+                    appTelefoneFormat
+                    placeholder="(00) 00000-0000"
+                  />
                 </div>
               </div>
 
@@ -231,6 +246,11 @@
           }
         </section>
 
+        @if (form.invalid) {
+          <p class="form-invalid-hint" role="alert">
+            Corrija os campos destacados em vermelho para habilitar o botão Salvar.
+          </p>
+        }
         <footer class="actions">
           <button type="button" class="btn btn--secondary" (click)="cancelar()">Cancelar</button>
           <button type="submit" class="btn btn--primary" [disabled]="form.invalid || salvando">

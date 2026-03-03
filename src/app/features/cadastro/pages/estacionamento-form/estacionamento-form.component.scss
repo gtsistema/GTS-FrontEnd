@@ -364,6 +364,23 @@ select.field__input:disabled {
   background: var(--surface-2, rgba(0, 0, 0, 0.05));
 }
 
+/* Destaque para campos com erro (preenchimento incorreto) */
+.field__input.ng-invalid.ng-touched,
+select.field__input.ng-invalid.ng-touched {
+  border-color: var(--color-error);
+  box-shadow: 0 0 0 2px rgba(244, 67, 54, 0.15);
+}
+
+.form-invalid-hint {
+  margin: 0 0 var(--space-12) 0;
+  padding: var(--space-10) var(--space-16);
+  font-size: 0.875rem;
+  color: var(--color-error);
+  background: rgba(244, 67, 54, 0.08);
+  border: 1px solid rgba(244, 67, 54, 0.25);
+  border-radius: var(--radius-sm);
+}
+
 .field__error {
   display: block;
   margin-top: var(--space-6);

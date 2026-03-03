@@ -1,10 +1,10 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { Observable, catchError, map, of } from 'rxjs';
 import { LoggedUser } from './user.service';
-
-const LOGIN_URL = 'https://gtsbackend.azurewebsites.net/api/auth/Usuario/Login';
+import { environment } from '../../../environments/environment';
+import { ApiError } from '../api/models';
 
 export interface LoginRequest {
   userName: string;
@@ -23,6 +23,8 @@ export interface LoginResponse {
   [key: string]: unknown;
 }
 
+export type LoginResult = { success: true } | { success: false; message: string };
+
 @Injectable({
   providedIn: 'root'
 })
@@ -37,21 +39,51 @@ export class AuthService {
 
   /**
    * Faz login via API (POST).
-   * Retorna Observable: true = sucesso, false = credenciais inválidas.
+   * Retorna Observable com success e, em caso de erro, a mensagem da API.
    */
-  login(username: string, password: string): Observable<boolean> {
+  login(username: string, password: string): Observable<LoginResult> {
     const body: LoginRequest = {
       userName: username,
       password
     };
 
-    return this.http.post<LoginResponse>(LOGIN_URL, body).pipe(
+    const url = `${environment.API_BASE_URL}/auth/Usuario/Login`;
+    return this.http.post<LoginResponse>(url, body).pipe(
       map((res) => {
         this.saveSession(username, res);
-        return true;
+        return { success: true as const };
       }),
-      catchError(() => of(false))
+      catchError((err: unknown) => {
+        const message = this.getLoginErrorMessage(err);
+        return of({ success: false, message });
+      })
     );
+  }
+
+  private getLoginErrorMessage(err: unknown): string {
+    if (err && typeof err === 'object' && 'message' in err && typeof (err as ApiError).message === 'string') {
+      return (err as ApiError).message.trim();
+    }
+    if (err instanceof HttpErrorResponse) {
+      const body = err.error;
+      if (body && typeof body === 'object' && !(body instanceof ProgressEvent)) {
+        const b = body as { notifications?: string[]; message?: string; title?: string };
+        if (Array.isArray(b.notifications) && b.notifications.length > 0) {
+          const text = b.notifications.filter((n): n is string => typeof n === 'string').join(' ').trim();
+          if (text) return text;
+        }
+        const msg = b.message ?? b.title;
+        if (typeof msg === 'string' && msg.trim()) return msg.trim();
+      }
+      if (typeof body === 'string' && body.trim()) return body.trim();
+      const fallback: Record<number, string> = {
+        401: 'Usuário ou senha inválidos.',
+        400: 'Usuário ou senha inválido.',
+        0: 'Sem conexão. Verifique sua rede.'
+      };
+      return fallback[err.status] ?? `Erro na requisição (${err.status ?? 0}).`;
+    }
+    return 'Usuário ou senha inválidos.';
   }
 
   private saveSession(username: string, res: LoginResponse): void {

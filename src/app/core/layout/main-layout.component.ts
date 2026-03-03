@@ -7,6 +7,7 @@ import { ThemeService, ThemeMode } from '../services/theme.service';
 import { filter } from 'rxjs/operators';
 
 const MOBILE_BREAKPOINT = 768;
+const SIDEBAR_COLLAPSED_KEY = 'sidebarCollapsed';
 
 @Component({
   selector: 'app-main-layout',
@@ -21,6 +22,17 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
   private platformId = inject(PLATFORM_ID);
 
   sidebarCollapsed = false;
+  private persistSidebarCollapsed(): void {
+    if (isPlatformBrowser(this.platformId) && typeof localStorage !== 'undefined') {
+      localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(this.sidebarCollapsed));
+    }
+  }
+  private loadSidebarCollapsed(): void {
+    if (isPlatformBrowser(this.platformId) && typeof localStorage !== 'undefined') {
+      const v = localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
+      this.sidebarCollapsed = v === 'true';
+    }
+  }
   private themeMode = signal<ThemeMode>('dark');
   isMobile = signal(false);
   mobileMenuOpen = signal(false);
@@ -34,6 +46,7 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    this.loadSidebarCollapsed();
     this.checkMobile();
     this.routerSub = this.router.events.pipe(
       filter((e): e is NavigationEnd => e instanceof NavigationEnd)
@@ -56,6 +69,7 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
 
   onSidebarCollapsed(collapsed: boolean): void {
     this.sidebarCollapsed = collapsed;
+    this.persistSidebarCollapsed();
   }
 
   toggleMobileMenu(): void {

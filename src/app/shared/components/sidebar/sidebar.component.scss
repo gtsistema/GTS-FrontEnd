@@ -23,13 +23,8 @@
   &.collapsed {
     width: var(--sidebar-width-collapsed);
 
-    .logo {
-      opacity: 0;
-      visibility: hidden;
-    }
-
     .label,
-    .sidebar-footer {
+    .sidebar-footer .version {
       opacity: 0;
       visibility: hidden;
     }
@@ -40,59 +35,64 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px 16px;
-  border-bottom: 1px solid var(--sidebar-border);
+  flex-shrink: 0;
+  height: 56px;
+  padding: 0 14px;
   gap: 12px;
-  min-height: 56px;
+  border-bottom: 1px solid var(--sidebar-border, rgba(255, 255, 255, 0.08));
 }
 
-.sidebar.collapsed .sidebar-header {
-  justify-content: center;
-  padding: 16px;
-}
-
-.logo {
-  font-size: 1.2rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin: 0;
+.sidebar-header__logo {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-primary, rgba(255, 255, 255, 0.95));
   white-space: nowrap;
-  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
   min-width: 0;
-  transition: opacity 0.3s ease, visibility 0.3s ease;
-
-  &.hidden {
-    opacity: 0;
-    visibility: hidden;
-    width: 0;
-    overflow: hidden;
-    flex: 0;
-    padding: 0;
-  }
+  transition: opacity 0.2s ease, visibility 0.2s ease;
 }
 
-.toggle-btn {
-  background: none;
-  border: none;
-  color: var(--text-primary);
-  font-size: 1.4rem;
-  cursor: pointer;
-  padding: 6px;
-  display: flex;
+.sidebar-header__logo--hidden {
+  opacity: 0;
+  visibility: hidden;
+  width: 0;
+  overflow: hidden;
+}
+
+.sidebar-header__toggle {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  padding: 0;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-primary, rgba(255, 255, 255, 0.95));
+  cursor: pointer;
   transition: background 0.2s ease, color 0.2s ease;
+}
 
-  &:hover {
-    background: var(--sidebar-item-hover);
-    color: var(--accent);
-  }
+.sidebar-header__toggle:hover {
+  background: var(--sidebar-item-hover, rgba(255, 255, 255, 0.08));
+  color: var(--accent, #5b7cff);
+}
+
+.sidebar-header__toggle:focus-visible {
+  outline: 2px solid var(--accent, #5b7cff);
+  outline-offset: 2px;
+}
+
+.sidebar-header__toggle .material-symbols-outlined {
+  font-size: 1.5rem;
 }
 
 .sidebar-nav {
   flex: 1;
-  padding: 16px 8px;
+  padding: 20px 8px 16px;
   overflow-y: auto;
 
   &::-webkit-scrollbar {

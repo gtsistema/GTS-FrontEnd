@@ -1,17 +1,19 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, catchError, map, of } from 'rxjs';
+import { Observable, catchError, map, of, timeout, throwError } from 'rxjs';
 import {
   EstacionamentoDTO,
   EstacionamentoListItemDTO,
   EstacionamentoObterPorIdResultDTO,
   ApiResponseDTO,
   EstacionamentoBuscarParams,
-  PagedResultDTO
+  PagedResultDTO,
+  EnderecoDTO
 } from '../models/estacionamento.dto';
 import { environment } from '../../../../environments/environment';
 
-const API_BASE = environment.apiUrl;
+/** Base da API do backend (dev: /api com proxy; prod: URL completa). */
+const API_BASE = environment.API_BASE_URL;
 const ESTACIONAMENTO = `${API_BASE}/Estacionamento`;
 
 /** Objeto no formato do formulário (para patchValue) após carregar ObterPorId */
@@ -38,6 +40,8 @@ export interface EstacionamentoFormValue {
   tipoTaxaMensalidade: 'taxa' | 'mensalidade' | null;
   taxaPercentual: number | null;
   mensalidadeValor: number | null;
+  /** Preservar ao alterar (payload pessoa.enderecos). */
+  enderecos?: EnderecoDTO[];
 }
 
 @Injectable({
@@ -46,28 +50,19 @@ export interface EstacionamentoFormValue {
 export class EstacionamentoService {
   constructor(private http: HttpClient) {}
 
-  /** POST /api/Estacionamento/Gravar (Swagger: EstacionamentoPostInput) */
-  gravar(dto: EstacionamentoDTO | Record<string, unknown>): Observable<EstacionamentoDTO | null> {
-    return this.http
-      .post<EstacionamentoDTO>(`${ESTACIONAMENTO}/Gravar`, dto)
-      .pipe(catchError(() => of(null)));
+  /** POST /api/Estacionamento/Gravar (Swagger: EstacionamentoPostInput). Erros propagam para o ErrorInterceptor (toast). */
+  gravar(dto: EstacionamentoDTO | Record<string, unknown>): Observable<EstacionamentoDTO> {
+    return this.http.post<EstacionamentoDTO>(`${ESTACIONAMENTO}/Gravar`, dto);
   }
 
-  /** PUT /api/Estacionamento/Alterar (Swagger: EstacionamentoPutInput) */
-  alterar(dto: EstacionamentoDTO | Record<string, unknown>): Observable<EstacionamentoDTO | null> {
-    return this.http
-      .put<EstacionamentoDTO>(`${ESTACIONAMENTO}/Alterar`, dto)
-      .pipe(catchError(() => of(null)));
+  /** PUT /api/Estacionamento/Alterar (Swagger: EstacionamentoPutInput). Erros propagam para o ErrorInterceptor (toast). */
+  alterar(dto: EstacionamentoDTO | Record<string, unknown>): Observable<EstacionamentoDTO> {
+    return this.http.put<EstacionamentoDTO>(`${ESTACIONAMENTO}/Alterar`, dto);
   }
 
-  /** DELETE /api/Estacionamento/Delete/{id} (Swagger) */
-  excluir(id: number): Observable<boolean> {
-    return this.http
-      .delete(`${ESTACIONAMENTO}/Delete/${id}`)
-      .pipe(
-        map(() => true),
-        catchError(() => of(false))
-      );
+  /** DELETE /api/Estacionamento/Delete/{id} (Swagger). Erros propagam para o ErrorInterceptor (toast). */
+  excluir(id: number): Observable<void> {
+    return this.http.delete<void>(`${ESTACIONAMENTO}/Delete/${id}`);
   }
 
   /**
@@ -88,15 +83,9 @@ export class EstacionamentoService {
 
     const url = `${ESTACIONAMENTO}/Buscar?${query.toString()}`;
     return this.http.get<unknown>(url).pipe(
+      timeout(15000),
       map((body) => this.normalizeBuscarResponse(body, params.NumeroPagina, params.TamanhoPagina)),
-      catchError(() =>
-        of({
-          items: [],
-          totalCount: 0,
-          numeroPagina: params.NumeroPagina,
-          tamanhoPagina: params.TamanhoPagina
-        })
-      )
+      catchError((err) => throwError(() => err))
     );
   }
 
@@ -110,10 +99,27 @@ export class EstacionamentoService {
       ? (raw as ApiResponseDTO<unknown>).result
       : raw;
 
-    if (Array.isArray(result)) {
+    // API retorna result.results + result.rowCount (gtsbackend.azurewebsites.net)
+    if (result && typeof result === 'object' && 'results' in result) {
+      const r = result as {
+        results: Array<Record<string, unknown>>;
+        rowCount?: number;
+        currentPage?: number;
+        pageSize?: number;
+      };
+      const list = (r.results ?? []).map((row) => this.mapBuscarItemToListItem(row));
       return {
-        items: result as EstacionamentoListItemDTO[],
-        totalCount: result.length,
+        items: list,
+        totalCount: r.rowCount ?? list.length,
+        numeroPagina: r.currentPage ?? numeroPagina,
+        tamanhoPagina: r.pageSize ?? tamanhoPagina
+      };
+    }
+    if (Array.isArray(result)) {
+      const list = (result as Array<Record<string, unknown>>).map((row) => this.mapBuscarItemToListItem(row));
+      return {
+        items: list,
+        totalCount: list.length,
         numeroPagina,
         tamanhoPagina
       };
@@ -145,37 +151,54 @@ export class EstacionamentoService {
     };
   }
 
+  /** Mapeia item do Buscar (API usa "tipo") para EstacionamentoListItemDTO (tipoPessoa) */
+  private mapBuscarItemToListItem(row: Record<string, unknown>): EstacionamentoListItemDTO {
+    return {
+      id: Number(row['id']) || 0,
+      descricao: String(row['descricao'] ?? ''),
+      tipoPessoa: (Number(row['tipo']) === 1 ? 1 : 2) as 1 | 2,
+      nomeRazaoSocial: String(row['nomeRazaoSocial'] ?? ''),
+      documento: String(row['documento'] ?? ''),
+      email: String(row['email'] ?? ''),
+      ativo: row['ativo'] !== false
+    };
+  }
+
   /**
    * GET /api/Estacionamento/ObterPorId/:id
    * Retorna o valor já mapeado para o formulário de edição.
    */
   obterPorId(id: number): Observable<EstacionamentoFormValue | null> {
-    return this.http
-      .get<ApiResponseDTO<EstacionamentoObterPorIdResultDTO>>(
-        `${ESTACIONAMENTO}/ObterPorId/${id}`
-      )
-      .pipe(
-        map((res) => (res?.success && res?.result ? this.mapResultToFormValue(res.result) : null)),
-        catchError(() => of(null))
-      );
+    return this.http.get<unknown>(`${ESTACIONAMENTO}/ObterPorId/${id}`).pipe(
+      timeout(15000),
+      map((body) => {
+        const res = body as ApiResponseDTO<EstacionamentoObterPorIdResultDTO> | undefined;
+        const result = res?.success && res?.result ? res.result : (body as EstacionamentoObterPorIdResultDTO);
+        if (result && typeof result === 'object' && 'id' in result && result.pessoa) {
+          return this.mapResultToFormValue(result as EstacionamentoObterPorIdResultDTO);
+        }
+        return null;
+      }),
+      catchError(() => of(null))
+    );
   }
 
   private mapResultToFormValue(r: EstacionamentoObterPorIdResultDTO): EstacionamentoFormValue {
     const p = r.pessoa;
-    const telefone = p.contatos?.find((c) => c.principal)?.numero ?? p.contatos?.[0]?.numero ?? '';
+    const telefone = p?.contatos?.find((c) => c.principal)?.numero ?? p?.contatos?.[0]?.numero ?? '';
     const tipoTaxa = r.tipoCobranca === 0 ? 'taxa' : r.tipoCobranca === 1 ? 'mensalidade' : null;
     return {
       id: r.id,
-      descricao: p.nomeFantasia ?? '',
+      descricao: p?.nomeFantasia ?? '',
       pessoaId: r.pessoaId,
       pessoa: {
-        id: p.id,
-        tipoPessoa: p.tipoPessoa,
-        nomeRazaoSocial: p.nomeRazaoSocial ?? '',
-        nomeFantasia: p.nomeFantasia ?? '',
-        documento: p.documento ?? '',
-        email: p.email ?? '',
-        ativo: p.ativo ?? true
+        id: p?.id ?? 0,
+        tipoPessoa: (p?.tipoPessoa === 1 ? 1 : 2) as 1 | 2,
+        nomeRazaoSocial: p?.nomeRazaoSocial ?? '',
+        nomeFantasia: p?.nomeFantasia ?? '',
+        documento: p?.documento ?? '',
+        email: p?.email ?? '',
+        ativo: p?.ativo ?? true
       },
       responsavelLegalNome: r.resposanvelLegal ?? '',
       responsavelLegalCpf: r.responsavelCpf ?? '',
@@ -186,7 +209,8 @@ export class EstacionamentoService {
       possuiBanheiro: r.possuiBanheiro ?? false,
       tipoTaxaMensalidade: tipoTaxa,
       taxaPercentual: r.cobrancaPorcentagem != null ? r.cobrancaPorcentagem : null,
-      mensalidadeValor: r.cobrancaValor != null ? r.cobrancaValor : null
+      mensalidadeValor: r.cobrancaValor != null ? r.cobrancaValor : null,
+      enderecos: p?.enderecos ?? []
     };
   }
 }

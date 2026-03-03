@@ -1,59 +1,73 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, NgZone, inject, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { FormsModule } from '@angular/forms';
 import { EstacionamentoService } from '../../services/estacionamento.service';
+import { EstacionamentoToolbarService } from '../../services/estacionamento-toolbar.service';
 import { EstacionamentoListItemDTO, TipoPessoa } from '../../models/estacionamento.dto';
+import { formatCnpj } from '../../directives/cnpj-format.directive';
+import { formatCpf } from '../../directives/cpf-format.directive';
 
 const TAMANHO_PAGINA = 50;
 
 @Component({
   selector: 'app-estacionamento-list',
   standalone: true,
-  imports: [CommonModule, RouterLink, FormsModule],
+  imports: [CommonModule, RouterLink],
   templateUrl: './estacionamento-list.component.html',
   styleUrls: ['./estacionamento-list.component.scss']
 })
-export class EstacionamentoListComponent implements OnInit {
+export class EstacionamentoListComponent {
+  private estacionamentoService = inject(EstacionamentoService);
+  private toolbar = inject(EstacionamentoToolbarService);
+  private cdr = inject(ChangeDetectorRef);
+  private ngZone = inject(NgZone);
+
   itens: EstacionamentoListItemDTO[] = [];
-  busca = '';
   loading = true;
   erro: string | null = null;
   numeroPagina = 1;
   totalCount = 0;
   tamanhoPagina = TAMANHO_PAGINA;
 
-  constructor(private estacionamentoService: EstacionamentoService) {}
+  constructor() {
+    effect(() => {
+      this.toolbar.trigger();
+      this.buscar();
+    });
+  }
 
   get totalPaginas(): number {
     if (this.tamanhoPagina <= 0) return 0;
     return Math.max(1, Math.ceil(this.totalCount / this.tamanhoPagina));
   }
 
-  ngOnInit(): void {
-    this.carregar();
-  }
-
   carregar(): void {
+    const term = this.toolbar.searchTerm().trim();
     this.loading = true;
     this.erro = null;
     this.estacionamentoService
       .buscar({
         NumeroPagina: this.numeroPagina,
         TamanhoPagina: this.tamanhoPagina,
-        ...(this.busca.trim() ? { Descricao: this.busca.trim() } : {})
+        ...(term ? { Descricao: term } : {})
       })
       .subscribe({
         next: (paged) => {
-          this.itens = paged.items;
-          this.totalCount = paged.totalCount;
-          this.numeroPagina = paged.numeroPagina;
-          this.tamanhoPagina = paged.tamanhoPagina;
-          this.loading = false;
+          this.ngZone.run(() => {
+            this.itens = paged.items;
+            this.totalCount = paged.totalCount;
+            this.numeroPagina = paged.numeroPagina;
+            this.tamanhoPagina = paged.tamanhoPagina;
+            this.loading = false;
+            this.cdr.markForCheck();
+          });
         },
         error: () => {
-          this.erro = 'Erro ao carregar a lista.';
-          this.loading = false;
+          this.ngZone.run(() => {
+            this.erro = 'Erro ao carregar a lista.';
+            this.loading = false;
+            this.cdr.markForCheck();
+          });
         }
       });
   }
@@ -72,5 +86,13 @@ export class EstacionamentoListComponent implements OnInit {
 
   tipoPessoaLabel(tipo: TipoPessoa): string {
     return tipo === 1 ? 'PF' : 'PJ';
+  }
+
+  /** Exibe documento formatado: CNPJ para PJ, CPF para PF. */
+  formatDocumento(item: EstacionamentoListItemDTO): string {
+    const doc = String(item.documento ?? '').replace(/\D/g, '');
+    if (item.tipoPessoa === 2 && doc.length === 14) return formatCnpj(doc);
+    if (item.tipoPessoa === 1 && doc.length === 11) return formatCpf(doc);
+    return item.documento ?? '';
   }
 }

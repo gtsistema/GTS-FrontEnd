@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, NgZone, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   ReactiveFormsModule,
@@ -8,14 +8,25 @@ import {
 } from '@angular/forms';
 import { Router, ActivatedRoute, RouterLink } from '@angular/router';
 import { EstacionamentoService } from '../../services/estacionamento.service';
+import { ToastService } from '../../../../core/api/services/toast.service';
 import { documentoValidator } from '../../validators/documento.validator';
 import { TipoPessoa } from '../../models/estacionamento.dto';
 import { CnpjFormatDirective, formatCnpj } from '../../directives/cnpj-format.directive';
+import { CpfFormatDirective, formatCpf } from '../../directives/cpf-format.directive';
+import { TelefoneFormatDirective, formatTelefone } from '../../directives/telefone-format.directive';
+import { formValueToEstacionamentoPayload } from './estacionamento-form.mapper';
 
 @Component({
   selector: 'app-estacionamento-form',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterLink, CnpjFormatDirective],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    RouterLink,
+    CnpjFormatDirective,
+    CpfFormatDirective,
+    TelefoneFormatDirective
+  ],
   templateUrl: './estacionamento-form.component.html',
   styleUrls: ['./estacionamento-form.component.scss']
 })
@@ -30,12 +41,17 @@ export class EstacionamentoFormComponent implements OnInit {
   /** PDF do contrato anexado (não enviado na API atual; preparado para integração futura). */
   contratoPdf: File | null = null;
   contratoPdfError: string | null = null;
+  /** Endereços retornados por ObterPorId; preservados no payload ao alterar. */
+  loadedEnderecos: Record<string, unknown>[] = [];
 
   constructor(
     private fb: FormBuilder,
     private router: Router,
     private route: ActivatedRoute,
-    private estacionamentoService: EstacionamentoService
+    private estacionamentoService: EstacionamentoService,
+    private toast: ToastService,
+    private cdr: ChangeDetectorRef,
+    private ngZone: NgZone
   ) {}
 
   get isTaxa(): boolean {
@@ -101,26 +117,61 @@ export class EstacionamentoFormComponent implements OnInit {
     this.erro = null;
     this.estacionamentoService.obterPorId(this.id).subscribe({
       next: (dto) => {
-        if (dto) {
-          this.form.patchValue(dto);
-          this.form.patchValue({ pessoa: { tipoPessoa: 2 } });
-          const doc = this.form.get('pessoa.documento')?.value;
-          if (doc != null && String(doc).replace(/\D/g, '').length === 14) {
-            this.form.patchValue({ pessoa: { documento: formatCnpj(String(doc)) } });
+        this.ngZone.run(() => {
+          if (dto) {
+            this.loadedEnderecos = (dto.enderecos ?? []).map((e) => ({ ...e })) as Record<string, unknown>[];
+            const trim = (s: string | null | undefined) => (s == null ? '' : String(s).trim());
+            const cpfRaw = (dto.responsavelLegalCpf ?? '').replace(/\D/g, '');
+            const telRaw = (dto.contatoTelefone ?? '').replace(/\D/g, '');
+            this.form.patchValue({
+              id: dto.id,
+              descricao: trim(dto.descricao),
+              pessoaId: dto.pessoaId,
+              responsavelLegalNome: dto.responsavelLegalNome,
+              responsavelLegalCpf: cpfRaw.length === 11 ? formatCpf(cpfRaw) : trim(dto.responsavelLegalCpf),
+              contatoTelefone: telRaw.length >= 10 ? formatTelefone(telRaw) : trim(dto.contatoTelefone),
+              capacidadeVeiculos: dto.capacidadeVeiculos,
+              tamanho: dto.tamanho,
+              possuiSeguranca: dto.possuiSeguranca,
+              possuiBanheiro: dto.possuiBanheiro,
+              tipoTaxaMensalidade: dto.tipoTaxaMensalidade,
+              taxaPercentual: dto.taxaPercentual,
+              mensalidadeValor: dto.mensalidadeValor
+            });
+            this.form.get('pessoa')?.patchValue({
+              id: dto.pessoa.id,
+              tipoPessoa: dto.pessoa.tipoPessoa ?? 2,
+              nomeRazaoSocial: trim(dto.pessoa.nomeRazaoSocial),
+              nomeFantasia: trim(dto.pessoa.nomeFantasia),
+              email: trim(dto.pessoa.email),
+              ativo: dto.pessoa.ativo ?? true,
+              documento: (dto.pessoa.documento ?? '').replace(/\s/g, '')
+            });
+            const doc = this.form.get('pessoa.documento')?.value;
+            if (doc != null && String(doc).replace(/\D/g, '').length === 14) {
+              this.form.get('pessoa')?.patchValue({ documento: formatCnpj(String(doc)) });
+            }
+            this.atualizarValidadoresDocumento();
+            if (dto.responsavelLegalNome || dto.responsavelLegalCpf || dto.contatoTelefone ||
+                dto.capacidadeVeiculos != null || dto.tamanho || dto.tipoTaxaMensalidade) {
+              this.complementaresOpen = true;
+            }
+            if (this.form.invalid) {
+              this.form.markAllAsTouched();
+            }
+          } else {
+            this.erro = 'Registro não encontrado.';
           }
-          this.atualizarValidadoresDocumento();
-          if (dto.responsavelLegalNome || dto.responsavelLegalCpf || dto.contatoTelefone ||
-              dto.capacidadeVeiculos != null || dto.tamanho || dto.tipoTaxaMensalidade) {
-            this.complementaresOpen = true;
-          }
-        } else {
-          this.erro = 'Registro não encontrado.';
-        }
-        this.loading = false;
+          this.loading = false;
+          this.cdr.markForCheck();
+        });
       },
       error: () => {
-        this.erro = 'Erro ao carregar os dados.';
-        this.loading = false;
+        this.ngZone.run(() => {
+          this.erro = 'Erro ao carregar os dados.';
+          this.loading = false;
+          this.cdr.markForCheck();
+        });
       }
     });
   }
@@ -130,16 +181,7 @@ export class EstacionamentoFormComponent implements OnInit {
       this.form.markAllAsTouched();
       return;
     }
-    const value = this.form.value;
-    const dto = {
-      id: value.id,
-      descricao: value.descricao,
-      pessoaId: value.pessoaId,
-      pessoa: {
-        ...value.pessoa,
-        documento: String(value.pessoa.documento).replace(/\D/g, '')
-      }
-    };
+    const dto = formValueToEstacionamentoPayload(this.form.value, this.loadedEnderecos);
     this.salvando = true;
     this.erro = null;
     const request$ = this.id
@@ -148,6 +190,7 @@ export class EstacionamentoFormComponent implements OnInit {
     request$.subscribe({
       next: () => {
         this.salvando = false;
+        this.toast.success(this.id ? 'Estacionamento atualizado com sucesso.' : 'Estacionamento criado com sucesso.');
         this.router.navigate(['/app/cadastro/estacionamento']);
       },
       error: () => {
