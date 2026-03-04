@@ -40,8 +40,23 @@ export interface EstacionamentoFormValue {
   tipoTaxaMensalidade: 'taxa' | 'mensalidade' | null;
   taxaPercentual: number | null;
   mensalidadeValor: number | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  responsavelLegalEmail?: string;
+  contatoComplementarNome?: string;
+  contatoComplementarCpf?: string;
+  contatoComplementarTelefone?: string;
+  contatoComplementarEmail?: string;
   /** Preservar ao alterar (payload pessoa.enderecos). */
   enderecos?: EnderecoDTO[];
+  /** Dados bancários (backend) */
+  banco?: string;
+  agencia?: string;
+  conta?: string;
+  tipoConta?: string;
+  chavePix?: string;
+  /** Fotos retornadas pela API (base64 ou URL); exibidas no passo Fotos. */
+  loadedFotosBase64?: string[];
 }
 
 @Injectable({
@@ -71,7 +86,10 @@ export class EstacionamentoService {
    */
   buscar(params: EstacionamentoBuscarParams): Observable<PagedResultDTO<EstacionamentoListItemDTO>> {
     const query = new URLSearchParams();
-    if (params.Descricao != null && params.Descricao.trim() !== '') {
+    const termo = params.Termo != null ? params.Termo.trim() : '';
+    if (termo !== '') {
+      query.set('Termo', termo);
+    } else if (params.Descricao != null && params.Descricao.trim() !== '') {
       query.set('Descricao', params.Descricao.trim());
     }
     if (params.DataInicial != null) query.set('DataInicial', params.DataInicial);
@@ -84,7 +102,18 @@ export class EstacionamentoService {
     const url = `${ESTACIONAMENTO}/Buscar?${query.toString()}`;
     return this.http.get<unknown>(url).pipe(
       timeout(15000),
-      map((body) => this.normalizeBuscarResponse(body, params.NumeroPagina, params.TamanhoPagina)),
+      map((body) => {
+        try {
+          return this.normalizeBuscarResponse(body, params.NumeroPagina, params.TamanhoPagina);
+        } catch {
+          return {
+            items: [],
+            totalCount: 0,
+            numeroPagina: params.NumeroPagina,
+            tamanhoPagina: params.TamanhoPagina
+          } as PagedResultDTO<EstacionamentoListItemDTO>;
+        }
+      }),
       catchError((err) => throwError(() => err))
     );
   }
@@ -99,15 +128,36 @@ export class EstacionamentoService {
       ? (raw as ApiResponseDTO<unknown>).result
       : raw;
 
+    const empty = (): PagedResultDTO<EstacionamentoListItemDTO> => ({
+      items: [],
+      totalCount: 0,
+      numeroPagina,
+      tamanhoPagina
+    });
+
+    const toList = (arr: unknown[]): EstacionamentoListItemDTO[] => {
+      const list: EstacionamentoListItemDTO[] = [];
+      for (const row of arr) {
+        if (row != null && typeof row === 'object') {
+          try {
+            list.push(this.mapBuscarItemToListItem(row as Record<string, unknown>));
+          } catch {
+            // ignora item com formato inesperado
+          }
+        }
+      }
+      return list;
+    };
+
     // API retorna result.results + result.rowCount (gtsbackend.azurewebsites.net)
     if (result && typeof result === 'object' && 'results' in result) {
       const r = result as {
-        results: Array<Record<string, unknown>>;
+        results?: unknown[];
         rowCount?: number;
         currentPage?: number;
         pageSize?: number;
       };
-      const list = (r.results ?? []).map((row) => this.mapBuscarItemToListItem(row));
+      const list = toList(Array.isArray(r.results) ? r.results : []);
       return {
         items: list,
         totalCount: r.rowCount ?? list.length,
@@ -116,26 +166,22 @@ export class EstacionamentoService {
       };
     }
     if (Array.isArray(result)) {
-      const list = (result as Array<Record<string, unknown>>).map((row) => this.mapBuscarItemToListItem(row));
-      return {
-        items: list,
-        totalCount: list.length,
-        numeroPagina,
-        tamanhoPagina
-      };
+      const list = toList(result);
+      return { items: list, totalCount: list.length, numeroPagina, tamanhoPagina };
     }
     if (result && typeof result === 'object' && 'items' in result) {
-      const r = result as { items: EstacionamentoListItemDTO[]; totalCount?: number };
+      const r = result as { items?: unknown[]; totalCount?: number };
+      const list = Array.isArray(r.items) ? toList(r.items) : [];
       return {
-        items: r.items ?? [],
-        totalCount: r.totalCount ?? r.items?.length ?? 0,
+        items: list,
+        totalCount: r.totalCount ?? list.length,
         numeroPagina,
         tamanhoPagina
       };
     }
     if (result && typeof result === 'object' && 'itens' in result) {
-      const r = result as { itens: EstacionamentoListItemDTO[]; totalRegistros?: number };
-      const items = r.itens ?? [];
+      const r = result as { itens?: unknown[]; totalRegistros?: number };
+      const items = Array.isArray(r.itens) ? toList(r.itens) : [];
       return {
         items,
         totalCount: (r as { totalRegistros?: number }).totalRegistros ?? items.length,
@@ -143,16 +189,26 @@ export class EstacionamentoService {
         tamanhoPagina
       };
     }
-    return {
-      items: [],
-      totalCount: 0,
-      numeroPagina,
-      tamanhoPagina
-    };
+    // result.data ou result.list (formatos alternativos)
+    if (result && typeof result === 'object') {
+      const r = result as Record<string, unknown>;
+      if (Array.isArray(r['data'])) {
+        const list = toList(r['data'] as unknown[]);
+        return { items: list, totalCount: list.length, numeroPagina, tamanhoPagina };
+      }
+      if (Array.isArray(r['list'])) {
+        const list = toList(r['list'] as unknown[]);
+        return { items: list, totalCount: list.length, numeroPagina, tamanhoPagina };
+      }
+    }
+    return empty();
   }
 
-  /** Mapeia item do Buscar (API usa "tipo") para EstacionamentoListItemDTO (tipoPessoa) */
+  /** Mapeia item do Buscar (API usa "tipo") para EstacionamentoListItemDTO (tipoPessoa). Defensivo contra null/undefined. */
   private mapBuscarItemToListItem(row: Record<string, unknown>): EstacionamentoListItemDTO {
+    if (!row || typeof row !== 'object') {
+      return { id: 0, descricao: '', tipoPessoa: 2, nomeRazaoSocial: '', documento: '', email: '', ativo: true };
+    }
     return {
       id: Number(row['id']) || 0,
       descricao: String(row['descricao'] ?? ''),
@@ -186,7 +242,7 @@ export class EstacionamentoService {
   private mapResultToFormValue(r: EstacionamentoObterPorIdResultDTO): EstacionamentoFormValue {
     const p = r.pessoa;
     const telefone = p?.contatos?.find((c) => c.principal)?.numero ?? p?.contatos?.[0]?.numero ?? '';
-    const tipoTaxa = r.tipoCobranca === 0 ? 'taxa' : r.tipoCobranca === 1 ? 'mensalidade' : null;
+    const tipoTaxa = r.tipoCobranca === 1 ? 'taxa' : r.tipoCobranca === 2 ? 'mensalidade' : null;
     return {
       id: r.id,
       descricao: p?.nomeFantasia ?? '',
@@ -210,7 +266,15 @@ export class EstacionamentoService {
       tipoTaxaMensalidade: tipoTaxa,
       taxaPercentual: r.cobrancaPorcentagem != null ? r.cobrancaPorcentagem : null,
       mensalidadeValor: r.cobrancaValor != null ? r.cobrancaValor : null,
-      enderecos: p?.enderecos ?? []
+      latitude: (r as unknown as Record<string, unknown>)['latitude'] as number | null ?? null,
+      longitude: (r as unknown as Record<string, unknown>)['longitude'] as number | null ?? null,
+      enderecos: p?.enderecos ?? [],
+      banco: r.banco ?? '',
+      agencia: r.agencia ?? '',
+      conta: r.conta ?? '',
+      tipoConta: r.tipoConta ?? '',
+      chavePix: r.chavePix ?? '',
+      loadedFotosBase64: r.fotos ?? []
     };
   }
 }

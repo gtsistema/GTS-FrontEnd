@@ -6,5 +6,7 @@ export const environment = {
   production: false,
   apiUrl: '/api',
   /** Base URL da API (uso em ApiService e interceptors). */
-  API_BASE_URL: '/api'
+  API_BASE_URL: '/api',
+  /** Base URL ViaCEP: em dev usa proxy /viacep. */
+  viacepBaseUrl: '/viacep'
 };

@@ -83,6 +83,14 @@ export interface EstacionamentoObterPorIdResultDTO {
   id: number;
   dataCriacao: string;
   dataAtualizacao: string | null;
+  /** Dados bancários (integração backend) */
+  banco?: string;
+  agencia?: string;
+  conta?: string;
+  tipoConta?: string;
+  chavePix?: string;
+  /** Fotos em base64 ou URLs (integração backend) */
+  fotos?: string[];
 }
 
 /** Resposta da API (wrapper success / result) */
@@ -92,8 +100,10 @@ export interface ApiResponseDTO<T> {
   result: T;
 }
 
-/** Parâmetros para GET /api/Estacionamento/Buscar (Swagger) */
+/** Parâmetros para GET /api/Estacionamento/Buscar (Swagger). Termo busca em id, descrição, nome/razão social, documento, e-mail, ativo. */
 export interface EstacionamentoBuscarParams {
+  /** Termo único: busca em id, descricao, nomeRazaoSocial, documento, email, ativo (backend aplica OR). */
+  Termo?: string;
   Descricao?: string;
   DataInicial?: string;
   DataFinal?: string;

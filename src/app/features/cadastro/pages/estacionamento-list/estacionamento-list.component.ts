@@ -49,7 +49,7 @@ export class EstacionamentoListComponent {
       .buscar({
         NumeroPagina: this.numeroPagina,
         TamanhoPagina: this.tamanhoPagina,
-        ...(term ? { Descricao: term } : {})
+        ...(term ? { Termo: term } : {})
       })
       .subscribe({
         next: (paged) => {

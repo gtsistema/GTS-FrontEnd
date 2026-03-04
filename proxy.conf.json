@@ -3,5 +3,11 @@
     "target": "https://gtsbackend.azurewebsites.net",
     "secure": true,
     "changeOrigin": true
+  },
+  "/viacep": {
+    "target": "https://viacep.com.br",
+    "secure": true,
+    "changeOrigin": true,
+    "pathRewrite": { "^/viacep": "" }
   }
 }

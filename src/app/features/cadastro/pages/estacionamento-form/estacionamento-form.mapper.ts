@@ -18,14 +18,34 @@ export interface FormValue {
   };
   responsavelLegalNome?: string;
   responsavelLegalCpf?: string;
+  responsavelLegalEmail?: string;
   contatoTelefone?: string;
+  /** Até 5 contatos complementares (nome, cpf, telefone, email). */
+  contatosComplementares?: Array<{ nome?: string; cpf?: string; telefone?: string; email?: string }>;
+  /** Lista de endereços (pessoa.enderecos no backend). */
+  enderecos?: Array<{
+    principal?: boolean;
+    tipoEndereco?: number;
+    cep?: string;
+    logradouro?: string;
+    numero?: string;
+    complemento?: string;
+    bairro?: string;
+    cidade?: string;
+    estado?: string;
+  }>;
   capacidadeVeiculos?: number | null;
-  tamanho?: string;
+  tamanho?: string | number | null;
   possuiSeguranca?: boolean;
   possuiBanheiro?: boolean;
   tipoTaxaMensalidade?: 'taxa' | 'mensalidade' | null;
   taxaPercentual?: number | null;
   mensalidadeValor?: number | null;
+  banco?: string;
+  agencia?: string;
+  conta?: string;
+  tipoConta?: string;
+  chavePix?: string;
 }
 
 /** TipoCobranca no backend: 0 = nenhum, 1 = taxa, 2 = mensalidade (ajustar se o backend usar outros valores). */
@@ -42,16 +62,58 @@ export type EnderecoPayload = Record<string, unknown>;
  * Gera o payload para POST Gravar / PUT Alterar conforme contrato do backend.
  * @param value valor do formulário
  * @param enderecosCarregados endereços retornados por ObterPorId (preservados na alteração)
+ * @param fotosBase64 fotos em base64 para envio ao backend (máx. 4)
  */
 export function formValueToEstacionamentoPayload(
   value: FormValue,
-  enderecosCarregados?: EnderecoPayload[] | null
+  enderecosCarregados?: EnderecoPayload[] | null,
+  fotosBase64?: string[]
 ): Record<string, unknown> {
   const doc = String(value.pessoa?.documento ?? '').replace(/\D/g, '');
   const cpf = String(value.responsavelLegalCpf ?? '').replace(/\D/g, '');
   const telefone = String(value.contatoTelefone ?? '').replace(/\D/g, '').trim();
 
   const pessoaId = value.pessoaId ?? value.pessoa?.id ?? 0;
+  const contatos: Record<string, unknown>[] = [];
+  if (telefone.length >= 10) {
+    contatos.push({
+      pessoaId,
+      principal: true,
+      tipoContato: 1,
+      numero: telefone,
+      observacao: ''
+    });
+  }
+  const complementares = value.contatosComplementares ?? [];
+  for (const c of complementares) {
+    const num = String(c.telefone ?? '').replace(/\D/g, '').trim();
+    if (num.length >= 10) {
+      contatos.push({
+        pessoaId,
+        principal: false,
+        tipoContato: 1,
+        numero: num,
+        observacao: ''
+      });
+    }
+  }
+
+  const enderecosForm = value.enderecos ?? [];
+  const enderecos = enderecosForm.length > 0
+    ? enderecosForm.map((e) => ({
+        pessoaId,
+        principal: e.principal ?? false,
+        tipoEndereco: e.tipoEndereco ?? 1,
+        cep: e.cep ?? '',
+        logradouro: e.logradouro ?? '',
+        numero: e.numero ?? '',
+        complemento: e.complemento ?? '',
+        bairro: e.bairro ?? '',
+        cidade: e.cidade ?? '',
+        estado: e.estado ?? ''
+      }))
+    : (enderecosCarregados && enderecosCarregados.length > 0 ? enderecosCarregados : []);
+
   const pessoa: Record<string, unknown> = {
     id: value.pessoa?.id ?? 0,
     tipoPessoa: value.pessoa?.tipoPessoa ?? 2,
@@ -60,19 +122,8 @@ export function formValueToEstacionamentoPayload(
     documento: doc,
     email: value.pessoa?.email ?? '',
     ativo: value.pessoa?.ativo ?? true,
-    enderecos: enderecosCarregados && enderecosCarregados.length > 0 ? enderecosCarregados : [],
-    contatos:
-      telefone.length >= 10
-        ? [
-            {
-              pessoaId,
-              principal: true,
-              tipoContato: 1,
-              numero: telefone,
-              observacao: ''
-            }
-          ]
-        : []
+    enderecos,
+    contatos
   };
 
   const tipoCobranca = mapTipoCobranca(value.tipoTaxaMensalidade ?? null);
@@ -85,7 +136,7 @@ export function formValueToEstacionamentoPayload(
     dataAtualizacao: new Date().toISOString(),
     pessoaId: value.pessoaId ?? 0,
     capacidadeVeiculo: capacidade,
-    tamanhoTerreno: value.tamanho ?? '',
+    tamanhoTerreno: value.tamanho != null ? String(value.tamanho) : '',
     resposanvelLegal: value.responsavelLegalNome ?? '', // nome do backend (typo)
     responsavelCpf: cpf || '',
     possuiSeguranca: value.possuiSeguranca ?? false,
@@ -93,6 +144,12 @@ export function formValueToEstacionamentoPayload(
     tipoCobranca,
     cobrancaPorcentagem: value.tipoTaxaMensalidade === 'taxa' ? (value.taxaPercentual ?? 0) : 0,
     cobrancaValor: value.tipoTaxaMensalidade === 'mensalidade' ? (value.mensalidadeValor ?? 0) : 0,
-    pessoa
+    pessoa,
+    banco: value.banco ?? '',
+    agencia: value.agencia ?? '',
+    conta: value.conta ?? '',
+    tipoConta: value.tipoConta ?? '',
+    chavePix: value.chavePix ?? '',
+    fotos: fotosBase64 ?? []
   };
 }

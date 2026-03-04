@@ -1,6 +1,7 @@
 <div class="page-content">
     @if (erro) {
       <p class="error-msg">{{ erro }}</p>
+      <button type="button" class="btn btn-secondary" (click)="carregar()">Tentar novamente</button>
     }
     @if (loading) {
       <p class="loading-msg">Carregando...</p>

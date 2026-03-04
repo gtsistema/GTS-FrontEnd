@@ -19,6 +19,7 @@
           <input type="hidden" formControlName="id" />
           <input type="hidden" formControlName="pessoaId" />
 
+          @if (currentStep === 1) {
           <div class="layout-grid">
             <section class="card card--span-5">
             <div class="card__header">
@@ -140,122 +141,481 @@
             </div>
             </section>
           </div>
+          }
 
-          <section class="card card--accordion" [class.card--open]="complementaresOpen">
-          <button type="button" class="card__trigger" (click)="toggleComplementares()" [attr.aria-expanded]="complementaresOpen">
-            <h2 class="card__title">Dados complementares <span class="card__badge">TODO backend</span></h2>
-            <span class="card__chevron" aria-hidden="true">{{ complementaresOpen ? '▼' : '▶' }}</span>
-          </button>
-          @if (complementaresOpen) {
-            <div class="card__body">
-              <p class="card__description">Campos opcionais para integração futura.</p>
-
-              <h3 class="card__subtitle">Responsável legal</h3>
-              <div class="form-grid">
-                <div class="field">
-                  <label class="field__label" for="responsavelLegalNome">Responsável legal</label>
-                  <input id="responsavelLegalNome" class="field__input" type="text" formControlName="responsavelLegalNome" />
-                </div>
-                <div class="field">
-                  <label class="field__label" for="responsavelLegalCpf">CPF resp. legal</label>
+          @if (currentStep === 2) {
+          <section class="card">
+            <div class="card__header">
+              <h2 class="card__title">Dados Bancários</h2>
+              <p class="card__description">Informações para repasse (opcional)</p>
+            </div>
+            <div class="form-grid">
+              <div class="field banco-combo">
+                <label class="field__label" for="banco-input">Banco</label>
+                <input
+                  type="hidden"
+                  formControlName="banco"
+                />
+                <div class="banco-combo__input-wrap">
                   <input
-                    id="responsavelLegalCpf"
-                    class="field__input"
+                    id="banco-input"
                     type="text"
-                    formControlName="responsavelLegalCpf"
-                    appCpfFormat
-                    maxlength="14"
-                    placeholder="000.000.000-00"
+                    class="field__input banco-combo__input"
+                    [value]="bancoDisplay"
+                    (focus)="onBancoFocus()"
+                    (input)="onBancoInput($event)"
+                    (blur)="onBancoBlur()"
+                    placeholder="Digite para filtrar ou selecione"
+                    autocomplete="off"
                   />
+                  <button
+                    type="button"
+                    class="banco-combo__trigger"
+                    (mousedown)="toggleBancoDropdown($event)"
+                    [attr.aria-expanded]="bancoDropdownOpen"
+                    aria-label="Abrir lista de bancos"
+                  >
+                    <span class="material-symbols-outlined banco-combo__chevron">expand_more</span>
+                  </button>
                 </div>
-                <div class="field">
-                  <label class="field__label" for="contatoTelefone">Telefone</label>
+                @if (bancoDropdownOpen) {
+                  <ul class="banco-combo__list" role="listbox">
+                    @for (b of bancosFiltrados; track b.codigo) {
+                      <li
+                        role="option"
+                        class="banco-combo__item"
+                        (mousedown)="selecionarBanco(bancoToOption(b)); $event.preventDefault()"
+                      >
+                        {{ bancoToOption(b) }}
+                      </li>
+                    }
+                    @if (bancosFiltrados.length === 0) {
+                      <li class="banco-combo__item banco-combo__item--empty">Nenhum banco encontrado</li>
+                    }
+                  </ul>
+                }
+              </div>
+              <div class="field">
+                <label class="field__label" for="agencia">Agência</label>
+                <input id="agencia" class="field__input" type="text" formControlName="agencia" placeholder="Número da agência" />
+              </div>
+              <div class="field">
+                <label class="field__label" for="conta">Conta</label>
+                <input id="conta" class="field__input" type="text" formControlName="conta" placeholder="Número da conta" />
+              </div>
+              <div class="field tipo-conta-combo">
+                <label class="field__label" for="tipoConta-input">Tipo de conta</label>
+                <input type="hidden" formControlName="tipoConta" />
+                <div class="tipo-conta-combo__input-wrap">
                   <input
-                    id="contatoTelefone"
-                    class="field__input"
-                    type="tel"
-                    formControlName="contatoTelefone"
-                    appTelefoneFormat
-                    placeholder="(00) 00000-0000"
+                    id="tipoConta-input"
+                    type="text"
+                    class="field__input tipo-conta-combo__input"
+                    [value]="tipoContaDisplay"
+                    (focus)="onTipoContaFocus()"
+                    (input)="onTipoContaInput($event)"
+                    (blur)="onTipoContaBlur()"
+                    placeholder="Digite para filtrar ou selecione"
+                    autocomplete="off"
                   />
+                  <button
+                    type="button"
+                    class="tipo-conta-combo__trigger"
+                    (mousedown)="toggleTipoContaDropdown($event)"
+                    [attr.aria-expanded]="tipoContaDropdownOpen"
+                    aria-label="Abrir lista de tipo de conta"
+                  >
+                    <span class="material-symbols-outlined tipo-conta-combo__chevron">expand_more</span>
+                  </button>
                 </div>
+                @if (tipoContaDropdownOpen) {
+                  <ul class="tipo-conta-combo__list" role="listbox">
+                    @for (op of tipoContaFiltrados; track op.value) {
+                      <li
+                        role="option"
+                        class="tipo-conta-combo__item"
+                        (mousedown)="selecionarTipoConta(op.value); $event.preventDefault()"
+                      >
+                        {{ op.label }}
+                      </li>
+                    }
+                    @if (tipoContaFiltrados.length === 0) {
+                      <li class="tipo-conta-combo__item tipo-conta-combo__item--empty">Nenhuma opção encontrada</li>
+                    }
+                  </ul>
+                }
               </div>
-
-              <h3 class="card__subtitle">Estrutura</h3>
-              <div class="form-grid">
-                <div class="field">
-                  <label class="field__label" for="capacidadeVeiculos">Capacidade (veíc.)</label>
-                  <input id="capacidadeVeiculos" class="field__input" type="number" formControlName="capacidadeVeiculos" min="0" />
-                </div>
-                <div class="field">
-                  <label class="field__label" for="tamanho">Tamanho (m²)</label>
-                  <input id="tamanho" class="field__input" type="text" formControlName="tamanho" placeholder="Ex: 500" />
-                </div>
-                <div class="field field--inline field--switches">
-                  <label class="field__label field__label--checkbox"><input type="checkbox" formControlName="possuiSeguranca" /> Segurança</label>
-                  <label class="field__label field__label--checkbox"><input type="checkbox" formControlName="possuiBanheiro" /> Banheiro</label>
-                </div>
+              <div class="field field--full">
+                <label class="field__label" for="chavePix">Chave PIX</label>
+                <input id="chavePix" class="field__input" type="text" formControlName="chavePix" placeholder="E-mail, CPF/CNPJ ou telefone" />
               </div>
+            </div>
+          </section>
+          }
 
-              <div class="valores-local-row">
-                <div class="valores-local-col">
-                  <h3 class="card__subtitle">Valores</h3>
-                  <div class="form-grid form-grid--compact">
-                    <div class="field">
-                      <label class="field__label">Taxa ou Mensalidade</label>
-                      <div class="segmented">
-                        <label class="segmented__item">
-                          <input type="radio" formControlName="tipoTaxaMensalidade" [value]="'taxa'" />
-                          Taxa (%)
-                        </label>
-                        <label class="segmented__item">
-                          <input type="radio" formControlName="tipoTaxaMensalidade" [value]="'mensalidade'" />
-                          Mensalidade (R$)
-                        </label>
+          @if (currentStep === 3) {
+          <section class="card">
+            <div class="card__header">
+              <h2 class="card__title">Fotos</h2>
+              <p class="card__description">Imagem do estacionamento (opcional). Máximo {{ maxFotos }} fotos.</p>
+            </div>
+            <div class="form-grid">
+              <div class="field field--full">
+                <label class="field__label">Anexar foto</label>
+                <div
+                  class="foto-drop-zone"
+                  [class.foto-drop-zone--over]="fotoDragOver"
+                  [class.foto-drop-zone--disabled]="fotoItems.length >= maxFotos"
+                  (dragover)="onFotoDragOver($event)"
+                  (dragleave)="onFotoDragLeave()"
+                  (drop)="onFotoDrop($event)"
+                >
+                  <p class="foto-drop-zone__text">Arraste fotos aqui</p>
+                  <div class="file-upload">
+                    <input
+                      type="file"
+                      class="file-upload__input"
+                      accept="image/jpeg,image/png,image/webp"
+                      (change)="onFotoChange($event)"
+                      #fotoInput
+                    />
+                    <button
+                      type="button"
+                      class="file-upload__btn"
+                      [disabled]="fotoItems.length >= maxFotos"
+                      (click)="fotoInput.click()"
+                    >
+                      Selecionar imagem
+                    </button>
+                  </div>
+                </div>
+                @if (fotoError) {
+                  <span class="field__error">{{ fotoError }}</span>
+                }
+                @if (fotoItems.length > 0) {
+                  <p class="foto-count">{{ fotoItems.length }} / {{ maxFotos }} fotos</p>
+                  <div class="esteira-fotos">
+                    @for (item of fotoItems; track item.url) {
+                      <div class="esteira-fotos__item">
+                        <button
+                          type="button"
+                          class="esteira-fotos__thumb"
+                          (click)="abrirFotoAmpliada(item.url)"
+                          aria-label="Ver em tamanho maior"
+                        >
+                          <img [src]="item.url" [alt]="item.file?.name ?? 'Foto'" />
+                        </button>
+                        <button
+                          type="button"
+                          class="esteira-fotos__remove"
+                          (click)="removerFoto($index)"
+                          aria-label="Remover foto"
+                        >
+                          Remover
+                        </button>
                       </div>
-                      @if (isTaxa) {
-                        <div class="field__input-wrap">
-                          <input id="taxaPercentual" class="field__input" type="number" formControlName="taxaPercentual" min="0" max="100" step="0.01" placeholder="0" />
-                          <span class="field__suffix">%</span>
-                        </div>
-                      }
-                      @if (isMensalidade) {
-                        <div class="field__input-wrap">
-                          <span class="field__prefix">R$</span>
-                          <input id="mensalidadeValor" class="field__input" type="number" formControlName="mensalidadeValor" min="0" step="0.01" placeholder="0,00" />
-                        </div>
-                      }
-                    </div>
+                    }
                   </div>
-                </div>
-                <div class="valores-local-col">
-                  <h3 class="card__subtitle">Localização</h3>
-                  <div class="form-grid form-grid--compact">
-                    <div class="field field--compact">
-                      <label class="field__label" for="latitude">Latitude</label>
-                      <input id="latitude" class="field__input" type="number" formControlName="latitude" step="any" placeholder="Ex: -23.55" />
-                    </div>
-                    <div class="field field--compact">
-                      <label class="field__label" for="longitude">Longitude</label>
-                      <input id="longitude" class="field__input" type="number" formControlName="longitude" step="any" placeholder="Ex: -46.63" />
-                    </div>
-                  </div>
-                </div>
+                }
+              </div>
+            </div>
+          </section>
+          @if (fotoAmpliadaUrl) {
+            <div class="foto-ampliada" role="dialog" aria-modal="true" aria-label="Foto em tamanho maior">
+              <div class="foto-ampliada__backdrop" (click)="fecharFotoAmpliada()"></div>
+              <div class="foto-ampliada__content">
+                <img [src]="fotoAmpliadaUrl" alt="Foto ampliada" />
+                <button type="button" class="foto-ampliada__close" (click)="fecharFotoAmpliada()" aria-label="Fechar">Fechar</button>
               </div>
             </div>
           }
-        </section>
+          }
 
-        @if (form.invalid) {
+          @if (currentStep === 1) {
+          <section class="card card--accordion" [class.card--open]="complementaresOpen">
+            <button type="button" class="card__trigger" (click)="toggleComplementares()" [attr.aria-expanded]="complementaresOpen">
+              <h2 class="card__title">Dados complementares</h2>
+              <span class="card__chevron" aria-hidden="true">{{ complementaresOpen ? '▼' : '▶' }}</span>
+            </button>
+            @if (complementaresOpen) {
+              <div class="card__body complementares-body">
+                <div class="complementares-grid">
+                  <div class="complementares-block">
+                    <h3 class="card__subtitle">Estrutura</h3>
+                    <div class="form-grid form-grid--complementares">
+                      <div class="field">
+                        <label class="field__label" for="capacidadeVeiculos">Capacidade (veíc.)</label>
+                        <input id="capacidadeVeiculos" class="field__input" type="number" formControlName="capacidadeVeiculos" min="0" />
+                      </div>
+                      <div class="field">
+                        <label class="field__label" for="tamanho">Tamanho (m²)</label>
+                        <input id="tamanho" class="field__input" type="number" formControlName="tamanho" min="0" step="1" placeholder="Ex: 500" />
+                      </div>
+                      <div class="field field--inline field--switches">
+                        <label class="field__label field__label--checkbox"><input type="checkbox" formControlName="possuiSeguranca" /> Segurança</label>
+                        <label class="field__label field__label--checkbox"><input type="checkbox" formControlName="possuiBanheiro" /> Banheiro</label>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="complementares-block">
+                    <h3 class="card__subtitle">Valores</h3>
+                    <div class="form-grid form-grid--complementares">
+                      <div class="field">
+                        <label class="field__label">Taxa ou Mensalidade</label>
+                        <div class="segmented">
+                          <label class="segmented__item">
+                            <input type="radio" formControlName="tipoTaxaMensalidade" [value]="'taxa'" />
+                            Taxa (%)
+                          </label>
+                          <label class="segmented__item">
+                            <input type="radio" formControlName="tipoTaxaMensalidade" [value]="'mensalidade'" />
+                            Mensalidade (R$)
+                          </label>
+                        </div>
+                        @if (isTaxa) {
+                          <div class="field__input-wrap">
+                            <input id="taxaPercentual" class="field__input" type="number" formControlName="taxaPercentual" min="0" max="100" step="0.01" placeholder="0" />
+                            <span class="field__suffix">%</span>
+                          </div>
+                        }
+                        @if (isMensalidade) {
+                          <div class="field__input-wrap">
+                            <span class="field__prefix">R$</span>
+                            <input id="mensalidadeValor" class="field__input" type="number" formControlName="mensalidadeValor" min="0" step="0.01" placeholder="0,00" />
+                          </div>
+                        }
+                      </div>
+                    </div>
+                  </div>
+                  <div class="complementares-block">
+                    <h3 class="card__subtitle">Localização</h3>
+                    <div class="form-grid form-grid--complementares">
+                      <div class="field">
+                        <label class="field__label" for="latitude">Latitude</label>
+                        <input id="latitude" class="field__input" type="number" formControlName="latitude" step="any" placeholder="Ex: -23.55" />
+                      </div>
+                      <div class="field">
+                        <label class="field__label" for="longitude">Longitude</label>
+                        <input id="longitude" class="field__input" type="number" formControlName="longitude" step="any" placeholder="Ex: -46.63" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="complementares-block complementares-block--full">
+                    <h3 class="card__subtitle">Endereço</h3>
+                    <div class="enderecos-actions">
+                      <button
+                        type="button"
+                        class="btn btn--secondary btn--sm"
+                        (click)="adicionarEndereco()"
+                        aria-label="Adicionar endereço"
+                      >
+                        <span class="material-symbols-outlined enderecos-add-icon">add</span>
+                        Adicionar endereço
+                      </button>
+                    </div>
+                    <div formArrayName="enderecos">
+                      @for (item of enderecosArray.controls; track $index) {
+                        <div class="endereco-block" [formGroupName]="$index">
+                          <div class="endereco-block__header">
+                            <span class="endereco-block__title">Endereço {{ $index + 1 }}</span>
+                            <button
+                              type="button"
+                              class="btn btn--ghost btn--sm"
+                              (click)="removerEndereco($index)"
+                              aria-label="Remover endereço"
+                            >
+                              Remover
+                            </button>
+                          </div>
+                          <div class="form-grid form-grid--endereco">
+                            <div class="field">
+                              <label class="field__label" [attr.for]="'endCep' + $index">CEP</label>
+                              <input
+                                [id]="'endCep' + $index"
+                                class="field__input"
+                                type="text"
+                                formControlName="cep"
+                                placeholder="00000-000"
+                                maxlength="9"
+                                (blur)="onCepBlur($index)"
+                              />
+                            </div>
+                            <div class="field field--full">
+                              <label class="field__label" [attr.for]="'endLogradouro' + $index">Logradouro</label>
+                              <input [id]="'endLogradouro' + $index" class="field__input" type="text" formControlName="logradouro" placeholder="Rua, avenida..." />
+                            </div>
+                            <div class="field">
+                              <label class="field__label" [attr.for]="'endNumero' + $index">Número</label>
+                              <input [id]="'endNumero' + $index" class="field__input" type="text" formControlName="numero" placeholder="Nº" />
+                            </div>
+                            <div class="field">
+                              <label class="field__label" [attr.for]="'endComplemento' + $index">Complemento</label>
+                              <input [id]="'endComplemento' + $index" class="field__input" type="text" formControlName="complemento" placeholder="Apto, sala..." />
+                            </div>
+                            <div class="field">
+                              <label class="field__label" [attr.for]="'endBairro' + $index">Bairro</label>
+                              <input [id]="'endBairro' + $index" class="field__input" type="text" formControlName="bairro" placeholder="Bairro" />
+                            </div>
+                            <div class="field">
+                              <label class="field__label" [attr.for]="'endCidade' + $index">Cidade</label>
+                              <input [id]="'endCidade' + $index" class="field__input" type="text" formControlName="cidade" placeholder="Cidade" />
+                            </div>
+                            <div class="field">
+                              <label class="field__label" [attr.for]="'endEstado' + $index">Estado</label>
+                              <input [id]="'endEstado' + $index" class="field__input" type="text" formControlName="estado" placeholder="UF" maxlength="2" />
+                            </div>
+                            <div class="field field--inline">
+                              <label class="field__label field__label--checkbox">
+                                <input type="checkbox" formControlName="principal" />
+                                Principal
+                              </label>
+                            </div>
+                          </div>
+                        </div>
+                      }
+                    </div>
+                  </div>
+                </div>
+              </div>
+            }
+          </section>
+
+          <section class="card card--accordion" [class.card--open]="contatosOpen">
+            <button type="button" class="card__trigger" (click)="toggleContatos()" [attr.aria-expanded]="contatosOpen">
+              <h2 class="card__title">Contatos (Responsável legal e complementares)</h2>
+              <span class="card__chevron" aria-hidden="true">{{ contatosOpen ? '▼' : '▶' }}</span>
+            </button>
+            @if (contatosOpen) {
+              <div class="card__body contatos-body">
+                <div class="contatos-block">
+                  <h3 class="card__subtitle">Responsável legal</h3>
+                  <div class="form-grid form-grid--contatos">
+                    <div class="field">
+                      <label class="field__label" for="responsavelLegalNome">Nome</label>
+                      <input id="responsavelLegalNome" class="field__input" type="text" formControlName="responsavelLegalNome" placeholder="Nome do responsável" />
+                    </div>
+                    <div class="field">
+                      <label class="field__label" for="responsavelLegalCpf">CPF</label>
+                      <input
+                        id="responsavelLegalCpf"
+                        class="field__input"
+                        type="text"
+                        formControlName="responsavelLegalCpf"
+                        appCpfFormat
+                        maxlength="14"
+                        placeholder="000.000.000-00"
+                      />
+                    </div>
+                    <div class="field">
+                      <label class="field__label" for="contatoTelefone">Telefone</label>
+                      <input
+                        id="contatoTelefone"
+                        class="field__input"
+                        type="tel"
+                        formControlName="contatoTelefone"
+                        appTelefoneFormat
+                        placeholder="(00) 00000-0000"
+                      />
+                    </div>
+                    <div class="field">
+                      <label class="field__label" for="responsavelLegalEmail">E-mail</label>
+                      <input id="responsavelLegalEmail" class="field__input" type="email" formControlName="responsavelLegalEmail" placeholder="email@exemplo.com" />
+                    </div>
+                  </div>
+                </div>
+
+                <div class="contatos-complementares-actions">
+                  <button
+                    type="button"
+                    class="btn btn--secondary btn--sm contatos-add-btn"
+                    (click)="adicionarContatoComplementar()"
+                    [disabled]="!podeAdicionarContatoComplementar"
+                    aria-label="Adicionar contato complementar"
+                  >
+                    <span class="material-symbols-outlined contatos-add-btn__icon">add</span>
+                    Adicionar contato complementar
+                  </button>
+                  @if (contatosComplementaresArray.length >= maxContatosComplementares) {
+                    <span class="contatos-complementares-limit">Máximo {{ maxContatosComplementares }} contatos complementares.</span>
+                  }
+                </div>
+
+                <div formArrayName="contatosComplementares">
+                @for (item of contatosComplementaresArray.controls; track $index) {
+                  <div class="contatos-block contatos-block--complementar" [formGroupName]="$index">
+                    <div class="contatos-block__header">
+                      <h3 class="card__subtitle">Contato complementar {{ $index + 1 }}</h3>
+                      <button
+                        type="button"
+                        class="btn btn--ghost btn--sm"
+                        (click)="removerContatoComplementar($index)"
+                        aria-label="Remover contato complementar"
+                      >
+                        Remover
+                      </button>
+                    </div>
+                    <div class="form-grid form-grid--contatos">
+                      <div class="field">
+                        <label class="field__label" [attr.for]="'compNome' + $index">Nome</label>
+                        <input [id]="'compNome' + $index" class="field__input" type="text" formControlName="nome" placeholder="Nome" />
+                      </div>
+                      <div class="field">
+                        <label class="field__label" [attr.for]="'compCpf' + $index">CPF</label>
+                        <input
+                          [id]="'compCpf' + $index"
+                          class="field__input"
+                          type="text"
+                          formControlName="cpf"
+                          appCpfFormat
+                          maxlength="14"
+                          placeholder="000.000.000-00"
+                        />
+                      </div>
+                      <div class="field">
+                        <label class="field__label" [attr.for]="'compTel' + $index">Telefone</label>
+                        <input
+                          [id]="'compTel' + $index"
+                          class="field__input"
+                          type="tel"
+                          formControlName="telefone"
+                          appTelefoneFormat
+                          placeholder="(00) 00000-0000"
+                        />
+                      </div>
+                      <div class="field">
+                        <label class="field__label" [attr.for]="'compEmail' + $index">E-mail</label>
+                        <input [id]="'compEmail' + $index" class="field__input" type="email" formControlName="email" placeholder="email@exemplo.com" />
+                      </div>
+                    </div>
+                  </div>
+                }
+                </div>
+              </div>
+            }
+          </section>
+        }
+
+        @if (form.invalid && currentStep === 3) {
           <p class="form-invalid-hint" role="alert">
             Corrija os campos destacados em vermelho para habilitar o botão Salvar.
           </p>
         }
         <footer class="actions">
-          <button type="button" class="btn btn--secondary" (click)="cancelar()">Cancelar</button>
-          <button type="submit" class="btn btn--primary" [disabled]="form.invalid || salvando">
-            {{ salvando ? 'Salvando...' : 'Salvar' }}
-          </button>
+          @if (currentStep === 1) {
+            <button type="button" class="btn btn--secondary" (click)="cancelar()">Cancelar</button>
+            <button type="button" class="btn btn--primary" (click)="proximoStep()">Próximo</button>
+          }
+          @if (currentStep === 2) {
+            <button type="button" class="btn btn--secondary" (click)="stepAnterior()">Anterior</button>
+            <button type="button" class="btn btn--primary" (click)="proximoStep()">Próximo</button>
+          }
+          @if (currentStep === 3) {
+            <button type="button" class="btn btn--secondary" (click)="stepAnterior()">Anterior</button>
+            <button type="submit" class="btn btn--primary" [disabled]="form.invalid || salvando">
+              {{ salvando ? 'Salvando...' : 'Salvar' }}
+            </button>
+          }
         </footer>
         </form>
       }
