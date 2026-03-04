@@ -59,6 +59,8 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
   fotoAmpliadaUrl: string | null = null;
   /** True quando o usuário arrasta arquivos sobre a zona de drop. */
   fotoDragOver = false;
+  /** Índice da foto marcada como principal (opcional). Null = nenhuma principal. */
+  fotoPrincipalIndex: number | null = null;
 
   private stepService = inject(EstacionamentoFormStepService);
 
@@ -229,6 +231,7 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
               const base64 = b64.startsWith('data:') ? b64.split(',')[1] ?? b64 : b64;
               return { url, base64 };
             });
+            this.fotoPrincipalIndex = null;
             this.form.get('pessoa')?.patchValue({
               id: dto.pessoa.id,
               tipoPessoa: dto.pessoa.tipoPessoa ?? 2,
@@ -315,11 +318,24 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
     });
   }
 
+  /** Ordem para envio: foto principal primeiro (se houver), depois as demais. */
+  private getOrderedFotoItems(): Array<{ url: string; file?: File; base64?: string }> {
+    const list = this.fotoItems;
+    if (list.length === 0) return [];
+    if (this.fotoPrincipalIndex == null || this.fotoPrincipalIndex < 0 || this.fotoPrincipalIndex >= list.length) {
+      return [...list];
+    }
+    const principal = list[this.fotoPrincipalIndex];
+    const rest = list.filter((_, i) => i !== this.fotoPrincipalIndex!);
+    return [principal, ...rest];
+  }
+
   private buildFotosBase64(): Promise<string[]> {
-    const withBase64 = this.fotoItems.filter((i) => i.base64).map((i) => i.base64!);
-    const withFile = this.fotoItems.filter((i) => i.file);
-    if (withFile.length === 0) return Promise.resolve(withBase64);
-    return Promise.all(withFile.map((i) => this.fileToBase64(i.file!))).then((arr) => [...withBase64, ...arr]);
+    const ordered = this.getOrderedFotoItems();
+    const promises = ordered.map((i) =>
+      i.base64 ? Promise.resolve(i.base64) : (i.file ? this.fileToBase64(i.file) : Promise.resolve(''))
+    );
+    return Promise.all(promises).then((arr) => arr.filter((b) => b.length > 0));
   }
 
   cancelar(): void {
@@ -397,7 +413,14 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
       if (this.fotoAmpliadaUrl === item.url) this.fotoAmpliadaUrl = null;
       this.fotoItems.splice(index, 1);
       this.fotoError = null;
+      if (this.fotoPrincipalIndex === index) this.fotoPrincipalIndex = null;
+      else if (this.fotoPrincipalIndex != null && index < this.fotoPrincipalIndex) this.fotoPrincipalIndex--;
     }
+  }
+
+  /** Marca a foto no índice como principal (opcional). Se já for a principal, desmarca. */
+  definirFotoPrincipal(index: number): void {
+    this.fotoPrincipalIndex = this.fotoPrincipalIndex === index ? null : index;
   }
 
   abrirFotoAmpliada(url: string): void {

@@ -257,7 +257,7 @@
           <section class="card">
             <div class="card__header">
               <h2 class="card__title">Fotos</h2>
-              <p class="card__description">Imagem do estacionamento (opcional). Máximo {{ maxFotos }} fotos.</p>
+              <p class="card__description">Imagem do estacionamento (opcional). Máximo {{ maxFotos }} fotos. Você pode marcar uma como principal.</p>
             </div>
             <div class="form-grid">
               <div class="field field--full">
@@ -296,7 +296,7 @@
                   <p class="foto-count">{{ fotoItems.length }} / {{ maxFotos }} fotos</p>
                   <div class="esteira-fotos">
                     @for (item of fotoItems; track item.url) {
-                      <div class="esteira-fotos__item">
+                      <div class="esteira-fotos__item" [class.esteira-fotos__item--principal]="fotoPrincipalIndex === $index">
                         <button
                           type="button"
                           class="esteira-fotos__thumb"
@@ -304,6 +304,17 @@
                           aria-label="Ver em tamanho maior"
                         >
                           <img [src]="item.url" [alt]="item.file?.name ?? 'Foto'" />
+                          @if (fotoPrincipalIndex === $index) {
+                            <span class="esteira-fotos__badge-principal" aria-hidden="true">Principal</span>
+                          }
+                        </button>
+                        <button
+                          type="button"
+                          class="esteira-fotos__set-principal"
+                          (click)="definirFotoPrincipal($index)"
+                          [class.esteira-fotos__set-principal--active]="fotoPrincipalIndex === $index"
+                        >
+                          {{ fotoPrincipalIndex === $index ? 'Principal' : 'Definir como principal' }}
                         </button>
                         <button
                           type="button"
