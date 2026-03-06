@@ -1,12 +1,13 @@
 /**
- * Desenvolvimento: /api é repassado ao backend pelo proxy (proxy.conf.json).
- * Assim o navegador não faz requisição cross-origin e não há bloqueio de CORS.
+ * Desenvolvimento: chamadas da API vão direto para o backend na Azure.
+ * Request URL no Network aparecerá como https://gtsbackend.azurewebsites.net/...
+ * O backend deve permitir CORS para http://localhost:4200.
  */
 export const environment = {
   production: false,
-  apiUrl: '/api',
-  /** Base URL da API (uso em ApiService e interceptors). */
-  API_BASE_URL: '/api',
+  apiUrl: 'https://gtsbackend.azurewebsites.net/api',
+  /** Base URL da API — sempre Azure para que listar/upload/deletar fotos usem o backend real. */
+  API_BASE_URL: 'https://gtsbackend.azurewebsites.net/api',
   /** Base URL ViaCEP: em dev usa proxy /viacep. */
   viacepBaseUrl: '/viacep'
 };

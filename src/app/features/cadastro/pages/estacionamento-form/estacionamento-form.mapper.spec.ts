@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import {
   formValueToEstacionamentoPayload,
+  buildAgencia,
+  buildConta,
   type FormValue
 } from './estacionamento-form.mapper';
 
@@ -116,5 +118,26 @@ describe('estacionamento-form.mapper', () => {
     expect(typeof payload['dataAtualizacao']).toBe('string');
     expect(() => new Date(payload['dataCriacao'] as string)).not.toThrow();
     expect(() => new Date(payload['dataAtualizacao'] as string)).not.toThrow();
+  });
+
+  it('buildAgencia e buildConta montam número e dígito no formato esperado', () => {
+    expect(buildAgencia('1216', '0')).toBe('1216-0');
+    expect(buildAgencia('1216', '')).toBe('1216');
+    expect(buildAgencia('', '0')).toBe('');
+    expect(buildConta('12345', '6')).toBe('12345-6');
+    expect(buildConta('12345', '')).toBe('12345');
+  });
+
+  it('payload envia agencia e conta montados a partir de numero e digito', () => {
+    const value: FormValue = {
+      ...baseFormValue,
+      agenciaNumero: '1216',
+      agenciaDigito: '0',
+      contaNumero: '12345',
+      contaDigito: '6'
+    };
+    const payload = formValueToEstacionamentoPayload(value);
+    expect(payload['agencia']).toBe('1216-0');
+    expect(payload['conta']).toBe('12345-6');
   });
 });

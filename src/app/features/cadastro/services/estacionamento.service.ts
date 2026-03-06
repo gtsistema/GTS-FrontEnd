@@ -81,6 +81,22 @@ export class EstacionamentoService {
   }
 
   /**
+   * GET /api/Estacionamento/BuscarFotos/{id}
+   * Retorna as fotos do estacionamento (base64 ou URLs). Resposta pode ser array ou { result: array }.
+   */
+  buscarFotos(id: number): Observable<string[]> {
+    return this.http.get<unknown>(`${ESTACIONAMENTO}/BuscarFotos/${id}`).pipe(
+      timeout(15000),
+      map((body) => {
+        const raw = body as ApiResponseDTO<string[]> | string[];
+        const arr = Array.isArray(raw) ? raw : (raw && typeof raw === 'object' && 'result' in raw ? (raw as ApiResponseDTO<string[]>).result : []);
+        return Array.isArray(arr) ? arr : [];
+      }),
+      catchError(() => of([]))
+    );
+  }
+
+  /**
    * GET /api/Estacionamento/Buscar (Swagger)
    * Paginação: 50 registros por página.
    */

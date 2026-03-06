@@ -1,4 +1,6 @@
 import { ChangeDetectorRef, Component, NgZone, OnInit, OnDestroy, inject } from '@angular/core';
+import { Subscription, combineLatest } from 'rxjs';
+import { startWith } from 'rxjs/operators';
 import { CommonModule } from '@angular/common';
 import {
   ReactiveFormsModule,
@@ -9,6 +11,7 @@ import {
 } from '@angular/forms';
 import { Router, ActivatedRoute, RouterLink } from '@angular/router';
 import { EstacionamentoService } from '../../services/estacionamento.service';
+import { EstacionamentoFotosService, type FotoItem } from '../../services/estacionamento-fotos.service';
 import { ViacepService } from '../../services/viacep.service';
 import { EstacionamentoFormStepService } from '../../services/estacionamento-form-step.service';
 import { ToastService } from '../../../../core/api/services/toast.service';
@@ -52,23 +55,31 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
   contratoPdfError: string | null = null;
   /** Endereços retornados por ObterPorId; preservados no payload ao alterar. */
   loadedEnderecos: Record<string, unknown>[] = [];
-  /** Fotos: do backend (base64) ou novos (file). Máximo 4. Enviadas no payload como base64. */
-  fotoItems: Array<{ url: string; file?: File; base64?: string }> = [];
+  /** Fotos do backend (listar/upload/deletar via API Azure). Máximo 4. */
+  fotoItems: FotoItem[] = [];
   fotoError: string | null = null;
+  /** Loading da listagem de fotos (BuscarFotos). */
+  fotoLoading = false;
+  /** Loading do upload (UploadFotos). */
+  fotoUploading = false;
+  /** Loading da remoção (DeletarFotos). */
+  fotoDeleting = false;
   /** URL da foto em exibição ampliada (lightbox). */
   fotoAmpliadaUrl: string | null = null;
   /** True quando o usuário arrasta arquivos sobre a zona de drop. */
   fotoDragOver = false;
-  /** Índice da foto marcada como principal (opcional). Null = nenhuma principal. */
-  fotoPrincipalIndex: number | null = null;
+  /** True se o backend não expõe endpoint para definir foto principal após envio (apenas PadraoIndex no upload). */
+  readonly endpointPrincipalFalta = true;
 
   private stepService = inject(EstacionamentoFormStepService);
+  private titularSyncSub?: Subscription;
 
   constructor(
     private fb: FormBuilder,
     private router: Router,
     private route: ActivatedRoute,
     private estacionamentoService: EstacionamentoService,
+    private fotosService: EstacionamentoFotosService,
     private viacep: ViacepService,
     private toast: ToastService,
     private cdr: ChangeDetectorRef,
@@ -105,6 +116,7 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.titularSyncSub?.unsubscribe();
     this.fotoItems.forEach((item) => {
       if (item.file && item.url.startsWith('blob:')) URL.revokeObjectURL(item.url);
     });
@@ -144,14 +156,20 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
       contatoTelefone: [''],
       contatosComplementares: this.fb.array([]),
       contrato: [''],
-      // Dados bancários (passo 2 - novo cadastro)
+      // Dados bancários (passo 2 - novo cadastro): agência e conta com número + dígito
       banco: [''],
-      agencia: [''],
-      conta: [''],
+      agenciaNumero: [''],
+      agenciaDigito: [''],
+      contaNumero: [''],
+      contaDigito: [''],
       tipoConta: ['' as 'corrente' | 'poupanca' | ''],
-      chavePix: ['']
+      chavePix: [''],
+      titularMesmoResponsavel: [true],
+      titularRazaoSocial: [''],
+      titularCnpj: ['']
     });
     this.setupTaxaMensalidadeToggle();
+    this.setupTitularBancarioSync();
   }
 
   /** Habilita/desabilita campos Taxa e Mensalidade conforme o radio selecionado. */
@@ -175,6 +193,83 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
         mensalidade?.setValue(null);
       }
     });
+  }
+
+  /** Sincroniza titular bancário com Pessoa (responsável) quando titularMesmoResponsavel é true. */
+  private setupTitularBancarioSync(): void {
+    const pessoa = this.form.get('pessoa');
+    const razao = pessoa?.get('nomeRazaoSocial');
+    const doc = pessoa?.get('documento');
+    const titularMesmo = this.form.get('titularMesmoResponsavel');
+    if (!razao || !doc || !titularMesmo) return;
+    const sub = new Subscription();
+    sub.add(
+      combineLatest([
+        razao.valueChanges.pipe(startWith(razao.value)),
+        doc.valueChanges.pipe(startWith(doc.value)),
+        titularMesmo.valueChanges.pipe(startWith(titularMesmo.value))
+      ]).subscribe(() => {
+        if (this.form.get('titularMesmoResponsavel')?.value === true) {
+          this.syncTitularFromPessoa();
+        }
+      })
+    );
+    sub.add(
+      titularMesmo.valueChanges.pipe(startWith(titularMesmo.value)).subscribe((usaPadrao: boolean) => {
+        this.atualizarValidadoresTitular(!!usaPadrao);
+      })
+    );
+    this.titularSyncSub = sub;
+    this.syncTitularFromPessoa();
+    this.atualizarValidadoresTitular(titularMesmo.value);
+  }
+
+  private syncTitularFromPessoa(): void {
+    const pessoa = this.form.get('pessoa');
+    const razao = pessoa?.get('nomeRazaoSocial')?.value ?? '';
+    const doc = pessoa?.get('documento')?.value ?? '';
+    this.form.patchValue({
+      titularRazaoSocial: razao,
+      titularCnpj: doc
+    }, { emitEvent: false });
+  }
+
+  private atualizarValidadoresTitular(usaTitularPadrao: boolean): void {
+    const razao = this.form.get('titularRazaoSocial');
+    const cnpj = this.form.get('titularCnpj');
+    if (!razao || !cnpj) return;
+    razao.clearValidators();
+    cnpj.clearValidators();
+    if (!usaTitularPadrao) {
+      razao.addValidators([Validators.required, Validators.minLength(2)]);
+      cnpj.addValidators([Validators.required, documentoValidator(2 as TipoPessoa)]);
+    }
+    razao.updateValueAndValidity();
+    cnpj.updateValueAndValidity();
+  }
+
+  /** Usuário clicou em "Titular diferente?" — revela bloco e permite editar titular. */
+  abrirTitularDiferente(): void {
+    this.form.patchValue({ titularMesmoResponsavel: false });
+    this.atualizarValidadoresTitular(false);
+  }
+
+  /** Volta a usar o titular do responsável (Pessoa). */
+  usarTitularDoResponsavel(): void {
+    this.form.patchValue({ titularMesmoResponsavel: true });
+    this.syncTitularFromPessoa();
+    this.atualizarValidadoresTitular(true);
+  }
+
+  get titularMesmoResponsavel(): boolean {
+    return this.form.get('titularMesmoResponsavel')?.value === true;
+  }
+
+  /** CNPJ do titular formatado para exibição no resumo. */
+  get titularCnpjFormatted(): string {
+    const raw = this.form.get('titularCnpj')?.value ?? '';
+    const digits = String(raw).replace(/\D/g, '');
+    return digits.length === 14 ? formatCnpj(digits) : raw;
   }
 
   private atualizarValidadoresDocumento(): void {
@@ -216,8 +311,7 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
               latitude: dto.latitude ?? null,
               longitude: dto.longitude ?? null,
               banco: trim(dto.banco),
-              agencia: trim(dto.agencia),
-              conta: trim(dto.conta),
+              ...this.parseAgenciaContaDoDto(trim(dto.agencia ?? ''), trim(dto.conta ?? '')),
               tipoConta: trim(dto.tipoConta),
               chavePix: trim(dto.chavePix)
             });
@@ -226,12 +320,11 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
             const tipoContaVal = this.form.get('tipoConta')?.value ?? '';
             const tipoContaOp = this.tipoContaOpcoes.find((o) => o.value === tipoContaVal);
             this.tipoContaFiltro = tipoContaOp ? tipoContaOp.label : '';
-            this.fotoItems = (dto.loadedFotosBase64 ?? []).map((b64) => {
-              const url = b64.startsWith('http') ? b64 : (b64.startsWith('data:') ? b64 : `data:image/jpeg;base64,${b64}`);
-              const base64 = b64.startsWith('data:') ? b64.split(',')[1] ?? b64 : b64;
-              return { url, base64 };
-            });
-            this.fotoPrincipalIndex = null;
+            if (this.form.get('titularMesmoResponsavel')?.value === true) {
+              this.syncTitularFromPessoa();
+            }
+            this.fotoItems = [];
+            this.carregarFotos();
             this.form.get('pessoa')?.patchValue({
               id: dto.pessoa.id,
               tipoPessoa: dto.pessoa.tipoPessoa ?? 2,
@@ -276,66 +369,71 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
     });
   }
 
-  onSubmit(): void {
+  /**
+   * Salva o estacionamento (gravar ou alterar conforme id).
+   * @param stayOnPage se true, não navega para a lista; atualiza id/rota quando for criação (para Fotos usarem o id do backend).
+   */
+  onSubmit(stayOnPage = false): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
+      if (stayOnPage) {
+        this.toast.warning('Preencha os dados obrigatórios do cadastro antes de adicionar fotos.');
+      }
       return;
     }
     this.salvando = true;
     this.erro = null;
-    this.buildFotosBase64().then((fotosBase64) => {
-      const dto = formValueToEstacionamentoPayload(this.form.value, this.loadedEnderecos, fotosBase64);
-      const request$ = this.id
+    // Fotos são gerenciadas apenas pelos endpoints BuscarFotos / UploadFotos / DeletarFotos (Azure); não enviamos no payload Gravar/Alterar.
+    const dto = formValueToEstacionamentoPayload(this.form.value, this.loadedEnderecos, []);
+    const request$ = this.id
         ? this.estacionamentoService.alterar(dto)
         : this.estacionamentoService.gravar(dto);
       request$.subscribe({
-        next: () => {
+        next: (res) => {
           this.salvando = false;
-          this.toast.success(this.id ? 'Estacionamento atualizado com sucesso.' : 'Estacionamento criado com sucesso.');
-          this.router.navigate(['/app/cadastro/estacionamento']);
+          if (stayOnPage) {
+            if (this.id == null && res?.id != null) {
+              this.id = res.id;
+              this.form.patchValue({ id: res.id }, { emitEvent: false });
+              this.router.navigate(['/app/cadastro/estacionamento', res.id], { replaceUrl: true });
+            }
+            this.toast.success(this.id ? 'Alterações salvas.' : 'Cadastro salvo.');
+          } else {
+            this.toast.success(this.id ? 'Estacionamento atualizado com sucesso.' : 'Estacionamento criado com sucesso.');
+            this.router.navigate(['/app/cadastro/estacionamento']);
+          }
         },
         error: () => {
           this.erro = 'Erro ao salvar. Tente novamente.';
           this.salvando = false;
         }
       });
-    }).catch(() => {
-      this.erro = 'Erro ao processar fotos.';
-      this.salvando = false;
+  }
+
+  /**
+   * Carrega fotos do backend (GET BuscarFotos). Chamado após obterPorId e após upload/delete.
+   */
+  carregarFotos(): void {
+    if (this.id == null || !Number.isFinite(this.id)) return;
+    this.fotoLoading = true;
+    this.fotoError = null;
+    this.fotosService.buscarFotos(this.id).subscribe({
+      next: (items) => {
+        this.ngZone.run(() => {
+          this.fotoItems = items;
+          this.fotoLoading = false;
+          this.cdr.markForCheck();
+        });
+      },
+      error: () => {
+        this.ngZone.run(() => {
+          this.fotoError = 'Erro ao carregar fotos.';
+          this.fotoLoading = false;
+          this.toast.show('Erro ao carregar fotos.', 'error');
+          this.cdr.markForCheck();
+        });
+      }
     });
-  }
-
-  private fileToBase64(file: File): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const dataUrl = reader.result as string;
-        const base64 = dataUrl.includes(',') ? dataUrl.split(',')[1] : dataUrl;
-        resolve(base64 ?? '');
-      };
-      reader.onerror = () => reject(reader.error);
-      reader.readAsDataURL(file);
-    });
-  }
-
-  /** Ordem para envio: foto principal primeiro (se houver), depois as demais. */
-  private getOrderedFotoItems(): Array<{ url: string; file?: File; base64?: string }> {
-    const list = this.fotoItems;
-    if (list.length === 0) return [];
-    if (this.fotoPrincipalIndex == null || this.fotoPrincipalIndex < 0 || this.fotoPrincipalIndex >= list.length) {
-      return [...list];
-    }
-    const principal = list[this.fotoPrincipalIndex];
-    const rest = list.filter((_, i) => i !== this.fotoPrincipalIndex!);
-    return [principal, ...rest];
-  }
-
-  private buildFotosBase64(): Promise<string[]> {
-    const ordered = this.getOrderedFotoItems();
-    const promises = ordered.map((i) =>
-      i.base64 ? Promise.resolve(i.base64) : (i.file ? this.fileToBase64(i.file) : Promise.resolve(''))
-    );
-    return Promise.all(promises).then((arr) => arr.filter((b) => b.length > 0));
   }
 
   cancelar(): void {
@@ -354,10 +452,10 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
   onFotoChange(event: Event): void {
     this.fotoError = null;
     const input = event.target as HTMLInputElement;
-    const file = input.files?.[0];
-    if (!file) return;
-    this.addFotoFile(file);
+    const files = input.files;
     input.value = '';
+    if (!files?.length) return;
+    this.uploadarArquivosFotos(Array.from(files));
   }
 
   onFotoDrop(event: DragEvent): void {
@@ -367,12 +465,7 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
     this.fotoError = null;
     const files = event.dataTransfer?.files;
     if (!files?.length) return;
-    for (let i = 0; i < files.length && this.fotoItems.length < MAX_FOTOS; i++) {
-      this.addFotoFile(files[i]);
-    }
-    if (this.fotoItems.length >= MAX_FOTOS && files.length > 1) {
-      this.fotoError = `Máximo ${MAX_FOTOS} fotos. As demais foram ignoradas.`;
-    }
+    this.uploadarArquivosFotos(Array.from(files));
   }
 
   onFotoDragOver(event: DragEvent): void {
@@ -385,42 +478,94 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
     this.fotoDragOver = false;
   }
 
-  /** Adiciona um arquivo à lista de fotos se for válido. Retorna true se foi adicionado. */
-  private addFotoFile(file: File): boolean {
-    if (this.fotoItems.length >= MAX_FOTOS) {
-      this.fotoError = `Máximo ${MAX_FOTOS} fotos por cadastro.`;
-      return false;
+  /**
+   * Upload de fotos via API UploadFotos (Azure). Valida quantidade e tipo; após sucesso recarrega a lista.
+   */
+  private uploadarArquivosFotos(files: File[]): void {
+    if (this.id == null || !Number.isFinite(this.id)) {
+      this.toast.warning('Salve o cadastro antes de adicionar fotos.');
+      return;
     }
     const allowed = ['image/jpeg', 'image/png', 'image/webp'];
-    if (!allowed.includes(file.type)) {
-      this.fotoError = 'Use apenas JPEG, PNG ou WebP.';
-      return false;
-    }
     const maxMb = 5;
-    if (file.size > maxMb * 1024 * 1024) {
-      this.fotoError = `Cada foto no máximo ${maxMb} MB.`;
-      return false;
+    const valid: File[] = [];
+    for (const file of files) {
+      if (this.fotoItems.length + valid.length >= MAX_FOTOS) {
+        this.fotoError = `Máximo ${MAX_FOTOS} fotos. As demais foram ignoradas.`;
+        break;
+      }
+      if (!allowed.includes(file.type)) {
+        this.fotoError = 'Use apenas JPEG, PNG ou WebP.';
+        continue;
+      }
+      if (file.size > maxMb * 1024 * 1024) {
+        this.fotoError = `Cada foto no máximo ${maxMb} MB.`;
+        continue;
+      }
+      valid.push(file);
     }
-    this.fotoItems.push({ file, url: URL.createObjectURL(file) });
+    if (valid.length === 0) return;
     this.fotoError = null;
-    return true;
+    this.fotoUploading = true;
+    this.fotosService.uploadFotos(this.id, valid).subscribe({
+      next: () => {
+        this.ngZone.run(() => {
+          this.fotoUploading = false;
+          this.toast.success('Fotos enviadas.');
+          this.cdr.markForCheck();
+          // Pequeno delay para o backend persistir antes de listar
+          setTimeout(() => this.carregarFotos(), 400);
+        });
+      },
+      error: () => {
+        this.ngZone.run(() => {
+          this.fotoUploading = false;
+          this.fotoError = 'Erro ao enviar fotos. Tente novamente.';
+          this.toast.show('Erro ao enviar fotos.', 'error');
+          this.cdr.markForCheck();
+        });
+      }
+    });
   }
 
   removerFoto(index: number): void {
     const item = this.fotoItems[index];
-    if (item) {
-      if (item.file && item.url.startsWith('blob:')) URL.revokeObjectURL(item.url);
-      if (this.fotoAmpliadaUrl === item.url) this.fotoAmpliadaUrl = null;
+    if (!item) return;
+    if (item.file && item.url.startsWith('blob:')) {
+      URL.revokeObjectURL(item.url);
       this.fotoItems.splice(index, 1);
       this.fotoError = null;
-      if (this.fotoPrincipalIndex === index) this.fotoPrincipalIndex = null;
-      else if (this.fotoPrincipalIndex != null && index < this.fotoPrincipalIndex) this.fotoPrincipalIndex--;
+      this.cdr.markForCheck();
+      return;
     }
+    if (item.id == null || !Number.isFinite(item.id)) {
+      this.toast.warning('Esta foto não pode ser removida pelo backend (sem id).');
+      return;
+    }
+    if (!confirm('Remover esta foto?')) return;
+    this.fotoDeleting = true;
+    this.fotosService.deletarFoto(item.id).subscribe({
+      next: () => {
+        this.ngZone.run(() => {
+          this.fotoDeleting = false;
+          this.toast.success('Foto removida.');
+          this.carregarFotos();
+          this.cdr.markForCheck();
+        });
+      },
+      error: () => {
+        this.ngZone.run(() => {
+          this.fotoDeleting = false;
+          this.toast.show('Erro ao remover foto.', 'error');
+          this.cdr.markForCheck();
+        });
+      }
+    });
   }
 
-  /** Marca a foto no índice como principal (opcional). Se já for a principal, desmarca. */
+  /** Marca a foto no índice como principal. Não existe endpoint no backend para alterar principal em fotos já salvas; apenas PadraoIndex no upload. */
   definirFotoPrincipal(index: number): void {
-    this.fotoPrincipalIndex = this.fotoPrincipalIndex === index ? null : index;
+    this.toast.show('Definir como principal não possui endpoint no backend. A ordem principal pode ser enviada no upload (PadraoIndex).', 'info');
   }
 
   abrirFotoAmpliada(url: string): void {
@@ -591,6 +736,67 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
     const op = this.tipoContaOpcoes.find((o) => o.value === value);
     this.tipoContaFiltro = op ? op.label : '';
     this.tipoContaDropdownOpen = false;
+  }
+
+  /**
+   * Parse agência no formato "1216-0" ou "12160" (último char = dígito).
+   * Retorna { numero, digito } para preencher os campos do form.
+   */
+  parseAgencia(valor: string): { numero: string; digito: string } {
+    const v = (valor ?? '').trim();
+    if (!v) return { numero: '', digito: '' };
+    if (v.includes('-')) {
+      const [numero, digito] = v.split('-');
+      return { numero: (numero ?? '').replace(/\D/g, ''), digito: (digito ?? '').replace(/\D/g, '').slice(0, 1) };
+    }
+    const digits = v.replace(/\D/g, '');
+    if (digits.length <= 1) return { numero: digits, digito: '' };
+    return { numero: digits.slice(0, -1), digito: digits.slice(-1) };
+  }
+
+  /**
+   * Parse conta no mesmo padrão: "12345-6" ou "123456" (último char = dígito).
+   */
+  parseConta(valor: string): { numero: string; digito: string } {
+    const v = (valor ?? '').trim();
+    if (!v) return { numero: '', digito: '' };
+    if (v.includes('-')) {
+      const [numero, digito] = v.split('-');
+      return { numero: (numero ?? '').replace(/\D/g, ''), digito: (digito ?? '').replace(/\D/g, '').slice(0, 1) };
+    }
+    const digits = v.replace(/\D/g, '');
+    if (digits.length <= 1) return { numero: digits, digito: '' };
+    return { numero: digits.slice(0, -1), digito: digits.slice(-1) };
+  }
+
+  /** Preenche agenciaNumero, agenciaDigito, contaNumero, contaDigito a partir dos valores únicos do backend. */
+  private parseAgenciaContaDoDto(agencia: string, conta: string): {
+    agenciaNumero: string;
+    agenciaDigito: string;
+    contaNumero: string;
+    contaDigito: string;
+  } {
+    const a = this.parseAgencia(agencia);
+    const c = this.parseConta(conta);
+    return {
+      agenciaNumero: a.numero,
+      agenciaDigito: a.digito,
+      contaNumero: c.numero,
+      contaDigito: c.digito
+    };
+  }
+
+  /** Restringe o input a apenas dígitos (0-9). Dígito: 1 char. Chamar no (input). */
+  apenasDigitosInput(controlName: 'agenciaNumero' | 'agenciaDigito' | 'contaNumero' | 'contaDigito', event: Event): void {
+    const el = event.target as HTMLInputElement;
+    const ctrl = this.form.get(controlName);
+    if (!ctrl) return;
+    const maxLen = controlName === 'agenciaDigito' || controlName === 'contaDigito' ? 1 : 20;
+    const next = (el.value ?? '').replace(/\D/g, '').slice(0, maxLen);
+    if (next !== el.value) {
+      ctrl.setValue(next, { emitEvent: false });
+      el.value = next;
+    }
   }
 
   toggleComplementares(): void {

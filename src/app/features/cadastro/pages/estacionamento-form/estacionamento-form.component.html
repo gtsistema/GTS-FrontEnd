@@ -144,11 +144,44 @@
           }
 
           @if (currentStep === 2) {
-          <section class="card">
-            <div class="card__header">
-              <h2 class="card__title">Dados Bancários</h2>
-              <p class="card__description">Informações para repasse (opcional)</p>
+          <section class="card card--dados-bancarios">
+            <div class="card__header card__header--row">
+              <div class="card__header-text">
+                <h2 class="card__title">Dados Bancários</h2>
+                <p class="card__description">Informações para repasse (opcional)</p>
+              </div>
+              @if (titularMesmoResponsavel) {
+                <button type="button" class="titular-diferente-btn" (click)="abrirTitularDiferente()">
+                  Titular diferente?
+                </button>
+              }
             </div>
+            <p class="titular-resumo" aria-live="polite">
+              Titular: {{ form.get('titularRazaoSocial')?.value || '—' }} — CNPJ: {{ titularCnpjFormatted || '—' }}
+            </p>
+            @if (!titularMesmoResponsavel) {
+              <div class="titular-diferente-block">
+                <div class="form-grid form-grid--titular">
+                  <div class="field">
+                    <label class="field__label" for="titularRazaoSocial">Razão Social do Titular</label>
+                    <input id="titularRazaoSocial" class="field__input" type="text" formControlName="titularRazaoSocial" placeholder="Razão social do titular da conta" />
+                    @if (form.get('titularRazaoSocial')?.invalid && form.get('titularRazaoSocial')?.touched) {
+                      <span class="field__error">Informe a razão social do titular.</span>
+                    }
+                  </div>
+                  <div class="field">
+                    <label class="field__label" for="titularCnpj">CNPJ do Titular</label>
+                    <input id="titularCnpj" class="field__input" type="text" formControlName="titularCnpj" appCnpjFormat placeholder="00.000.000/0000-00" />
+                    @if (form.get('titularCnpj')?.invalid && form.get('titularCnpj')?.touched) {
+                      <span class="field__error">CNPJ do titular inválido.</span>
+                    }
+                  </div>
+                </div>
+                <button type="button" class="btn btn--secondary btn--sm titular-usar-responsavel" (click)="usarTitularDoResponsavel()">
+                  Usar titular do responsável
+                </button>
+              </div>
+            }
             <div class="form-grid">
               <div class="field banco-combo">
                 <label class="field__label" for="banco-input">Banco</label>
@@ -195,13 +228,51 @@
                   </ul>
                 }
               </div>
-              <div class="field">
-                <label class="field__label" for="agencia">Agência</label>
-                <input id="agencia" class="field__input" type="text" formControlName="agencia" placeholder="Número da agência" />
+              <div class="field bank-agencia">
+                <label class="field__label">Agência</label>
+                <div class="bank-numero-digito">
+                  <input
+                    id="agenciaNumero"
+                    class="field__input bank-numero-digito__numero"
+                    type="text"
+                    formControlName="agenciaNumero"
+                    inputmode="numeric"
+                    placeholder="Número"
+                    (input)="apenasDigitosInput('agenciaNumero', $event)"
+                  />
+                  <input
+                    id="agenciaDigito"
+                    class="field__input bank-numero-digito__digito"
+                    type="text"
+                    formControlName="agenciaDigito"
+                    inputmode="numeric"
+                    placeholder="Dígito"
+                    (input)="apenasDigitosInput('agenciaDigito', $event)"
+                  />
+                </div>
               </div>
-              <div class="field">
-                <label class="field__label" for="conta">Conta</label>
-                <input id="conta" class="field__input" type="text" formControlName="conta" placeholder="Número da conta" />
+              <div class="field bank-conta">
+                <label class="field__label">Conta</label>
+                <div class="bank-numero-digito">
+                  <input
+                    id="contaNumero"
+                    class="field__input bank-numero-digito__numero"
+                    type="text"
+                    formControlName="contaNumero"
+                    inputmode="numeric"
+                    placeholder="Número"
+                    (input)="apenasDigitosInput('contaNumero', $event)"
+                  />
+                  <input
+                    id="contaDigito"
+                    class="field__input bank-numero-digito__digito"
+                    type="text"
+                    formControlName="contaDigito"
+                    inputmode="numeric"
+                    placeholder="Dígito"
+                    (input)="apenasDigitosInput('contaDigito', $event)"
+                  />
+                </div>
               </div>
               <div class="field tipo-conta-combo">
                 <label class="field__label" for="tipoConta-input">Tipo de conta</label>
@@ -257,46 +328,53 @@
           <section class="card">
             <div class="card__header">
               <h2 class="card__title">Fotos</h2>
-              <p class="card__description">Imagem do estacionamento (opcional). Máximo {{ maxFotos }} fotos. Você pode marcar uma como principal.</p>
+              <p class="card__description">Imagem do estacionamento (opcional). Máximo {{ maxFotos }} fotos. Listagem, envio e remoção via backend (Azure).</p>
             </div>
             <div class="form-grid">
               <div class="field field--full">
                 <label class="field__label">Anexar foto</label>
+                @if (fotoLoading) {
+                  <p class="foto-loading">Carregando fotos…</p>
+                } @else {
                 <div
                   class="foto-drop-zone"
                   [class.foto-drop-zone--over]="fotoDragOver"
-                  [class.foto-drop-zone--disabled]="fotoItems.length >= maxFotos"
+                  [class.foto-drop-zone--disabled]="fotoItems.length >= maxFotos || fotoUploading"
                   (dragover)="onFotoDragOver($event)"
                   (dragleave)="onFotoDragLeave()"
                   (drop)="onFotoDrop($event)"
                 >
                   <p class="foto-drop-zone__text">Arraste fotos aqui</p>
                   <div class="file-upload">
-                    <input
-                      type="file"
-                      class="file-upload__input"
-                      accept="image/jpeg,image/png,image/webp"
-                      (change)="onFotoChange($event)"
-                      #fotoInput
-                    />
-                    <button
-                      type="button"
-                      class="file-upload__btn"
-                      [disabled]="fotoItems.length >= maxFotos"
-                      (click)="fotoInput.click()"
-                    >
-                      Selecionar imagem
-                    </button>
+                    <span class="file-upload__wrap">
+                      <button
+                        type="button"
+                        class="file-upload__btn"
+                        [disabled]="fotoItems.length >= maxFotos || fotoUploading"
+                      >
+                        {{ fotoUploading ? 'Enviando…' : 'Selecionar imagem' }}
+                      </button>
+                      <input
+                        type="file"
+                        class="file-upload__input file-upload__input--overlay"
+                        accept="image/jpeg,image/png,image/webp"
+                        multiple
+                        [disabled]="fotoItems.length >= maxFotos || fotoUploading"
+                        (change)="onFotoChange($event)"
+                      />
+                    </span>
                   </div>
                 </div>
+                }
                 @if (fotoError) {
                   <span class="field__error">{{ fotoError }}</span>
                 }
-                @if (fotoItems.length > 0) {
-                  <p class="foto-count">{{ fotoItems.length }} / {{ maxFotos }} fotos</p>
+                @if (fotoItems.length > 0 && !fotoLoading) {
+                  <p class="foto-count">{{ fotoItems.length }} / {{ maxFotos }} fotos (ordenadas pela ordem do backend)</p>
                   <div class="esteira-fotos">
-                    @for (item of fotoItems; track item.url) {
-                      <div class="esteira-fotos__item" [class.esteira-fotos__item--principal]="fotoPrincipalIndex === $index">
+                    @for (item of fotoItems; track item.id ?? item.url) {
+                      <div class="esteira-fotos__item" [class.esteira-fotos__item--principal]="item.principal">
+                        <span class="esteira-fotos__ordem" aria-hidden="true">Ordem {{ (item.ordem ?? $index) + 1 }}</span>
                         <button
                           type="button"
                           class="esteira-fotos__thumb"
@@ -304,7 +382,7 @@
                           aria-label="Ver em tamanho maior"
                         >
                           <img [src]="item.url" [alt]="item.file?.name ?? 'Foto'" />
-                          @if (fotoPrincipalIndex === $index) {
+                          @if (item.principal) {
                             <span class="esteira-fotos__badge-principal" aria-hidden="true">Principal</span>
                           }
                         </button>
@@ -312,17 +390,19 @@
                           type="button"
                           class="esteira-fotos__set-principal"
                           (click)="definirFotoPrincipal($index)"
-                          [class.esteira-fotos__set-principal--active]="fotoPrincipalIndex === $index"
+                          [class.esteira-fotos__set-principal--active]="item.principal"
+                          [title]="endpointPrincipalFalta ? 'Endpoint para definir principal não disponível no backend.' : 'Definir como foto principal'"
                         >
-                          {{ fotoPrincipalIndex === $index ? 'Principal' : 'Definir como principal' }}
+                          {{ item.principal ? 'Principal' : 'Definir como principal' }}
                         </button>
                         <button
                           type="button"
                           class="esteira-fotos__remove"
+                          [disabled]="fotoDeleting"
                           (click)="removerFoto($index)"
                           aria-label="Remover foto"
                         >
-                          Remover
+                          {{ fotoDeleting ? 'Removendo…' : 'Remover' }}
                         </button>
                       </div>
                     }
@@ -607,7 +687,7 @@
           </section>
         }
 
-        @if (form.invalid && currentStep === 3) {
+        @if (form.invalid && (currentStep === 1 || currentStep === 2)) {
           <p class="form-invalid-hint" role="alert">
             Corrija os campos destacados em vermelho para habilitar o botão Salvar.
           </p>
@@ -620,12 +700,12 @@
           @if (currentStep === 2) {
             <button type="button" class="btn btn--secondary" (click)="stepAnterior()">Anterior</button>
             <button type="button" class="btn btn--primary" (click)="proximoStep()">Próximo</button>
-          }
-          @if (currentStep === 3) {
-            <button type="button" class="btn btn--secondary" (click)="stepAnterior()">Anterior</button>
             <button type="submit" class="btn btn--primary" [disabled]="form.invalid || salvando">
               {{ salvando ? 'Salvando...' : 'Salvar' }}
             </button>
+          }
+          @if (currentStep === 3) {
+            <button type="button" class="btn btn--secondary" (click)="stepAnterior()">Anterior</button>
           }
         </footer>
         </form>

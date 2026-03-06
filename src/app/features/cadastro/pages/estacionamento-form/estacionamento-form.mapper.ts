@@ -42,10 +42,15 @@ export interface FormValue {
   taxaPercentual?: number | null;
   mensalidadeValor?: number | null;
   banco?: string;
-  agencia?: string;
-  conta?: string;
+  agenciaNumero?: string;
+  agenciaDigito?: string;
+  contaNumero?: string;
+  contaDigito?: string;
   tipoConta?: string;
   chavePix?: string;
+  /** Titular da conta (padrão = pessoa responsável). */
+  titularRazaoSocial?: string;
+  titularCnpj?: string;
 }
 
 /** TipoCobranca no backend: 0 = nenhum, 1 = taxa, 2 = mensalidade (ajustar se o backend usar outros valores). */
@@ -53,6 +58,22 @@ function mapTipoCobranca(tipo: 'taxa' | 'mensalidade' | null | undefined): numbe
   if (tipo === 'taxa') return 1;
   if (tipo === 'mensalidade') return 2;
   return 0;
+}
+
+/** Monta string única de agência para o backend: "numero" ou "numero-digito". */
+export function buildAgencia(numero: string | null | undefined, digito: string | null | undefined): string {
+  const n = String(numero ?? '').trim().replace(/\D/g, '');
+  const d = String(digito ?? '').trim().replace(/\D/g, '').slice(0, 1);
+  if (!n) return '';
+  return d ? `${n}-${d}` : n;
+}
+
+/** Monta string única de conta para o backend: "numero" ou "numero-digito". */
+export function buildConta(numero: string | null | undefined, digito: string | null | undefined): string {
+  const n = String(numero ?? '').trim().replace(/\D/g, '');
+  const d = String(digito ?? '').trim().replace(/\D/g, '').slice(0, 1);
+  if (!n) return '';
+  return d ? `${n}-${d}` : n;
 }
 
 /** Endereço no formato do backend (para preservar ao editar). */
@@ -146,10 +167,12 @@ export function formValueToEstacionamentoPayload(
     cobrancaValor: value.tipoTaxaMensalidade === 'mensalidade' ? (value.mensalidadeValor ?? 0) : 0,
     pessoa,
     banco: value.banco ?? '',
-    agencia: value.agencia ?? '',
-    conta: value.conta ?? '',
+    agencia: buildAgencia(value.agenciaNumero, value.agenciaDigito),
+    conta: buildConta(value.contaNumero, value.contaDigito),
     tipoConta: value.tipoConta ?? '',
     chavePix: value.chavePix ?? '',
+    titularRazaoSocial: value.titularRazaoSocial ?? '',
+    titularCnpj: String(value.titularCnpj ?? '').replace(/\D/g, ''),
     fotos: fotosBase64 ?? []
   };
 }
