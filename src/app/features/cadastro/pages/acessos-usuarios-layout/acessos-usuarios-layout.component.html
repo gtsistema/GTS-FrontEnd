@@ -1,0 +1,26 @@
+<div class="page-container">
+  <header class="page-header">
+    <div class="page-header__row page-header__row--1">
+      <h1 class="page-title">Usuários</h1>
+    </div>
+    <div class="page-header__row page-header__row--2">
+      <div class="page-header__actions">
+        <input
+          type="text"
+          class="search-input input-control"
+          placeholder="Pesquisar"
+          [ngModel]="toolbar.searchTerm()"
+          (ngModelChange)="toolbar.setSearchTerm($event)"
+          (keyup.enter)="onBuscar()"
+        />
+        <button type="button" class="btn btn-secondary" (click)="onBuscar()">
+          Buscar
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="page-content">
+    <router-outlet></router-outlet>
+  </div>
+</div>

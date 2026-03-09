@@ -10,6 +10,48 @@ html, body {
   -webkit-overflow-scrolling: touch;
 }
 
+/* ========== Scrollbars: estilo clean e transparente (global) ========== */
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+html.theme-light * {
+  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+}
+
+/* Chrome, Safari, Edge (WebKit) */
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 4px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+html.theme-light *::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.18);
+}
+
+html.theme-light *::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.28);
+}
+
 /* ========== Container global (alinhamento topbar + conteúdo) ========== */
 :root {
   --content-max-width: 1360px;

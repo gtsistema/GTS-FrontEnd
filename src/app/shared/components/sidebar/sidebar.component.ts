@@ -46,7 +46,8 @@ export class SidebarComponent implements OnInit {
       icon: 'playlist_add',
       children: [
         { label: 'Estacionamento', route: '/app/cadastro/estacionamento' },
-        { label: 'Transportadora', route: '/app/cadastro/transportadora' }
+        { label: 'Transportadora', route: '/app/cadastro/transportadora' },
+        { label: 'Acessos', route: '/app/cadastro/acessos/usuarios' }
       ]
     }
   ];

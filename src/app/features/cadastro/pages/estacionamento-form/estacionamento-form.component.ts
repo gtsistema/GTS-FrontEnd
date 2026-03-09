@@ -452,10 +452,11 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
   onFotoChange(event: Event): void {
     this.fotoError = null;
     const input = event.target as HTMLInputElement;
-    const files = input.files;
+    const fileList = input.files;
+    const files = fileList ? Array.from(fileList) : [];
     input.value = '';
-    if (!files?.length) return;
-    this.uploadarArquivosFotos(Array.from(files));
+    if (!files.length) return;
+    this.uploadarArquivosFotos(files);
   }
 
   onFotoDrop(event: DragEvent): void {
