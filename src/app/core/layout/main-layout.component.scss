@@ -137,6 +137,11 @@
   box-sizing: border-box;
 }
 
+.content-container--full-width {
+  max-width: none;
+  width: 100%;
+}
+
 @media (max-width: 768px) {
   .layout.layout--mobile .layout-right {
     margin-left: 0;

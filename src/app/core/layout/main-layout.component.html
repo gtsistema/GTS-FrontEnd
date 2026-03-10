@@ -44,7 +44,7 @@
       </div>
     </header>
     <main class="main-content">
-      <div class="content-container">
+      <div class="content-container" [class.content-container--full-width]="isFullWidthContent()">
         <router-outlet></router-outlet>
       </div>
     </main>

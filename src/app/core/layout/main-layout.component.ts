@@ -38,6 +38,7 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
   mobileMenuOpen = signal(false);
 
   currentMode = computed(() => this.themeMode());
+  isFullWidthContent = signal(false);
   private routerSub?: { unsubscribe: () => void };
 
   constructor() {
@@ -48,9 +49,17 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.loadSidebarCollapsed();
     this.checkMobile();
+    this.updateFullWidthContent(this.router.url);
     this.routerSub = this.router.events.pipe(
       filter((e): e is NavigationEnd => e instanceof NavigationEnd)
-    ).subscribe(() => this.mobileMenuOpen.set(false));
+    ).subscribe((e) => {
+      this.mobileMenuOpen.set(false);
+      this.updateFullWidthContent(e.urlAfterRedirects ?? e.url);
+    });
+  }
+
+  private updateFullWidthContent(url: string): void {
+    this.isFullWidthContent.set(url.includes('/movimentos'));
   }
 
   ngOnDestroy(): void {

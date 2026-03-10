@@ -1,9 +1,283 @@
 <div class="page-container">
-  <div class="page-header">
-    <h1 class="page-title">Movimentos</h1>
-    <div class="dev-badge">🔧 Em Desenvolvimento</div>
-  </div>
+  <header class="page-header">
+    <div class="page-header__row page-header__row--1">
+      <div class="page-header__title-wrap">
+        <h1 class="page-title">Movimentos</h1>
+        <p class="page-subtitle">Central de operação (entrada e saída).</p>
+      </div>
+      <span class="page-header__badge">Em desenvolvimento</span>
+    </div>
+    <div class="page-header__row page-header__row--2">
+      <nav class="tabs" role="tablist" aria-label="Abas de Movimentos">
+        <button
+          type="button"
+          class="tab"
+          role="tab"
+          [class.tab--active]="activeTab === 'operacao'"
+          [attr.aria-selected]="activeTab === 'operacao'"
+          (click)="setActiveTab('operacao')"
+        >
+          Operação
+        </button>
+        <button
+          type="button"
+          class="tab"
+          role="tab"
+          [class.tab--active]="activeTab === 'historico'"
+          [attr.aria-selected]="activeTab === 'historico'"
+          (click)="setActiveTab('historico')"
+        >
+          Histórico
+        </button>
+      </nav>
+    </div>
+  </header>
 
   <div class="page-content">
+    @switch (activeTab) {
+      @case ('operacao') {
+        <div class="operacao">
+          <div class="operacao-actions">
+            <button type="button" class="btn btn-primary" (click)="openEntradaModal()">Entrada</button>
+            <div class="operacao-busca">
+              <input
+                type="text"
+                class="input-control operacao-busca__input"
+                placeholder="Buscar por placa"
+                [(ngModel)]="filtroPlaca"
+              />
+            </div>
+          </div>
+          <section class="card operacao-card operacao-card--full">
+            <h2 class="card__title">Em andamento agora</h2>
+            <div class="card__body">
+              <div class="table-wrap">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th class="th-sortable" (click)="ordenarPor('placa')" role="button" tabindex="0" (keydown.enter)="ordenarPor('placa')">
+                        Placa
+                        @if (ordenacaoColuna('placa'); as dir) {
+                          <span class="th-sort-icon" [attr.aria-label]="dir === 'asc' ? 'Crescente' : 'Decrescente'">{{ dir === 'asc' ? '↑' : '↓' }}</span>
+                        }
+                      </th>
+                      <th class="th-sortable" (click)="ordenarPor('condutor')" role="button" tabindex="0" (keydown.enter)="ordenarPor('condutor')">
+                        Condutor
+                        @if (ordenacaoColuna('condutor'); as dir) {
+                          <span class="th-sort-icon" [attr.aria-label]="dir === 'asc' ? 'Crescente' : 'Decrescente'">{{ dir === 'asc' ? '↑' : '↓' }}</span>
+                        }
+                      </th>
+                      <th class="th-sortable" (click)="ordenarPor('transportadora')" role="button" tabindex="0" (keydown.enter)="ordenarPor('transportadora')">
+                        Transportadora
+                        @if (ordenacaoColuna('transportadora'); as dir) {
+                          <span class="th-sort-icon" [attr.aria-label]="dir === 'asc' ? 'Crescente' : 'Decrescente'">{{ dir === 'asc' ? '↑' : '↓' }}</span>
+                        }
+                      </th>
+                      <th class="th-sortable" (click)="ordenarPor('dataHoraEntrada')" role="button" tabindex="0" (keydown.enter)="ordenarPor('dataHoraEntrada')">
+                        Data e hora de entrada
+                        @if (ordenacaoColuna('dataHoraEntrada'); as dir) {
+                          <span class="th-sort-icon" [attr.aria-label]="dir === 'asc' ? 'Crescente' : 'Decrescente'">{{ dir === 'asc' ? '↑' : '↓' }}</span>
+                        }
+                      </th>
+                      <th>Tempo de permanência</th>
+                      <th class="th-sortable" (click)="ordenarPor('status')" role="button" tabindex="0" (keydown.enter)="ordenarPor('status')">
+                        Status
+                        @if (ordenacaoColuna('status'); as dir) {
+                          <span class="th-sort-icon" [attr.aria-label]="dir === 'asc' ? 'Crescente' : 'Decrescente'">{{ dir === 'asc' ? '↑' : '↓' }}</span>
+                        }
+                      </th>
+                      <th>Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (item of emAndamentoOrdenado; track item.placa + item.dataHoraEntrada) {
+                      <tr>
+                        <td>{{ item.placa }}</td>
+                        <td>{{ item.condutor }}</td>
+                        <td>{{ item.transportadora }}</td>
+                        <td>{{ item.dataHoraEntrada }}</td>
+                        <td><span [attr.aria-hidden]="true" [attr.data-tick]="tickAtualizacao"></span>{{ tempoPermanenciaAgora(item) }}</td>
+                        <td>{{ item.status }}</td>
+                        <td class="acoes-cell">
+                          @if (item.status === 'Suspenso') {
+                            <button type="button" class="btn btn-primary btn--sm" (click)="retomar(item)">
+                              Retomar
+                            </button>
+                          } @else {
+                            <button type="button" class="btn btn-secondary btn--sm" (click)="suspender(item)">
+                              Suspender
+                            </button>
+                          }
+                          <button type="button" class="btn btn-danger btn--sm" (click)="registrarSaida(item)">
+                            Saída
+                          </button>
+                        </td>
+                      </tr>
+                      @if ((item.suspensoes?.length ?? 0) > 0) {
+                        <tr class="suspensao-detalhe">
+                          <td [attr.colspan]="7">
+                            <div class="suspensao-campos">
+                              @for (susp of item.suspensoes ?? []; track $index) {
+                                <div class="suspensao-campo">
+                                  <span class="suspensao-campo__label">Suspensão</span>
+                                  <span class="suspensao-campo__valor">{{ susp.inicio }}</span>
+                                  <span class="suspensao-campo__label">Retorno</span>
+                                  <span class="suspensao-campo__valor">{{ susp.fim ?? '—' }}</span>
+                                </div>
+                              }
+                            </div>
+                          </td>
+                        </tr>
+                      }
+                    }
+                  </tbody>
+                </table>
+              </div>
+              @if (emAndamentoOrdenado.length === 0) {
+                <p class="empty-msg">
+                  {{ filtroPlaca?.trim() ? 'Nenhum veículo encontrado com essa placa.' : 'Nenhum veículo em andamento no momento.' }}
+                </p>
+              }
+            </div>
+          </section>
+        </div>
+      }
+      @case ('historico') {
+        <div class="historico">
+          <section class="card operacao-card operacao-card--full">
+            <h2 class="card__title">Movimentos do mês</h2>
+            <div class="card__body">
+              <div class="table-wrap">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Placa</th>
+                      <th>Motorista</th>
+                      <th>CPF</th>
+                      <th>Transportadora</th>
+                      <th>Data de entrada</th>
+                      <th>Data de saída</th>
+                      <th>Tempo estacionado</th>
+                      <th>Valor</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (m of historicoDoMes; track m.placa + m.dataSaida) {
+                      <tr>
+                        <td>{{ m.placa }}</td>
+                        <td>{{ m.motorista }}</td>
+                        <td>{{ m.cpf }}</td>
+                        <td>{{ m.transportadora }}</td>
+                        <td>{{ m.dataEntrada }}</td>
+                        <td>{{ m.dataSaida }}</td>
+                        <td>{{ m.tempoEstacionado ?? '—' }}</td>
+                        <td>{{ m.valor }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+              @if (historicoDoMes.length === 0) {
+                <p class="empty-msg">Nenhum movimento registrado neste mês.</p>
+              }
+            </div>
+          </section>
+        </div>
+      }
+    }
   </div>
+
+  @if (entradaModalOpen) {
+    <div class="modal-overlay" (click)="closeEntradaModal()" role="presentation">
+      <div
+        class="modal-content"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-entrada-title"
+        (click)="$event.stopPropagation()"
+      >
+        <div class="modal-header">
+          <h2 id="modal-entrada-title">Entrada (Check-in)</h2>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="modal-op-placa">Placa</label>
+            <input
+              id="modal-op-placa"
+              type="text"
+              class="input-control"
+              placeholder="Ex.: ABC1D23"
+              maxlength="7"
+              [ngModel]="entradaForm.placa"
+              (ngModelChange)="formatarPlaca($event)"
+              (blur)="buscarTransportadoraPorPlaca()"
+            />
+          </div>
+          <div class="form-group">
+            <label for="modal-op-modelo">Modelo do veículo</label>
+            <input
+              id="modal-op-modelo"
+              type="text"
+              class="input-control"
+              placeholder="Modelo do veículo"
+              [(ngModel)]="entradaForm.modeloVeiculo"
+            />
+          </div>
+          <div class="form-group">
+            <label for="modal-op-ano">Ano fabricação</label>
+            <input
+              id="modal-op-ano"
+              type="text"
+              class="input-control"
+              placeholder="Ex.: 2020"
+              maxlength="4"
+              [(ngModel)]="entradaForm.anoFabricacao"
+            />
+          </div>
+          <div class="form-group">
+            <label for="modal-op-eixos">Quantos eixos</label>
+            <select
+              id="modal-op-eixos"
+              class="input-control input-control--select"
+              [(ngModel)]="entradaForm.quantidadeEixos"
+            >
+              <option value="">Selecione</option>
+              @for (n of eixosOpcoes; track n) {
+                <option [value]="n">{{ n }} eixo{{ n > 1 ? 's' : '' }}</option>
+              }
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="modal-op-transportadora">Transportadora</label>
+            <input id="modal-op-transportadora" type="text" class="input-control" placeholder="Transportadora" [(ngModel)]="entradaForm.transportadora" />
+          </div>
+          <div class="form-group">
+            <label for="modal-op-condutor">Condutor</label>
+            <input id="modal-op-condutor" type="text" class="input-control" placeholder="Nome do condutor" [(ngModel)]="entradaForm.condutor" />
+          </div>
+          <div class="form-group">
+            <label for="modal-op-cpf">CPF</label>
+            <input
+              id="modal-op-cpf"
+              type="text"
+              class="input-control"
+              placeholder="000.000.000-00"
+              [ngModel]="entradaForm.cpf"
+              (ngModelChange)="formatarCpf($event)"
+            />
+          </div>
+          <div class="form-group">
+            <label for="modal-op-obs">Observação</label>
+            <input id="modal-op-obs" type="text" class="input-control" placeholder="Observação (opcional)" [(ngModel)]="entradaForm.observacao" />
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="closeEntradaModal()">Fechar</button>
+          <button type="button" class="btn btn-primary" (click)="registrarEntrada()" [disabled]="!entradaForm.placa?.trim()">
+            Registrar entrada
+          </button>
+        </div>
+      </div>
+    </div>
+  }
 </div>
