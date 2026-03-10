@@ -1,0 +1,158 @@
+<div class="page-container">
+  <header class="page-header">
+    <h1 class="page-title">Andamentos do projeto</h1>
+    <p class="page-subtitle">Esqueleto do sistema, telas e ligações entre rotas. Use esta tela como referência até o fim do desenvolvimento; depois pode ser removida.</p>
+    <div class="dev-badge">📋 Apenas referência – remover quando o projeto estiver concluído</div>
+  </header>
+
+  <div class="page-content">
+    <section class="block">
+      <h2 class="block__title">1. Visão geral</h2>
+      <ul class="list">
+        <li><strong>Raiz da aplicação:</strong> <code>/</code> → redireciona para <strong>Login</strong> (se não autenticado) ou para <code>/app/dashboard</code> (se autenticado).</li>
+        <li><strong>Área autenticada:</strong> prefixo <code>/app</code> → usa <code>MainLayoutComponent</code> (sidebar + topbar + conteúdo).</li>
+        <li><strong>Guard:</strong> <code>authGuard</code> protege <code>/app/*</code>. Sem login → redireciona para <code>/</code>.</li>
+      </ul>
+    </section>
+
+    <section class="block">
+      <h2 class="block__title">2. Mapa de rotas (árvore)</h2>
+      <pre class="tree">{{ arvoreRotas.join('\n') }}</pre>
+    </section>
+
+    <section class="block">
+      <h2 class="block__title">3. Telas existentes</h2>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Rota</th>
+              <th>Tela / componente</th>
+              <th>Descrição</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of telas; track item.rota) {
+              <tr>
+                <td>
+                  @if (item.rota.startsWith('/app') && !item.rota.includes(':')) {
+                    <a [routerLink]="item.rota" class="link">{{ item.rota }}</a>
+                  } @else {
+                    <code>{{ item.rota }}</code>
+                  }
+                </td>
+                <td>{{ item.tela }}</td>
+                <td>{{ item.descricao }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="block">
+      <h2 class="block__title">4. Ligamentos – Menu lateral (sidebar)</h2>
+      <p class="block__desc">Itens do menu e rota de destino. <strong>Sair</strong> chama logout e navega para <code>/</code>.</p>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Item do menu</th>
+              <th>Rota</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (m of menuSidebar; track m.route) {
+              <tr>
+                <td>{{ m.label }}</td>
+                <td><a [routerLink]="m.route" class="link">{{ m.route }}</a></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="block">
+      <h2 class="block__title">5. Ligamentos – Cadastro Estacionamento</h2>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Origem</th>
+              <th>Ação</th>
+              <th>Destino</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (l of ligamentosEstacionamento; track l.destino) {
+              <tr>
+                <td>{{ l.origem }}</td>
+                <td>{{ l.acao }}</td>
+                <td>
+                  @if (l.destino.startsWith('/') && !l.destino.includes(':')) {
+                    <a [routerLink]="l.destino" class="link">{{ l.destino }}</a>
+                  } @else {
+                    <code>{{ l.destino }}</code>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="block">
+      <h2 class="block__title">6. Ligamentos – Cadastro Acessos</h2>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Origem</th>
+              <th>Ação</th>
+              <th>Destino</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (l of ligamentosAcessos; track l.destino) {
+              <tr>
+                <td>{{ l.origem }}</td>
+                <td>{{ l.acao }}</td>
+                <td>
+                  @if (l.destino.startsWith('/') && !l.destino.includes(':')) {
+                    <a [routerLink]="l.destino" class="link">{{ l.destino }}</a>
+                  } @else {
+                    {{ l.destino }}
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="block">
+      <h2 class="block__title">7. Arquivos principais de rotas</h2>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Arquivo</th>
+              <th>Responsabilidade</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (f of arquivosRotas; track f.arquivo) {
+              <tr>
+                <td><code class="code-cell">{{ f.arquivo }}</code></td>
+                <td>{{ f.responsabilidade }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+</div>

@@ -6,6 +6,7 @@ import { MOVIMENTOS_ROUTES } from './features/movimentos/movimentos.routes';
 import { RELATORIOS_ROUTES } from './features/relatorios/relatorios.routes';
 import { FINANCEIRO_ROUTES } from './features/financeiro/financeiro.routes';
 import { CADASTRO_ROUTES } from './features/cadastro/cadastro.routes';
+import { DESENVOLVIMENTO_ROUTES } from './features/desenvolvimento/desenvolvimento.routes';
 import { CadastroLayoutComponent } from './features/cadastro/cadastro-layout.component';
 import { authGuard } from './core/guards/auth.guard';
 import { MainLayoutComponent } from './core/layout/main-layout.component';
@@ -49,7 +50,12 @@ export const routes: Routes = [
 				path: 'configuracoes',
 				children: CONFIGURACOES_ROUTES
 			},
-			// 7. CADASTRO
+			// 7. DESENVOLVIMENTO (andamentos; remover ao concluir)
+			{
+				path: 'desenvolvimento',
+				children: DESENVOLVIMENTO_ROUTES
+			},
+			// 8. CADASTRO
 			{
 				path: 'cadastro',
 				component: CadastroLayoutComponent,

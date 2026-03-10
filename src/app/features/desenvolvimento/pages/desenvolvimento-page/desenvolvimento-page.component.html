@@ -1,0 +1,146 @@
+<div class="page">
+  <header class="hero">
+    <h1 class="hero__title">Desenvolvimento</h1>
+    <p class="hero__subtitle">Arraste as telas para reordenar. Edite as etapas e marque como concluídas para atualizar a porcentagem.</p>
+    <span class="hero__badge">Remover esta tela ao concluir o projeto</span>
+  </header>
+
+  <div class="content">
+    <!-- Resumo geral -->
+    <section class="card card--summary">
+      <h2 class="card__title">Resumo</h2>
+      <div class="summary-stats">
+        <div class="stat">
+          <span class="stat__value">{{ telas.length }}</span>
+          <span class="stat__label">Telas</span>
+        </div>
+        <div class="stat">
+          <span class="stat__value">{{ concluidosCount }}</span>
+          <span class="stat__label">Concluídas</span>
+        </div>
+        <div class="stat">
+          <span class="stat__value">{{ emAndamentoCount }}</span>
+          <span class="stat__label">Em andamento</span>
+        </div>
+        <div class="stat">
+          <span class="stat__value">{{ mediaProgresso }}%</span>
+          <span class="stat__label">Progresso médio</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Telas arrastáveis com etapas -->
+    <section class="card">
+      <h2 class="card__title">Telas – arraste para reordenar</h2>
+      <p class="card__desc">Escreva as etapas de cada tela e marque como concluídas; a porcentagem é calculada automaticamente.</p>
+      <div
+        class="progress-grid"
+        (dragover)="onDragOver($event)"
+      >
+        @for (t of telas; track t.id; let i = $index) {
+          <article
+            class="progress-card"
+            [class.progress-card--concluido]="progresso(t) === 100"
+            [class.progress-card--dragging]="dragIndex === i"
+            draggable="true"
+            (dragstart)="onDragStart($event, i)"
+            (dragend)="onDragEnd()"
+            (drop)="onDrop($event, i)"
+          >
+            <div class="progress-card__drag-handle" title="Arrastar para reordenar">
+              <span class="material-symbols-outlined">drag_indicator</span>
+            </div>
+            <div class="progress-card__header">
+              <h3 class="progress-card__name">
+                @if (t.rota) {
+                  <a [routerLink]="t.rota" class="progress-card__link">{{ t.nome }}</a>
+                } @else {
+                  {{ t.nome }}
+                }
+              </h3>
+              <span class="progress-card__status" [attr.data-status]="status(t)">
+                {{ getStatusLabel(status(t)) }}
+              </span>
+            </div>
+            <p class="progress-card__desc">{{ t.descricao }}</p>
+            <div class="progress-bar-wrap">
+              <div
+                class="progress-bar"
+                [style.width.%]="progresso(t)"
+                [style.background]="getProgressGradient(progresso(t))"
+              ></div>
+            </div>
+            <div class="progress-card__pct">{{ progresso(t) }}%</div>
+
+            <div class="progress-card__etapas">
+              <span class="etapas-label">Etapas</span>
+              @for (etapa of t.etapas; track etapa.id) {
+                <div class="etapa-row">
+                  <input
+                    type="checkbox"
+                    class="etapa-checkbox"
+                    [checked]="etapa.concluida"
+                    (change)="toggleConcluida(etapa)"
+                    [attr.aria-label]="'Concluída: ' + etapa.texto"
+                  />
+                  <textarea
+                    class="etapa-input"
+                    [value]="etapa.texto"
+                    (input)="etapa.texto = $any($event.target).value; persistDebounced(); autoResizeEtapa($event)"
+                    (blur)="persist()"
+                    placeholder="Descreva a etapa"
+                    rows="1"
+                  ></textarea>
+                  <button
+                    type="button"
+                    class="etapa-remove"
+                    (click)="removerEtapa(t, etapa)"
+                    title="Remover etapa"
+                    aria-label="Remover etapa"
+                  >
+                    <span class="material-symbols-outlined">close</span>
+                  </button>
+                </div>
+              }
+              <button type="button" class="btn-add-etapa" (click)="adicionarEtapa(t)">
+                <span class="material-symbols-outlined">add</span>
+                Nova etapa
+              </button>
+            </div>
+          </article>
+        }
+      </div>
+    </section>
+
+    <!-- Mapa mental -->
+    <section class="card card--mindmap">
+      <h2 class="card__title">Mapa mental – O que está sendo feito</h2>
+      <p class="card__desc">Estrutura do sistema e ligação entre áreas.</p>
+      <div class="mindmap">
+        <div class="mindmap__center">
+          <span class="mindmap__node mindmap__node--centro">{{ mapaMental.label }}</span>
+        </div>
+        <div class="mindmap__branches">
+          @for (ramo of mapaMental.children; track ramo.id) {
+            <div class="mindmap__branch">
+              <div class="mindmap__line"></div>
+              <div class="mindmap__node mindmap__node--ramo">{{ ramo.label }}</div>
+              <div class="mindmap__leaves">
+                @for (folha of ramo.children; track folha.id) {
+                  <div class="mindmap__leaf">
+                    <div class="mindmap__line mindmap__line--small"></div>
+                    @if (folha.rota) {
+                      <a [routerLink]="folha.rota" class="mindmap__node mindmap__node--folha">{{ folha.label }}</a>
+                    } @else {
+                      <span class="mindmap__node mindmap__node--folha">{{ folha.label }}</span>
+                    }
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
