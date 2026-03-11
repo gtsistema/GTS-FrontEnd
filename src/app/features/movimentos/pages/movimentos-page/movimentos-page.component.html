@@ -135,7 +135,7 @@
               </div>
               @if (emAndamentoOrdenado.length === 0) {
                 <p class="empty-msg">
-                  {{ filtroPlaca?.trim() ? 'Nenhum veículo encontrado com essa placa.' : 'Nenhum veículo em andamento no momento.' }}
+                  {{ filtroPlaca.trim() ? 'Nenhum veículo encontrado com essa placa.' : 'Nenhum veículo em andamento no momento.' }}
                 </p>
               }
             </div>
@@ -273,7 +273,7 @@
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" (click)="closeEntradaModal()">Fechar</button>
-          <button type="button" class="btn btn-primary" (click)="registrarEntrada()" [disabled]="!entradaForm.placa?.trim()">
+          <button type="button" class="btn btn-primary" (click)="registrarEntrada()" [disabled]="!entradaForm.placa.trim()">
             Registrar entrada
           </button>
         </div>
