@@ -1,6 +1,5 @@
 import { Routes } from '@angular/router';
 import { EstacionamentoLayoutComponent } from './estacionamento-layout.component';
-import { CadastroAcessosPageComponent } from './pages/cadastro-acessos-page/cadastro-acessos-page.component';
 
 export const CADASTRO_ROUTES: Routes = [
   {
@@ -42,35 +41,8 @@ export const CADASTRO_ROUTES: Routes = [
         './pages/cadastro-transportadora-page/cadastro-transportadora-page.component'
       ).then((m) => m.CadastroTransportadoraPageComponent)
   },
-  {
-    path: 'acessos',
-    component: CadastroAcessosPageComponent,
-    children: [
-      { path: '', redirectTo: 'usuarios', pathMatch: 'full' },
-      {
-        path: 'usuarios',
-        loadComponent: () =>
-          import('./pages/acessos-usuarios-layout/acessos-usuarios-layout.component').then(
-            (m) => m.AcessosUsuariosLayoutComponent
-          ),
-        children: [
-          {
-            path: '',
-            pathMatch: 'full',
-            loadComponent: () =>
-              import('./pages/acessos-usuarios-page/acessos-usuarios-page.component').then(
-                (m) => m.AcessosUsuariosPageComponent
-              )
-          }
-        ]
-      },
-      {
-        path: 'perfis',
-        loadComponent: () =>
-          import('./pages/acessos-perfis-page/acessos-perfis-page.component').then(
-            (m) => m.AcessosPerfisPageComponent
-          )
-      }
-    ]
-  }
+  { path: 'acessos', redirectTo: '/app/configuracoes/usuarios', pathMatch: 'full' },
+  { path: 'acessos/usuarios', redirectTo: '/app/configuracoes/usuarios', pathMatch: 'full' },
+  { path: 'acessos/perfis', redirectTo: '/app/configuracoes/perfis', pathMatch: 'full' },
+  { path: 'acessos/permissoes', redirectTo: '/app/configuracoes/permissoes', pathMatch: 'full' }
 ];

@@ -54,16 +54,20 @@
 
 .table-wrap {
   overflow-x: auto;
+  border: var(--border-card, 1px solid var(--border-subtle));
+  border-radius: 12px;
+  box-shadow: var(--card-shadow);
+  background: var(--surface-2, rgba(255, 255, 255, 0.03));
 }
 
 .data-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
 
   th,
   td {
-    padding: 12px 14px;
+    padding: 8px 12px;
     text-align: left;
     border-bottom: 1px solid var(--border-subtle);
   }
@@ -71,7 +75,7 @@
   th {
     color: var(--muted);
     font-weight: 600;
-    font-size: 0.8125rem;
+    font-size: 0.75rem;
     background: var(--surface-2);
   }
 

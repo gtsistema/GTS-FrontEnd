@@ -1,7 +1,7 @@
 import { Component, signal, computed, OnInit, OnDestroy, HostListener, PLATFORM_ID, inject } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { CommonModule } from '@angular/common';
-import { RouterOutlet, Router, NavigationEnd } from '@angular/router';
+import { RouterOutlet, Router, RouterModule, NavigationEnd } from '@angular/router';
 import { SidebarComponent } from '../../shared/components/sidebar/sidebar.component';
 import { ThemeService, ThemeMode } from '../services/theme.service';
 import { filter } from 'rxjs/operators';
@@ -12,7 +12,7 @@ const SIDEBAR_COLLAPSED_KEY = 'sidebarCollapsed';
 @Component({
   selector: 'app-main-layout',
   standalone: true,
-  imports: [CommonModule, RouterOutlet, SidebarComponent],
+  imports: [CommonModule, RouterOutlet, RouterModule, SidebarComponent],
   templateUrl: './main-layout.component.html',
   styleUrls: ['./main-layout.component.scss']
 })
@@ -59,7 +59,10 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
   }
 
   private updateFullWidthContent(url: string): void {
-    this.isFullWidthContent.set(url.includes('/movimentos'));
+    const movimentos = url.includes('/movimentos');
+    const estacionamento = url.includes('/cadastro/estacionamento');
+    const acessos = url.includes('/configuracoes/');
+    this.isFullWidthContent.set(movimentos || estacionamento || acessos);
   }
 
   ngOnDestroy(): void {

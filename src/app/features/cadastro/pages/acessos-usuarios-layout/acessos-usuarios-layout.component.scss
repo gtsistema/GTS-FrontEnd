@@ -11,7 +11,7 @@
 }
 
 .page-header {
-  padding-bottom: 20px;
+  padding-bottom: 12px;
   border-bottom: 1px solid var(--border-subtle);
   flex-shrink: 0;
 }
@@ -19,22 +19,22 @@
 .page-header__row {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
 .page-header__row--1 {
-  margin-bottom: 16px;
+  margin-bottom: 10px;
 }
 
 .page-header__row--2 {
   align-items: center;
-  min-height: 40px;
+  min-height: 36px;
 }
 
 .page-title {
   margin: 0;
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   font-weight: 700;
   color: var(--text);
 }
@@ -42,7 +42,7 @@
 .page-header__actions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
 }
 

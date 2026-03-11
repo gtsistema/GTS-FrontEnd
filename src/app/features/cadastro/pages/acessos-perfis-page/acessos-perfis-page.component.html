@@ -29,20 +29,11 @@
               <td>{{ item.name ?? '-' }}</td>
               <td>{{ item.normalizedName ?? '-' }}</td>
               <td>{{ getProfilePermissionCount(item) }}</td>
-              <td class="actions-cell">
-                <button
-                  type="button"
-                  class="btn-link"
-                  (click)="openEditar(item)"
-                >
+              <td class="acoes-cell">
+                <button type="button" class="btn btn-primary btn--sm" (click)="openEditar(item)">
                   Editar
                 </button>
-                <span class="actions-sep">·</span>
-                <button
-                  type="button"
-                  class="btn-link btn-link--danger"
-                  (click)="openExcluir(item)"
-                >
+                <button type="button" class="btn btn-danger btn--sm" (click)="openExcluir(item)">
                   Excluir
                 </button>
               </td>
@@ -96,30 +87,43 @@
           </div>
           <div class="form-section form-section--permissions">
             <h3 class="form-section__title">Permissões do Perfil</h3>
-            <input
-              type="text"
-              class="input-control input-control--search"
-              placeholder="Filtrar permissões"
-              [ngModel]="permissionSearchTerm()"
-              (ngModelChange)="permissionSearchTerm.set($event)"
-            />
-            <p class="form-section__count">{{ selectedPermissionsCount() }} selecionadas</p>
-            <div class="permission-groups">
+            <div class="form-section__toolbar">
+              <input
+                type="text"
+                class="input-control input-control--search"
+                placeholder="Filtrar permissões"
+                [ngModel]="permissionSearchTerm()"
+                (ngModelChange)="permissionSearchTerm.set($event)"
+              />
+              <span class="form-section__count">{{ selectedPermissionsCount() }} selecionadas</span>
+            </div>
+            <div class="permission-list">
               @for (group of filteredPermissionsByModule(); track group.module) {
-                <div class="permission-group">
-                  <span class="permission-group__label">{{ group.module }}</span>
-                  <div class="permission-group__list">
-                    @for (key of group.keys; track key) {
-                      <label class="permission-checkbox">
-                        <input
-                          type="checkbox"
-                          [checked]="form.permissionIds.includes(key)"
-                          (change)="toggleProfilePermission(key)"
-                        />
-                        <span>{{ key }}</span>
-                      </label>
-                    }
-                  </div>
+                <div class="permission-list__row">
+                  <button
+                    type="button"
+                    class="permission-list__header"
+                    (click)="toggleModuleExpanded(group.module)"
+                    [attr.aria-expanded]="isModuleExpanded(group.module)"
+                  >
+                    <span class="permission-list__name">{{ group.module }}</span>
+                    <span class="permission-list__badge">{{ getSelectedCountInModule(group.module) }}/{{ group.keys.length }}</span>
+                    <span class="permission-list__chevron" [class.permission-list__chevron--open]="isModuleExpanded(group.module)">▼</span>
+                  </button>
+                  @if (isModuleExpanded(group.module)) {
+                    <div class="permission-list__body">
+                      @for (key of group.keys; track key) {
+                        <label class="permission-checkbox">
+                          <input
+                            type="checkbox"
+                            [checked]="form.permissionIds.includes(key)"
+                            (change)="toggleProfilePermission(key)"
+                          />
+                          <span>{{ key }}</span>
+                        </label>
+                      }
+                    </div>
+                  }
                 </div>
               }
             </div>

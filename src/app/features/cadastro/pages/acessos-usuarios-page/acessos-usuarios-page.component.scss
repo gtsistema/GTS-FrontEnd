@@ -6,7 +6,7 @@
 .tab-content {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 10px;
   min-height: 0;
 }
 
@@ -77,18 +77,39 @@
   filter: brightness(1.2);
 }
 
+.btn--sm {
+  height: 32px;
+  padding: 0 12px;
+  font-size: 0.8125rem;
+}
+
+.data-table .acoes-cell {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+
+  .btn {
+    font-weight: 600;
+  }
+}
+
 .table-wrap {
   overflow-x: auto;
+  border: var(--border-card, 1px solid var(--border-subtle));
+  border-radius: 12px;
+  box-shadow: var(--card-shadow);
+  background: var(--surface-2, rgba(255, 255, 255, 0.03));
 }
 
 .data-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
 
   th,
   td {
-    padding: 12px 14px;
+    padding: 8px 12px;
     text-align: left;
     border-bottom: 1px solid var(--border-subtle);
   }
@@ -96,7 +117,7 @@
   th {
     color: var(--muted);
     font-weight: 600;
-    font-size: 0.8125rem;
+    font-size: 0.75rem;
     background: var(--surface-2);
   }
 
@@ -135,7 +156,7 @@
 
 .modal-content {
   background: var(--card-bg, #1a1b26);
-  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+  border: var(--border-card, 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08)));
   border-radius: 16px;
   padding: 0;
   max-width: 900px;
@@ -144,7 +165,7 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--shadow-lg);
 }
 
 .modal-header {

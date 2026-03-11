@@ -25,16 +25,16 @@
               type="button"
               class="menu-item menu-item-parent"
               [class.active]="isActive(item.route)"
-              (click)="toggleCadastro()"
-              [attr.aria-expanded]="cadastroExpanded()"
+              (click)="toggleMenu(item.route)"
+              [attr.aria-expanded]="isMenuExpanded(item.route)"
             >
               <span class="material-symbols-outlined icon">{{ item.icon }}</span>
               <span class="label" [class.hidden]="isCollapsed()">{{ item.label }}</span>
               <span class="material-symbols-outlined icon chevron" [class.hidden]="isCollapsed()">
-                {{ cadastroExpanded() ? 'expand_less' : 'expand_more' }}
+                {{ isMenuExpanded(item.route) ? 'expand_less' : 'expand_more' }}
               </span>
             </button>
-            @if (cadastroExpanded() && !isCollapsed()) {
+            @if (isMenuExpanded(item.route) && !isCollapsed()) {
               <ul class="submenu">
                 @for (sub of item.children; track sub.route) {
                   <li>

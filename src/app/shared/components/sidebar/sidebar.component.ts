@@ -32,7 +32,8 @@ export class SidebarComponent implements OnInit {
 
   isCollapsed = computed(() => this.collapsed());
   currentRoute = '';
-  cadastroExpanded = signal(false);
+  /** Rota do menu com subitens que está expandido (ex: '/app/configuracoes' ou '/app/cadastro'). */
+  expandedMenuRoute = signal<string | null>(null);
 
   menuItems: MenuItem[] = [
     { label: 'Dashboard', route: '/app/dashboard', icon: 'dashboard' },
@@ -46,8 +47,7 @@ export class SidebarComponent implements OnInit {
       icon: 'playlist_add',
       children: [
         { label: 'Estacionamento', route: '/app/cadastro/estacionamento' },
-        { label: 'Transportadora', route: '/app/cadastro/transportadora' },
-        { label: 'Acessos', route: '/app/cadastro/acessos/usuarios' }
+        { label: 'Transportadora', route: '/app/cadastro/transportadora' }
       ]
     }
   ];
@@ -59,17 +59,23 @@ export class SidebarComponent implements OnInit {
   ngOnInit() {
     this.router.events.subscribe(() => {
       this.currentRoute = this.router.url;
-      if (this.currentRoute.startsWith('/app/cadastro')) {
-        this.cadastroExpanded.set(true);
-      }
+      this.autoExpandFromRoute();
     });
+    this.autoExpandFromRoute();
+  }
+
+  private autoExpandFromRoute(): void {
     if (this.currentRoute.startsWith('/app/cadastro')) {
-      this.cadastroExpanded.set(true);
+      this.expandedMenuRoute.set('/app/cadastro');
     }
   }
 
-  toggleCadastro(): void {
-    this.cadastroExpanded.set(!this.cadastroExpanded());
+  isMenuExpanded(route: string): boolean {
+    return this.expandedMenuRoute() === route;
+  }
+
+  toggleMenu(route: string): void {
+    this.expandedMenuRoute.set(this.expandedMenuRoute() === route ? null : route);
   }
 
   /** Botão hambúrguer no header da sidebar: no mobile fecha o drawer; no desktop alterna expandida/recolhida. */

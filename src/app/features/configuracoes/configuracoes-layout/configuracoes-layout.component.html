@@ -1,13 +1,13 @@
 <div class="page-container">
   <header class="page-header">
     <div class="page-header__row page-header__row--1">
-      <h1 class="page-title">Acessos</h1>
-      <p class="page-subtitle">Gerencie usuários e perfis de acesso.</p>
+      <h1 class="page-title">Configurações</h1>
+      <p class="page-subtitle">Usuários, permissões e perfis de acesso.</p>
     </div>
     <div class="page-header__row page-header__row--2">
-      <nav class="tabs" role="tablist" aria-label="Abas de Acessos">
+      <nav class="tabs" role="tablist" aria-label="Abas de Configurações">
         <a
-          routerLink="/app/cadastro/acessos/usuarios"
+          routerLink="/app/configuracoes/usuarios"
           routerLinkActive="tab--active"
           [routerLinkActiveOptions]="{ exact: false }"
           class="tab"
@@ -16,22 +16,22 @@
           Usuários
         </a>
         <a
-          routerLink="/app/cadastro/acessos/perfis"
-          routerLinkActive="tab--active"
-          [routerLinkActiveOptions]="{ exact: false }"
-          class="tab"
-          role="tab"
-        >
-          Perfis
-        </a>
-        <a
-          routerLink="/app/cadastro/acessos/permissoes"
+          routerLink="/app/configuracoes/permissoes"
           routerLinkActive="tab--active"
           [routerLinkActiveOptions]="{ exact: false }"
           class="tab"
           role="tab"
         >
           Permissões
+        </a>
+        <a
+          routerLink="/app/configuracoes/perfis"
+          routerLinkActive="tab--active"
+          [routerLinkActiveOptions]="{ exact: false }"
+          class="tab"
+          role="tab"
+        >
+          Perfil
         </a>
       </nav>
     </div>

@@ -1,0 +1,134 @@
+<div class="tab-content">
+  <h2 class="page-title--section">Permissões</h2>
+  <div class="page-description">
+    <p>Visualize o menu, os módulos e submenus e vincule as permissões que controlam o acesso a cada um.</p>
+  </div>
+
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Menu</th>
+          <th>Módulo / Submenu</th>
+          <th>Permissões vinculadas</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (node of menuStructure; track node.id) {
+          @if (node.children?.length) {
+            @for (sub of node.children; track sub.id) {
+              <tr>
+                <td>{{ node.label }}</td>
+                <td>{{ sub.label }}</td>
+                <td>
+                  <span class="permission-tags">
+                    @for (key of getPermissionsForNode(sub.id); track key) {
+                      <span class="permission-tag">{{ key }}</span>
+                    }
+                    @if (getPermissionsForNode(sub.id).length === 0) {
+                      <span class="permission-tags--empty">Nenhuma</span>
+                    }
+                  </span>
+                </td>
+                <td class="acoes-cell">
+                  <button type="button" class="btn btn-primary btn--sm" (click)="openVincular(sub.id)">
+                    Vincular
+                  </button>
+                </td>
+              </tr>
+            }
+          } @else {
+            <tr>
+              <td>{{ node.label }}</td>
+              <td>{{ node.label }}</td>
+              <td>
+                <span class="permission-tags">
+                  @for (key of getPermissionsForNode(node.id); track key) {
+                    <span class="permission-tag">{{ key }}</span>
+                  }
+                  @if (getPermissionsForNode(node.id).length === 0) {
+                    <span class="permission-tags--empty">Nenhuma</span>
+                  }
+                </span>
+              </td>
+              <td class="acoes-cell">
+                <button type="button" class="btn btn-primary btn--sm" (click)="openVincular(node.id)">
+                  Vincular
+                </button>
+              </td>
+            </tr>
+          }
+        }
+      </tbody>
+    </table>
+  </div>
+</div>
+
+@if (isModalOpen()) {
+  <div class="modal-overlay" (click)="closeModal()">
+    <div
+      class="modal-content"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-permissoes-title"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="modal-header">
+        <h2 id="modal-permissoes-title">Vincular permissões — {{ getEditingNodeLabel() }}</h2>
+      </div>
+      <div class="modal-body">
+        <div class="form-section form-section--permissions">
+          <div class="form-section__toolbar">
+            <input
+              type="text"
+              class="input-control input-control--search"
+              placeholder="Filtrar permissões"
+              [ngModel]="permissionSearchTerm()"
+              (ngModelChange)="permissionSearchTerm.set($event)"
+            />
+            <span class="form-section__count">{{ selectedCount() }} selecionadas</span>
+          </div>
+          <div class="permission-list">
+            @for (group of filteredPermissionsByModule(); track group.module) {
+              <div class="permission-list__row">
+                <button
+                  type="button"
+                  class="permission-list__header"
+                  (click)="toggleModuleExpanded(group.module)"
+                  [attr.aria-expanded]="isModuleExpanded(group.module)"
+                >
+                  <span class="permission-list__name">{{ group.module }}</span>
+                  <span class="permission-list__badge">{{ getSelectedCountInModule(group.module) }}/{{ group.keys.length }}</span>
+                  <span class="permission-list__chevron" [class.permission-list__chevron--open]="isModuleExpanded(group.module)">▼</span>
+                </button>
+                @if (isModuleExpanded(group.module)) {
+                  <div class="permission-list__body">
+                    @for (key of group.keys; track key) {
+                      <label class="permission-checkbox">
+                        <input
+                          type="checkbox"
+                          [checked]="formPermissionIds().includes(key)"
+                          (change)="togglePermission(key)"
+                        />
+                        <span>{{ key }}</span>
+                      </label>
+                    }
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="closeModal()">
+          Cancelar
+        </button>
+        <button type="button" class="btn btn-primary" (click)="salvarVinculos()">
+          Salvar
+        </button>
+      </div>
+    </div>
+  </div>
+}

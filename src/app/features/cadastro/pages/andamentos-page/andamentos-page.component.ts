@@ -44,7 +44,7 @@ export class AndamentosPageComponent {
     '    │   └── /editar/:id    → Formulário editar estacionamento',
     '    ├── /transportadora    → Página Cadastro Transportadora',
     '    └── /acessos (CadastroAcessosPageComponent – com abas)',
-    "        ├── ''             → redirect /acessos/usuarios",
+    "        (Acessos movido para Configurações: /app/configuracoes/usuarios)",
     '        ├── /usuarios (AcessosUsuariosLayoutComponent)',
     "        │   └── ''         → Lista Usuários + modal Novo/Editar",
     '        └── /perfis        → Página Perfis (modal criar/editar/excluir)',
@@ -58,7 +58,7 @@ export class AndamentosPageComponent {
     { label: 'Configurações', route: '/app/configuracoes' },
     { label: 'Cadastro > Estacionamento', route: '/app/cadastro/estacionamento' },
     { label: 'Cadastro > Transportadora', route: '/app/cadastro/transportadora' },
-    { label: 'Cadastro > Acessos', route: '/app/cadastro/acessos/usuarios' },
+    { label: 'Configurações > Usuários', route: '/app/configuracoes/usuarios' },
   ];
 
   readonly telas: TelaItem[] = [
@@ -72,9 +72,9 @@ export class AndamentosPageComponent {
     { rota: '/app/cadastro/estacionamento/novo', tela: 'Form Estacionamento (novo)', descricao: 'Formulário em etapas (stepper) para novo estacionamento.' },
     { rota: '/app/cadastro/estacionamento/editar/:id', tela: 'Form Estacionamento (editar)', descricao: 'Mesmo formulário, modo edição.' },
     { rota: '/app/cadastro/transportadora', tela: 'Cadastro Transportadora', descricao: 'Página de cadastro de transportadora.' },
-    { rota: '/app/cadastro/acessos', tela: 'Acessos (container)', descricao: 'Abas: Usuários | Perfis.' },
-    { rota: '/app/cadastro/acessos/usuarios', tela: 'Usuários', descricao: 'Lista de usuários, busca, modal Novo usuário / Editar.' },
-    { rota: '/app/cadastro/acessos/perfis', tela: 'Perfis', descricao: 'Lista de perfis, modal Criar/Editar/Excluir com permissões.' },
+    { rota: '/app/configuracoes', tela: 'Configurações (container)', descricao: 'Abas: Usuários | Permissões | Perfil.' },
+    { rota: '/app/configuracoes/usuarios', tela: 'Usuários', descricao: 'Lista de usuários, busca, modal Novo usuário / Editar.' },
+    { rota: '/app/configuracoes/perfis', tela: 'Perfil', descricao: 'Lista de perfis, modal Criar/Editar/Excluir com permissões.' },
   ];
 
   readonly ligamentosEstacionamento: Ligamento[] = [
@@ -84,8 +84,8 @@ export class AndamentosPageComponent {
   ];
 
   readonly ligamentosAcessos: Ligamento[] = [
-    { origem: 'Container Acessos', acao: 'Aba Usuários', destino: '/app/cadastro/acessos/usuarios' },
-    { origem: 'Container Acessos', acao: 'Aba Perfis', destino: '/app/cadastro/acessos/perfis' },
+    { origem: 'Container Configurações', acao: 'Aba Usuários', destino: '/app/configuracoes/usuarios' },
+    { origem: 'Container Configurações', acao: 'Aba Perfil', destino: '/app/configuracoes/perfis' },
     { origem: 'Modal Novo/Editar usuário', acao: 'Cancelar / após Salvar', destino: 'Fecha modal (permanece em Usuários)' },
   ];
 

@@ -9,60 +9,61 @@
 }
 
 .page-header {
-  padding: 32px 32px 24px;
+  padding: var(--space-md, 12px) 0 var(--space-lg, 16px);
   border-bottom: 1px solid var(--card-border);
 }
 
 .page-title {
-  margin: 0 0 16px 0;
-  font-size: 2rem;
-  font-weight: 700;
+  margin: 0 0 var(--space-sm, 8px) 0;
+  font-size: var(--font-page-title, 18px);
+  font-weight: var(--font-weight-page-title, 700);
   color: var(--text-primary);
 }
 
 .dev-badge {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
+  gap: var(--space-sm, 8px);
+  padding: var(--space-sm, 8px) var(--space-lg, 16px);
   background: rgba(255, 193, 7, 0.15);
   border: 1px solid rgba(255, 193, 7, 0.3);
   border-radius: 8px;
-  font-size: 0.9rem;
+  font-size: var(--font-body, 14px);
   color: rgba(255, 211, 97, 0.95);
-  font-weight: 600;
+  font-weight: var(--font-weight-section, 600);
 }
 
 .page-content {
   flex: 1;
-  padding: 32px;
+  padding: var(--space-md, 14px) 0;
   overflow-y: auto;
 }
 
 .content-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 24px;
+  gap: 14px;
 }
 
 .card {
   background: var(--card-bg);
-  border: 1px solid var(--card-border);
+  border: var(--border-card, 1px solid var(--card-border));
   border-radius: 12px;
-  padding: 24px;
+  padding: 16px;
+  box-shadow: var(--card-shadow);
   backdrop-filter: blur(10px);
   transition: all 0.3s ease;
 
   h3 {
-    margin: 0 0 12px 0;
-    font-size: 1.1rem;
-    font-weight: 600;
+    margin: 0 0 var(--space-md, 12px) 0;
+    font-size: var(--font-section-title, 16px);
+    font-weight: var(--font-weight-section, 600);
     color: var(--text-primary);
   }
 
   p {
     margin: 0;
-    font-size: 0.95rem;
+    font-size: var(--font-body, 14px);
     color: var(--text-secondary);
   }
 
@@ -90,11 +91,11 @@
 
 @media (max-width: 640px) {
   .page-title {
-    font-size: 1.5rem;
+    font-size: var(--font-page-title, 18px);
   }
 
   .page-header {
-    padding: 16px 16px 12px;
+    padding: var(--space-lg, 16px) var(--space-lg, 16px) var(--space-md, 12px);
   }
 
   .page-content {

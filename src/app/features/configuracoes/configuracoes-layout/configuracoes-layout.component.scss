@@ -11,7 +11,7 @@
 }
 
 .page-header {
-  padding: 12px 0 14px;
+  padding: var(--space-md, 12px) 0 var(--space-md, 14px);
   border-bottom: 1px solid var(--border-subtle);
   flex-shrink: 0;
 }
@@ -19,12 +19,12 @@
 .page-header__row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-sm, 8px);
   flex-wrap: wrap;
 }
 
 .page-header__row--1 {
-  margin-bottom: 8px;
+  margin-bottom: var(--space-sm, 8px);
 }
 
 .page-header__row--2 {
@@ -33,15 +33,15 @@
 }
 
 .page-title {
-  margin: 0 0 2px 0;
-  font-size: 1.25rem;
-  font-weight: 700;
+  margin: 0 0 var(--space-xs, 2px) 0;
+  font-size: var(--font-page-title, 18px);
+  font-weight: var(--font-weight-page-title, 700);
   color: var(--text);
 }
 
 .page-subtitle {
-  margin: 0 0 10px 0;
-  font-size: 0.8125rem;
+  margin: 0 0 var(--space-md, 10px) 0;
+  font-size: var(--font-body, 14px);
   color: var(--muted);
   width: 100%;
 }
@@ -61,12 +61,12 @@
 
 .tab {
   height: 36px;
-  padding: 0 16px;
+  padding: 0 var(--space-lg, 16px);
   border-radius: 8px;
   background: transparent;
   color: var(--muted);
-  font-size: 0.9375rem;
-  font-weight: 500;
+  font-size: var(--font-body, 14px);
+  font-weight: var(--font-weight-body, 500);
   cursor: pointer;
   transition: background 0.2s ease, color 0.2s ease;
   box-sizing: border-box;

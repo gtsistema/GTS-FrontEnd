@@ -15,6 +15,7 @@
   width: var(--sidebar-width);
   background: var(--sidebar-bg, #0f1923);
   border-right: 1px solid var(--sidebar-border, #1a2844);
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15);
   display: flex;
   flex-direction: column;
   transition: width 0.3s ease;
@@ -36,15 +37,15 @@
   align-items: center;
   justify-content: space-between;
   flex-shrink: 0;
-  height: 56px;
-  padding: 0 14px;
-  gap: 12px;
+  min-height: 56px;
+  padding: 10px 12px;
+  gap: 10px;
   border-bottom: 1px solid var(--sidebar-border, rgba(255, 255, 255, 0.08));
 }
 
 .sidebar-header__logo {
-  font-size: 1.125rem;
-  font-weight: 600;
+  font-size: var(--font-page-title, 18px);
+  font-weight: var(--font-weight-section, 600);
   color: var(--text-primary, rgba(255, 255, 255, 0.95));
   white-space: nowrap;
   overflow: hidden;
@@ -92,7 +93,7 @@
 
 .sidebar-nav {
   flex: 1;
-  padding: 20px 8px 16px;
+  padding: var(--space-md, 12px) var(--space-sm, 8px) var(--space-md, 10px);
   overflow-y: auto;
 
   &::-webkit-scrollbar {
@@ -119,22 +120,22 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 2px;
 }
 
 .menu-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 12px;
-  border-radius: 10px;
+  gap: var(--space-md, 10px);
+  padding: var(--space-sm, 8px) var(--space-md, 10px);
+  border-radius: 8px;
   color: var(--text-muted);
   text-decoration: none;
   transition: all 0.2s ease;
   position: relative;
   cursor: pointer;
-  font-weight: 500;
-  font-size: 0.95rem;
+  font-weight: var(--font-weight-body, 500);
+  font-size: var(--font-section-title, 16px);
 
   &:hover {
     color: var(--accent-hover);
@@ -161,7 +162,7 @@
 .menu-group {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
 
 .menu-item-parent {
@@ -173,33 +174,33 @@
 
   .chevron {
     margin-left: auto;
-    font-size: 1.2rem;
+    font-size: 1.1rem;
   }
 }
 
 .submenu {
   list-style: none;
-  margin: 0 0 0 28px;
+  margin: 0 0 0 var(--space-2xl, 24px);
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-xs, 2px);
   border-left: 1px solid var(--sidebar-border);
-  padding-left: 12px;
+  padding-left: var(--space-md, 10px);
 }
 
 .submenu-item {
-  padding: 8px 12px;
-  font-size: 0.9rem;
+  padding: var(--space-xs, 5px) var(--space-md, 10px);
+  font-size: var(--font-subtitle, 14px);
 }
 
 .icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.4rem;
+  font-size: 1.25rem;
   flex-shrink: 0;
-  min-width: 28px;
+  min-width: 24px;
   font-family: 'Material Symbols Outlined';
   font-weight: normal;
   font-style: normal;
@@ -225,7 +226,7 @@
 }
 
 .sidebar-footer {
-  padding: 16px;
+  padding: 10px 12px;
   border-top: 1px solid var(--sidebar-border);
   transition: opacity 0.3s ease, visibility 0.3s ease;
 
@@ -236,8 +237,8 @@
 }
 
 .version {
-  margin: 0 0 12px 0;
-  font-size: 0.8rem;
+  margin: 0 0 var(--space-sm, 8px) 0;
+  font-size: var(--font-caption, 12px);
   color: var(--text-muted);
   text-align: center;
 }
@@ -246,15 +247,15 @@
   width: 100%;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px;
-  border-radius: 10px;
+  gap: var(--space-md, 10px);
+  padding: var(--space-sm, 8px) var(--space-md, 10px);
+  border-radius: 8px;
   border: none;
   background: rgba(244, 67, 54, 0.1);
   color: var(--text-muted);
   cursor: pointer;
-  font-weight: 500;
-  font-size: 0.95rem;
+  font-weight: var(--font-weight-body, 500);
+  font-size: var(--font-body, 14px);
   transition: all 0.2s ease;
 
   &:hover {
@@ -263,8 +264,8 @@
   }
 
   .icon {
-    font-size: 1.2rem;
-    min-width: 28px;
+    font-size: 1.1rem;
+    min-width: 24px;
   }
 
   .label {
@@ -278,12 +279,13 @@
   }
 }
 
-// Mobile: drawer (fora da tela quando fechado)
+// Mobile: drawer (fora da tela quando fechado) + acessibilidade (alvos de toque 44px)
 @media (max-width: 768px) {
   .sidebar.sidebar--mobile {
     width: var(--sidebar-width);
     transform: translateX(-100%);
     transition: transform 0.3s ease, width 0.3s ease;
+    padding-left: env(safe-area-inset-left);
 
     &.sidebar--mobile-open {
       transform: translateX(0);
@@ -297,8 +299,13 @@
   .menu-item,
   .submenu-item {
     min-height: 44px;
-    padding-top: 12px;
-    padding-bottom: 12px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+
+  .sidebar-header__toggle {
+    min-width: 44px;
+    min-height: 44px;
   }
 
   .logout-btn {

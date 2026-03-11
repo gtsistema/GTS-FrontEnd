@@ -19,7 +19,7 @@
   --label-size: 0.8125rem;   /* ~13px */
   --input-size: 0.9375rem;   /* ~15px */
 
-  --max-width: 1160px;
+  --max-width: none;
   --container-padding: 24px;
   --card-padding: 20px;
   --field-gap: 14px;
@@ -65,7 +65,7 @@
 .container {
   width: 100%;
   max-width: var(--max-width);
-  margin: 0 auto;
+  margin: 0;
   padding-left: var(--container-padding);
   padding-right: var(--container-padding);
   box-sizing: border-box;

@@ -50,6 +50,8 @@ export class AcessosPerfisPageComponent implements OnInit {
 
   form = { name: '', normalizedName: '', permissionIds: [] as string[] };
   permissionSearchTerm = signal('');
+  /** Módulos com lista de permissões expandida (estilo listagem). */
+  expandedModules = signal<PermissionModule[]>([]);
 
   readonly PERMISSION_MODULES = PERMISSION_MODULES;
   readonly PERMISSION_CATALOG = PERMISSION_CATALOG;
@@ -140,6 +142,7 @@ export class AcessosPerfisPageComponent implements OnInit {
     this.saveError.set(null);
     this.form = { name: '', normalizedName: '', permissionIds: [] };
     this.permissionSearchTerm.set('');
+    this.expandedModules.set([]);
     this.modalKind.set('create');
     this.cdr.markForCheck();
   }
@@ -154,6 +157,7 @@ export class AcessosPerfisPageComponent implements OnInit {
       permissionIds: [...this.profilePermissionsStore.getProfilePermissions(key)],
     };
     this.permissionSearchTerm.set('');
+    this.expandedModules.set([]);
     this.modalKind.set('edit');
     this.cdr.markForCheck();
   }
@@ -166,6 +170,28 @@ export class AcessosPerfisPageComponent implements OnInit {
       this.form.permissionIds = [...this.form.permissionIds, key];
     }
     this.cdr.markForCheck();
+  }
+
+  /** Alterna expansão da linha do módulo (listagem estilo estacionamento). */
+  toggleModuleExpanded(module: PermissionModule): void {
+    const current = this.expandedModules();
+    const idx = current.indexOf(module);
+    if (idx >= 0) {
+      this.expandedModules.set(current.filter((m) => m !== module));
+    } else {
+      this.expandedModules.set([...current, module]);
+    }
+    this.cdr.markForCheck();
+  }
+
+  isModuleExpanded(module: PermissionModule): boolean {
+    return this.expandedModules().includes(module);
+  }
+
+  /** Quantidade de permissões selecionadas no módulo. */
+  getSelectedCountInModule(module: PermissionModule): number {
+    const keys = PERMISSION_CATALOG[module] ?? [];
+    return keys.filter((k) => this.form.permissionIds.includes(k)).length;
   }
 
   getProfilePermissionCount(item: ApplicationRole): number {

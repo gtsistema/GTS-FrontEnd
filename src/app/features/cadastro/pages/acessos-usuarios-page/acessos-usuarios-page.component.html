@@ -31,12 +31,8 @@
               <td>{{ item.emailOuLogin ?? '-' }}</td>
               <td>{{ item.perfil ?? '-' }}</td>
               <td>{{ item.ativo ? 'Sim' : 'Não' }}</td>
-              <td>
-                <button
-                  type="button"
-                  class="btn-link"
-                  (click)="openEditar(item)"
-                >
+              <td class="acoes-cell">
+                <button type="button" class="btn btn-primary btn--sm" (click)="openEditar(item)">
                   Editar
                 </button>
               </td>
