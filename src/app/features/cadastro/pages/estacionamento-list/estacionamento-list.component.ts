@@ -6,6 +6,7 @@ import { EstacionamentoToolbarService } from '../../services/estacionamento-tool
 import { EstacionamentoListItemDTO, TipoPessoa } from '../../models/estacionamento.dto';
 import { formatCnpj } from '../../directives/cnpj-format.directive';
 import { formatCpf } from '../../directives/cpf-format.directive';
+import { ApiError } from '../../../../core/api/models';
 
 const TAMANHO_PAGINA = 50;
 
@@ -62,9 +63,12 @@ export class EstacionamentoListComponent {
             this.cdr.markForCheck();
           });
         },
-        error: () => {
+        error: (err: unknown) => {
           this.ngZone.run(() => {
-            this.erro = 'Erro ao carregar a lista.';
+            const msg = (err && typeof err === 'object' && 'message' in err && typeof (err as ApiError).message === 'string')
+              ? (err as ApiError).message
+              : 'Erro ao carregar a lista.';
+            this.erro = msg;
             this.loading = false;
             this.cdr.markForCheck();
           });

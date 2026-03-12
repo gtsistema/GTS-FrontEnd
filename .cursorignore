@@ -1,0 +1,9 @@
+﻿# Reduz indexacao e uso de contexto - evita travamentos no Cursor
+node_modules/
+dist/
+.angular/
+coverage/
+*.log
+package-lock.json
+.env
+.env.*

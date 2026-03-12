@@ -1,4 +1,4 @@
-// ========== Tokens locais (espaçamento e dimensões); cores vêm do tema (styles.css)
+// ========== Tokens locais (espaçamento compacto para menos scroll); cores vêm do tema (styles.css)
 :host {
   --space-4: 4px;
   --space-6: 6px;
@@ -9,20 +9,20 @@
   --space-20: 20px;
   --space-24: 24px;
 
-  --radius-sm: 10px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
 
-  --input-height: 40px;
-  --input-padding-x: 12px;
+  --input-height: 38px;
+  --input-padding-x: 10px;
 
   --label-size: 0.8125rem;   /* ~13px */
   --input-size: 0.9375rem;   /* ~15px */
 
   --max-width: none;
-  --container-padding: 24px;
-  --card-padding: 20px;
-  --field-gap: 14px;
+  --container-padding: 16px;
+  --card-padding: 14px;
+  --field-gap: 10px;
 }
 
 // ========== Page (compacto)
@@ -94,12 +94,12 @@
   border: 1px solid rgba(244, 67, 54, 0.25);
 }
 
-// ========== Layout grid: 2 colunas desktop, 1 mobile; gap 20–24px
+// ========== Layout grid: 2 colunas desktop, 1 mobile; gap compacto
 .layout-grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: var(--space-20);
-  margin-bottom: var(--space-24);
+  gap: var(--space-16);
+  margin-bottom: var(--space-16);
   min-width: 0;
   overflow: visible;
 }
@@ -107,7 +107,7 @@
 @media (min-width: 1024px) {
   .layout-grid {
     grid-template-columns: 1fr 1fr;
-    gap: var(--space-24);
+    gap: var(--space-16);
   }
 
   .card--span-5,
@@ -135,7 +135,7 @@
 
 .card__header {
   padding: var(--card-padding) var(--card-padding) 0;
-  margin-bottom: var(--space-12);
+  margin-bottom: var(--space-8);
 }
 
 .card__title {
@@ -257,7 +257,7 @@
 }
 
 .card__subtitle {
-  margin: var(--space-16) 0 var(--space-8) 0;
+  margin: var(--space-12) 0 var(--space-6) 0;
   font-size: var(--label-size);
   font-weight: 600;
   color: var(--color-text-muted);
@@ -279,13 +279,13 @@
   margin-left: var(--space-8);
 }
 
-// Accordion (Dados complementares – colapsado por padrão)
+// Accordion (Dados complementares – colapsado por padrão, trigger compacto)
 .card--accordion .card__trigger {
   width: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-16) var(--card-padding);
+  padding: var(--space-12) var(--card-padding);
   border: none;
   background: transparent;
   color: var(--color-text);
@@ -310,48 +310,60 @@
 
 .card--accordion .card__body {
   border-top: 1px solid var(--color-border);
-  padding: var(--space-16) var(--card-padding) var(--card-padding);
+  padding-top: var(--space-12);
+  padding-bottom: var(--card-padding);
 }
 
-/* Mesmo espaçamento entre layout-grid e Dados complementares; replicar entre Dados complementares e Contatos */
+/* Espaçamento reduzido entre accordions */
 .card--accordion + .card--accordion {
-  margin-top: var(--space-24);
+  margin-top: var(--space-12);
 }
 
-// Dados complementares: grid 2 cols desktop, 1 col mobile
+// Dados complementares: 3 colunas desktop (Estrutura | Valores | Localização) para uso compacto do espaço
 .complementares-body,
 .contatos-body {
-  padding-top: var(--space-16);
+  padding-top: var(--space-12);
 }
 
-.complementares-grid,
-.contatos-grid {
+.complementares-grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: var(--space-24);
+  gap: var(--space-12) var(--space-16);
   min-width: 0;
 }
 
 @media (min-width: 768px) {
-  .complementares-grid,
-  .contatos-grid {
+  .complementares-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: var(--space-24) var(--space-20);
+    gap: var(--space-12) var(--space-16);
   }
+}
+
+@media (min-width: 1200px) {
+  .complementares-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.contatos-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-12);
+  min-width: 0;
 }
 
 .complementares-block .card__subtitle,
 .contatos-block .card__subtitle {
   margin-top: 0;
-  margin-bottom: var(--space-12);
+  margin-bottom: var(--space-8);
 }
 
-/* Distância entre as linhas (campos) dentro de cada bloco */
+/* Campos mais compactos dentro de cada bloco */
 .form-grid--complementares,
 .form-grid--contatos {
   display: grid;
   grid-template-columns: 1fr;
-  gap: var(--space-16);
+  gap: var(--space-10);
   padding: 0;
   min-width: 0;
 }
@@ -360,7 +372,7 @@
   .form-grid--complementares,
   .form-grid--contatos {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: var(--space-16) var(--space-16);
+    gap: var(--space-10) var(--space-12);
   }
 }
 
@@ -374,8 +386,8 @@
   align-items: center;
   flex-wrap: wrap;
   gap: var(--space-12);
-  margin-top: var(--space-20);
-  margin-bottom: var(--space-12);
+  margin-top: var(--space-12);
+  margin-bottom: var(--space-8);
 }
 
 .contatos-add-btn {
@@ -395,8 +407,8 @@
 }
 
 .contatos-block--complementar {
-  margin-top: var(--space-20);
-  padding-top: var(--space-16);
+  margin-top: var(--space-12);
+  padding-top: var(--space-12);
   border-top: 1px solid var(--color-border);
 }
 
@@ -406,7 +418,7 @@
   justify-content: space-between;
   flex-wrap: wrap;
   gap: var(--space-8);
-  margin-bottom: var(--space-12);
+  margin-bottom: var(--space-8);
 }
 
 .contatos-block__header .card__subtitle {
@@ -419,7 +431,7 @@
 }
 
 .enderecos-actions {
-  margin-bottom: var(--space-12);
+  margin-bottom: var(--space-8);
 }
 
 .enderecos-actions .enderecos-add-icon {
@@ -430,8 +442,8 @@
 }
 
 .endereco-block {
-  margin-top: var(--space-16);
-  padding-top: var(--space-16);
+  margin-top: var(--space-12);
+  padding-top: var(--space-12);
   border-top: 1px solid var(--color-border);
 }
 
@@ -457,7 +469,7 @@
 .form-grid--endereco {
   display: grid;
   grid-template-columns: 1fr;
-  gap: var(--space-12);
+  gap: var(--space-10);
   padding: 0;
   min-width: 0;
 }
@@ -465,7 +477,13 @@
 @media (min-width: 768px) {
   .form-grid--endereco {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: var(--space-12) var(--space-16);
+    gap: var(--space-10) var(--space-12);
+  }
+}
+
+@media (min-width: 1024px) {
+  .form-grid--endereco {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
@@ -532,7 +550,7 @@
 @media (min-width: 1024px) {
   .form-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: var(--field-gap) var(--space-20);
+    gap: var(--field-gap) var(--space-16);
   }
 }
 
@@ -1136,7 +1154,7 @@ select.field__input.ng-invalid.ng-touched {
   display: flex;
   justify-content: flex-end;
   gap: var(--space-12);
-  padding-top: var(--space-24);
+  padding-top: var(--space-16);
   margin-top: 0;
   border-top: 1px solid var(--color-border);
 }

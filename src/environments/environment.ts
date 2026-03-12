@@ -1,13 +1,13 @@
 /**
- * Desenvolvimento: chamadas da API vão direto para o backend na Azure.
- * Request URL no Network aparecerá como https://gtsbackend.azurewebsites.net/...
- * O backend deve permitir CORS para http://localhost:4200.
+ * Desenvolvimento: usa proxy (/api) para evitar CORS e ver respostas de erro do backend.
+ * O proxy (proxy.conf.json) encaminha /api para https://gtsbackend.azurewebsites.net.
+ * Assim as requisições são same-origin (localhost:4200) e 500/erros não são bloqueados por CORS.
  */
 export const environment = {
   production: false,
-  apiUrl: 'https://gtsbackend.azurewebsites.net/api',
-  /** Base URL da API — sempre Azure para que listar/upload/deletar fotos usem o backend real. */
-  API_BASE_URL: 'https://gtsbackend.azurewebsites.net/api',
+  apiUrl: '/api',
+  /** Base URL da API — em dev usa proxy para não depender de CORS no backend. */
+  API_BASE_URL: '/api',
   /** Base URL ViaCEP: em dev usa proxy /viacep. */
   viacepBaseUrl: '/viacep'
 };

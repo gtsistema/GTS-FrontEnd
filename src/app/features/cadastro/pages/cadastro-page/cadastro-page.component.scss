@@ -9,13 +9,13 @@
 }
 
 .page-header {
-  padding: 32px 32px 24px;
+  padding: 16px 20px 14px;
   border-bottom: 1px solid var(--card-border);
 }
 
 .page-title {
-  margin: 0 0 16px 0;
-  font-size: 2rem;
+  margin: 0 0 8px 0;
+  font-size: 1.375rem;
   font-weight: 700;
   color: var(--text-primary);
 }
@@ -35,30 +35,30 @@
 
 .page-content {
   flex: 1;
-  padding: 32px;
+  padding: 16px 20px;
   overflow-y: auto;
 }
 
 @media (max-width: 1024px) {
   .page-header {
-    padding: 24px 24px 20px;
+    padding: 14px 16px 12px;
   }
 
   .page-content {
-    padding: 24px;
+    padding: 14px 16px;
   }
 }
 
 @media (max-width: 640px) {
   .page-title {
-    font-size: 1.5rem;
+    font-size: 1.25rem;
   }
 
   .page-header {
-    padding: 16px 16px 12px;
+    padding: 12px 12px 10px;
   }
 
   .page-content {
-    padding: 16px;
+    padding: 12px;
   }
 }

@@ -134,8 +134,13 @@
   transition: all 0.2s ease;
   position: relative;
   cursor: pointer;
-  font-weight: var(--font-weight-body, 500);
+  font-family: inherit;
+  font-weight: 700;
   font-size: var(--font-section-title, 16px);
+  line-height: 1.3;
+  letter-spacing: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 
   &:hover {
     color: var(--accent-hover);
@@ -171,6 +176,9 @@
   background: none;
   text-align: left;
   justify-content: flex-start;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: inherit;
 
   .chevron {
     margin-left: auto;
@@ -191,7 +199,7 @@
 
 .submenu-item {
   padding: var(--space-xs, 5px) var(--space-md, 10px);
-  font-size: var(--font-subtitle, 14px);
+  font-size: var(--font-section-title, 16px);
 }
 
 .icon {
@@ -218,6 +226,9 @@
   overflow: hidden;
   text-overflow: ellipsis;
   transition: opacity 0.3s ease, visibility 0.3s ease;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: inherit;
 
   &.hidden {
     opacity: 0;

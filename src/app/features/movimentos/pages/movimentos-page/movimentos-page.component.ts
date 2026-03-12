@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, OnDestroy } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
@@ -36,7 +36,12 @@ export interface VeiculoEmAndamento {
   anoFabricacao: string;
   quantidadeEixos: string;
   suspensoes?: SuspensaoPeriodo[];
+  /** Indica se a entrada foi agendada (filtro "Agendados"). */
+  agendado?: boolean;
 }
+
+/** Filtro rápido da tabela "Em andamento" pelos chips de resumo. */
+export type FiltroResumoMovimentos = 'todos' | 'noPatio' | 'suspensos' | 'entradasHoje' | 'agendados';
 
 export interface MovimentoHistorico {
   placa: string;
@@ -47,7 +52,11 @@ export interface MovimentoHistorico {
   dataSaida: string;
   valor: string;
   tempoEstacionado?: string;
+  /** Status final do movimento (ex.: Finalizado, Com suspensão). */
+  statusFinal?: string;
 }
+
+export type FiltroPeriodoHistorico = 'todos' | 'hoje' | 'semana' | 'mes';
 
 @Component({
   selector: 'app-movimentos-page',
@@ -65,7 +74,33 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
   emAndamento: VeiculoEmAndamento[] = [];
   historicoMovimentos: MovimentoHistorico[] = [];
   filtroPlaca = '';
+  /** Filtro ativo dos chips de resumo (No pátio, Suspensos, etc.). */
+  filtroResumo: FiltroResumoMovimentos = 'todos';
   private buscandoTransportadora = false;
+
+  /** Aba Histórico: busca por placa. */
+  filtroPlacaHistorico = '';
+  /** Aba Histórico: período (hoje, semana, mês, todos). */
+  filtroPeriodoHistorico: FiltroPeriodoHistorico = 'mes';
+  /** Aba Histórico: status (todos ou valor do statusFinal). */
+  filtroStatusHistorico = '';
+  /** Aba Histórico: movimento selecionado para ver detalhes (modal). */
+  detalheMovimento: MovimentoHistorico | null = null;
+  /** Aba Histórico: chave da linha cujo menu de ações está aberto (placa|dataSaida). */
+  menuAbertoKey: string | null = null;
+  /** Movimento cujo menu está aberto (para renderizar dropdown fora da tabela). */
+  movimentoMenuAberto: MovimentoHistorico | null = null;
+  /** Posição do dropdown (fixed) para não ser cortado pelo overflow da tabela. */
+  dropdownPos: { top: number; left: number } | null = null;
+
+  /** Resumo da aba Histórico (mock). Substituir por backend quando disponível. */
+  readonly resumoHistorico = {
+    movimentosHoje: 24,
+    saidasHoje: 18,
+    suspensoes: 5,
+    tempoMedio: '2h 15min',
+    faturamento: 'R$ 12.450,00',
+  };
 
   /** Atualizado a cada 1 s para o tempo de permanência contar automaticamente. */
   tickAtualizacao = 0;
@@ -77,6 +112,58 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
 
   /** Opções de quantidade de eixos (2 a 9) para o select. */
   readonly eixosOpcoes = [2, 3, 4, 5, 6, 7, 8, 9];
+
+  /** Resumo operacional (mock). Substituir por chamada ao backend quando disponível. */
+  readonly resumoOperacional = {
+    noPatioAgora: 18,
+    suspensos: 3,
+    entradasHoje: 42,
+    agendadosHoje: 11,
+  };
+
+  /** Alterna o filtro: se clicar no já selecionado, desmarca e mostra todos. */
+  setFiltroResumo(f: FiltroResumoMovimentos): void {
+    this.filtroResumo = this.filtroResumo === f ? 'todos' : f;
+  }
+
+  /** Lista em andamento filtrada pelo chip de resumo (antes do filtro de placa). */
+  get emAndamentoPorResumo(): VeiculoEmAndamento[] {
+    const lista = this.emAndamento;
+    switch (this.filtroResumo) {
+      case 'noPatio':
+        return lista.filter((v) => v.status === 'Em pátio');
+      case 'suspensos':
+        return lista.filter((v) => v.status === 'Suspenso');
+      case 'entradasHoje': {
+        const hoje = this.hojeStr();
+        return lista.filter((v) => (v.dataHoraEntrada || '').slice(0, 10) === hoje);
+      }
+      case 'agendados':
+        return lista.filter((v) => v.agendado === true);
+      default:
+        return lista;
+    }
+  }
+
+  private hojeStr(): string {
+    const d = new Date();
+    const dia = String(d.getDate()).padStart(2, '0');
+    const mes = String(d.getMonth() + 1).padStart(2, '0');
+    const ano = d.getFullYear();
+    return `${dia}/${mes}/${ano}`;
+  }
+
+  /** Título da tabela "Em andamento" conforme o filtro ativo. */
+  get tituloTabelaEmAndamento(): string {
+    const t: Record<FiltroResumoMovimentos, string> = {
+      todos: 'Em andamento agora',
+      noPatio: 'No pátio',
+      suspensos: 'Suspensos',
+      entradasHoje: 'Entradas hoje',
+      agendados: 'Agendados',
+    };
+    return t[this.filtroResumo];
+  }
 
   ngOnInit(): void {
     this.intervalId = setInterval(() => {
@@ -192,6 +279,7 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
         anoFabricacao: f.anoFabricacao?.trim() || '—',
         quantidadeEixos: f.quantidadeEixos?.trim() || '—',
         suspensoes: [],
+        agendado: false,
       },
     ];
     this.entradaForm = this.getEntradaFormVazio();
@@ -241,6 +329,7 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
         dataSaida: agora,
         valor: '—',
         tempoEstacionado,
+        statusFinal: (item.suspensoes?.length ?? 0) > 0 ? 'Com suspensão' : 'Finalizado',
       },
     ];
     this.emAndamento = this.emAndamento.filter(
@@ -281,11 +370,12 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
     return isNaN(d.getTime()) ? null : d.getTime();
   }
 
-  /** Lista "Em andamento" filtrada por placa. */
+  /** Lista "Em andamento" filtrada por resumo (chip) e depois por placa. */
   get emAndamentoFiltrado(): VeiculoEmAndamento[] {
+    const base = this.emAndamentoPorResumo;
     const termo = (this.filtroPlaca || '').trim().toUpperCase();
-    if (!termo) return this.emAndamento;
-    return this.emAndamento.filter((v) => v.placa.toUpperCase().includes(termo));
+    if (!termo) return base;
+    return base.filter((v) => v.placa.toUpperCase().includes(termo));
   }
 
   /** Lista "Em andamento" filtrada e ordenada pela coluna selecionada. */
@@ -324,19 +414,170 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
     return list.length > 0 ? list[list.length - 1] : null;
   }
 
-  /** Movimentos do mês atual para a aba Histórico. */
-  get historicoDoMes(): MovimentoHistorico[] {
-    const now = new Date();
-    const anoAtual = now.getFullYear();
-    const mesAtual = now.getMonth();
-    return this.historicoMovimentos.filter((m) => {
-      const parts = (m.dataSaida || '').split(/[/\s]/);
-      const mes = parts[1];
-      const ano = parts[2];
-      const mesNum = mes ? parseInt(mes, 10) - 1 : -1;
-      const anoNum = ano ? parseInt(ano, 10) : 0;
-      return mesNum === mesAtual && anoNum === anoAtual;
+  /** Lista do histórico filtrada por placa, período e status. */
+  get historicoFiltrado(): MovimentoHistorico[] {
+    let lista = this.historicoMovimentos;
+    const termo = (this.filtroPlacaHistorico || '').trim().toUpperCase();
+    if (termo) {
+      lista = lista.filter((m) => m.placa.toUpperCase().includes(termo));
+    }
+    if (this.filtroPeriodoHistorico !== 'todos') {
+      const now = new Date();
+      const hojeStr = this.hojeStr();
+      lista = lista.filter((m) => {
+        const dataStr = (m.dataSaida || '').slice(0, 10);
+        if (!dataStr) return false;
+        if (this.filtroPeriodoHistorico === 'hoje') return dataStr === hojeStr;
+        if (this.filtroPeriodoHistorico === 'semana') {
+          const ms = this.parseDataSaidaToMs(m.dataSaida);
+          if (ms == null) return false;
+          const semanaAtras = now.getTime() - 7 * 24 * 60 * 60 * 1000;
+          return ms >= semanaAtras;
+        }
+        if (this.filtroPeriodoHistorico === 'mes') {
+          const [d, mo, y] = dataStr.split('/').map((x) => parseInt(x, 10));
+          return mo === now.getMonth() + 1 && y === now.getFullYear();
+        }
+        return true;
+      });
+    }
+    if ((this.filtroStatusHistorico || '').trim()) {
+      const status = this.filtroStatusHistorico.trim();
+      lista = lista.filter((m) => (m.statusFinal || 'Finalizado') === status);
+    }
+    return lista;
+  }
+
+  /** Opções de status para o filtro da aba Histórico. */
+  get opcoesStatusHistorico(): string[] {
+    const set = new Set<string>(['Finalizado', 'Com suspensão']);
+    this.historicoMovimentos.forEach((m) => {
+      if (m.statusFinal) set.add(m.statusFinal);
     });
+    return ['', ...Array.from(set)];
+  }
+
+  private parseDataSaidaToMs(str: string): number | null {
+    if (!str || !str.trim()) return null;
+    const parts = str.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if (!parts) return null;
+    const [, dia, mes, ano] = parts;
+    const d = new Date(parseInt(ano, 10), parseInt(mes, 10) - 1, parseInt(dia, 10), 0, 0, 0, 0);
+    return isNaN(d.getTime()) ? null : d.getTime();
+  }
+
+  openDetalheMovimento(m: MovimentoHistorico): void {
+    this.detalheMovimento = m;
+  }
+
+  closeDetalheMovimento(): void {
+    this.detalheMovimento = null;
+  }
+
+  /** Fecha o menu de ações ao clicar fora. */
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: Event): void {
+    const target = event.target as HTMLElement;
+    if (target.closest?.('.historico-menu-wrap') || target.closest?.('.historico-dropdown-fixed')) return;
+    this.closeMenuAcoes();
+  }
+
+  /** Chave única da linha para controlar qual menu está aberto. */
+  menuKey(m: MovimentoHistorico): string {
+    return `${m.placa}|${m.dataSaida}`;
+  }
+
+  isMenuAberto(m: MovimentoHistorico): boolean {
+    return this.menuAbertoKey === this.menuKey(m);
+  }
+
+  toggleMenuAcoes(m: MovimentoHistorico, event: Event): void {
+    event.stopPropagation();
+    const key = this.menuKey(m);
+    if (this.menuAbertoKey === key) {
+      this.closeMenuAcoes();
+      return;
+    }
+    const el = (event.currentTarget as HTMLElement);
+    const rect = el.getBoundingClientRect();
+    const dropdownWidth = 180;
+    this.dropdownPos = {
+      top: rect.bottom + 4,
+      left: Math.max(8, rect.right - dropdownWidth),
+    };
+    this.movimentoMenuAberto = m;
+    this.menuAbertoKey = key;
+  }
+
+  closeMenuAcoes(): void {
+    this.menuAbertoKey = null;
+    this.movimentoMenuAberto = null;
+    this.dropdownPos = null;
+  }
+
+  acaoVerDetalhes(m: MovimentoHistorico): void {
+    this.closeMenuAcoes();
+    this.openDetalheMovimento(m);
+  }
+
+  /** Abre janela de impressão com comprovante do movimento. */
+  imprimirComprovante(m: MovimentoHistorico): void {
+    this.closeMenuAcoes();
+    const titulo = 'Comprovante de movimento';
+    const html = `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <title>${titulo}</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, sans-serif; font-size: 14px; color: #1e293b; padding: 24px; max-width: 480px; margin: 0 auto; }
+    h1 { font-size: 1.25rem; margin: 0 0 20px 0; color: #0f172a; border-bottom: 2px solid #3B82F6; padding-bottom: 8px; }
+    dl { margin: 0; }
+    .row { display: flex; justify-content: space-between; gap: 16px; padding: 8px 0; border-bottom: 1px solid #e2e8f0; }
+    .row:last-child { border-bottom: none; }
+    dt { margin: 0; font-weight: 500; color: #64748b; }
+    dd { margin: 0; font-weight: 600; color: #0f172a; text-align: right; }
+    .footer { margin-top: 24px; font-size: 0.75rem; color: #94a3b8; }
+    @media print { body { padding: 16px; } }
+  </style>
+</head>
+<body>
+  <h1>${titulo}</h1>
+  <dl>
+    <div class="row"><dt>Placa</dt><dd>${this.escapeHtml(m.placa)}</dd></div>
+    <div class="row"><dt>Motorista</dt><dd>${this.escapeHtml(m.motorista)}</dd></div>
+    <div class="row"><dt>CPF</dt><dd>${this.escapeHtml(m.cpf)}</dd></div>
+    <div class="row"><dt>Transportadora</dt><dd>${this.escapeHtml(m.transportadora)}</dd></div>
+    <div class="row"><dt>Data de entrada</dt><dd>${this.escapeHtml(m.dataEntrada)}</dd></div>
+    <div class="row"><dt>Data de saída</dt><dd>${this.escapeHtml(m.dataSaida)}</dd></div>
+    <div class="row"><dt>Tempo estacionado</dt><dd>${this.escapeHtml(m.tempoEstacionado ?? '—')}</dd></div>
+    <div class="row"><dt>Status final</dt><dd>${this.escapeHtml(m.statusFinal ?? 'Finalizado')}</dd></div>
+    <div class="row"><dt>Valor</dt><dd>${this.escapeHtml(m.valor)}</dd></div>
+  </dl>
+  <p class="footer">Documento gerado em ${new Date().toLocaleString('pt-BR')}.</p>
+  <script>window.onload = function() { window.print(); window.onafterprint = function() { window.close(); }; };<\/script>
+</body>
+</html>`;
+    const w = window.open('', '_blank');
+    if (w) {
+      w.document.write(html);
+      w.document.close();
+    }
+  }
+
+  private escapeHtml(s: string): string {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  exportarHistorico(): void {
+    // Placeholder: integrar com serviço de exportação (CSV/Excel) quando disponível.
   }
 
   private formatarDataHora(d: Date): string {
