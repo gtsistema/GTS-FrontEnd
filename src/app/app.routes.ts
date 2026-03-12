@@ -8,12 +8,14 @@ import { FINANCEIRO_ROUTES } from './features/financeiro/financeiro.routes';
 import { CADASTRO_ROUTES } from './features/cadastro/cadastro.routes';
 import { CadastroLayoutComponent } from './features/cadastro/cadastro-layout.component';
 import { authGuard } from './core/guards/auth.guard';
+import { redirectAuthenticatedToAppGuard } from './core/guards/redirect-authenticated.guard';
 import { MainLayoutComponent } from './core/layout/main-layout.component';
 
 export const routes: Routes = [
-	// 1. LOGIN (Rota Pública - sem layout)
+	// 1. ROTA RAIZ: se autenticado → /app/dashboard; senão → login
 	{
 		path: '',
+		canActivate: [redirectAuthenticatedToAppGuard],
 		children: LOGIN_ROUTES,
 	},
 
@@ -62,13 +64,6 @@ export const routes: Routes = [
 				pathMatch: 'full'
 			}
 		]
-	},
-
-	// Redirecionar raiz autenticada para /app/dashboard
-	{
-		path: '',
-		redirectTo: '/app/dashboard',
-		pathMatch: 'full'
 	},
 
 	// future routes can be added here
