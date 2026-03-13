@@ -224,12 +224,6 @@
   margin-top: var(--space-8);
 }
 
-.card--dados-bancarios > .form-grid {
-  padding-left: var(--card-padding);
-  padding-right: var(--card-padding);
-  padding-bottom: var(--card-padding);
-}
-
 /* Agência e Conta: número + dígito na mesma linha (padrão bancário BR) */
 .bank-numero-digito {
   display: grid;
@@ -319,7 +313,28 @@
   margin-top: var(--space-12);
 }
 
-// Dados complementares: 3 colunas desktop (Estrutura | Valores | Localização) para uso compacto do espaço
+/* Dados complementares e Contatos lado a lado em telas maiores */
+.complementares-contatos-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-12);
+  margin-top: var(--space-12);
+  min-width: 0;
+}
+
+.complementares-contatos-row .card--accordion {
+  margin-top: 0;
+  min-width: 0;
+}
+
+@media (min-width: 1024px) {
+  .complementares-contatos-row {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-16);
+  }
+}
+
+// Dados complementares: corpo e grid interno
 .complementares-body,
 .contatos-body {
   padding-top: var(--space-12);
@@ -332,16 +347,9 @@
   min-width: 0;
 }
 
-@media (min-width: 768px) {
+@media (min-width: 600px) {
   .complementares-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: var(--space-12) var(--space-16);
-  }
-}
-
-@media (min-width: 1200px) {
-  .complementares-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
@@ -551,6 +559,92 @@
   .form-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: var(--field-gap) var(--space-16);
+  }
+}
+
+/* ========== Form compacto (label e campo na mesma linha — igual Cadastro frota/transportadora) */
+.form-compact__body {
+  padding: 0 var(--card-padding) var(--card-padding);
+  padding-top: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-compact .form-row {
+  display: grid;
+  grid-template-columns: 130px 1fr;
+  gap: 12px;
+  align-items: center;
+  min-height: var(--input-height);
+}
+
+.form-compact .form-row label {
+  margin: 0;
+  font-size: var(--label-size);
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+.form-compact .form-row .field__input {
+  margin: 0;
+}
+
+.form-compact .form-row__input {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.form-compact .form-row__input .field__error {
+  margin-top: 2px;
+}
+
+.form-compact .form-row--checkbox label.field__label--checkbox {
+  margin: 0;
+}
+
+.form-compact .form-row--file .file-upload {
+  margin: 0;
+}
+
+/* Combos (Banco, Tipo conta) em form-row: alinhar ao topo para dropdown não cortar */
+.form-compact .form-row.banco-combo,
+.form-compact .form-row.tipo-conta-combo {
+  align-items: flex-start;
+}
+
+.form-compact .form-row.banco-combo .form-row__input,
+.form-compact .form-row.tipo-conta-combo .form-row__input {
+  position: relative;
+  min-width: 0;
+}
+
+.form-compact__body--titular {
+  margin-bottom: 0;
+}
+
+.bank-numero-digito-wrap {
+  min-width: 0;
+}
+
+/* Dentro de accordion (card__body) não duplicar padding horizontal */
+.card__body .form-compact__body {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.form-row--valores .form-row__input {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+}
+
+@media (max-width: 600px) {
+  .form-compact .form-row {
+    grid-template-columns: 1fr;
+    align-items: stretch;
   }
 }
 
