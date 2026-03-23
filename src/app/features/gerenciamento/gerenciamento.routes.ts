@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { GerenciamentoLayoutComponent } from './gerenciamento-layout/gerenciamento-layout.component';
 import { GerenciamentoPageComponent } from './pages/gerenciamento-page/gerenciamento-page.component';
+import { permissionGuard } from '../../core/guards/permission.guard';
 
 export const GERENCIAMENTO_ROUTES: Routes = [
   {
@@ -8,12 +9,15 @@ export const GERENCIAMENTO_ROUTES: Routes = [
     component: GerenciamentoLayoutComponent,
     children: [
       { path: '', pathMatch: 'full', component: GerenciamentoPageComponent },
+      { path: 'permissoes', redirectTo: 'admin', pathMatch: 'full' },
       {
-        path: 'permissoes',
+        path: 'admin',
         loadComponent: () =>
-          import('../cadastro/pages/acessos-permissoes-page/acessos-permissoes-page.component').then(
-            (m) => m.AcessosPermissoesPageComponent
+          import('./pages/menu-admin-page/menu-admin-page.component').then(
+            (m) => m.MenuAdminPageComponent
           ),
+        canActivate: [permissionGuard],
+        data: { permissions: ['gerenciamento.permissoes'] },
       },
     ],
   },

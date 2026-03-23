@@ -16,6 +16,17 @@ export class MenuPermissionsStoreService {
     this.store.update((m) => ({ ...m, [nodeId]: [...permissionKeys] }));
   }
 
+  /** Adiciona uma chave ao nó, sem duplicar. */
+  appendPermission(nodeId: string, permissionKey: string): void {
+    const key = permissionKey.trim();
+    if (!key) return;
+    this.store.update((m) => {
+      const prev = m[nodeId] ?? [];
+      if (prev.includes(key)) return m;
+      return { ...m, [nodeId]: [...prev, key] };
+    });
+  }
+
   getPermissionsSignal(nodeId: string) {
     return computed(() => this.store()[nodeId] ?? []);
   }

@@ -56,6 +56,24 @@ export class AcessosPermissoesPageComponent implements OnInit {
   selectedCount = computed(() => this.formPermissionIds().length);
   isModalOpen = computed(() => this.editingNodeId() !== null);
 
+  /** Modal Nova permissão — layout lista por menu + submenus (como Permissões do Perfil) */
+  novaPermissaoOpen = signal(false);
+  novaSelectedSubIds = signal<string[]>([]);
+  novaExpandedMenuIds = signal<string[]>([]);
+  novaMenuFilterTerm = signal('');
+
+  /** Menus filtrados pelo termo (nome do menu ou de algum submenu). */
+  filteredMenusForNova = computed(() => {
+    const term = this.novaMenuFilterTerm().trim().toLowerCase();
+    if (!term) return MENU_STRUCTURE;
+    return MENU_STRUCTURE.filter((node) => {
+      if (node.label.toLowerCase().includes(term)) return true;
+      return node.children?.some((c) => c.label.toLowerCase().includes(term)) ?? false;
+    });
+  });
+
+  novaSelectedCount = computed(() => this.novaSelectedSubIds().length);
+
   ngOnInit(): void {
     this.cdr.markForCheck();
   }
@@ -130,5 +148,118 @@ export class AcessosPermissoesPageComponent implements OnInit {
       }
     }
     return id;
+  }
+
+  abrirNovaPermissao(): void {
+    this.novaSelectedSubIds.set([]);
+    this.novaExpandedMenuIds.set([]);
+    this.novaMenuFilterTerm.set('');
+    this.novaPermissaoOpen.set(true);
+    this.cdr.markForCheck();
+  }
+
+  fecharNovaPermissao(): void {
+    this.novaPermissaoOpen.set(false);
+    this.cdr.markForCheck();
+  }
+
+  /** Itens selecionáveis do menu: submenus ou o próprio item quando não há filhos. */
+  submenuItems(node: MenuNode): { id: string; label: string }[] {
+    if (node.children?.length) {
+      return node.children.map((s) => ({ id: s.id, label: s.label }));
+    }
+    return [{ id: node.id, label: node.label }];
+  }
+
+  toggleNovaSub(id: string): void {
+    const cur = this.novaSelectedSubIds();
+    const idx = cur.indexOf(id);
+    if (idx >= 0) {
+      this.novaSelectedSubIds.set(cur.filter((x) => x !== id));
+    } else {
+      this.novaSelectedSubIds.set([...cur, id]);
+    }
+    this.cdr.markForCheck();
+  }
+
+  isNovaSubSelected(id: string): boolean {
+    return this.novaSelectedSubIds().includes(id);
+  }
+
+  toggleMenuExpandedNova(menuId: string): void {
+    const cur = this.novaExpandedMenuIds();
+    if (cur.includes(menuId)) {
+      this.novaExpandedMenuIds.set(cur.filter((x) => x !== menuId));
+    } else {
+      this.novaExpandedMenuIds.set([...cur, menuId]);
+    }
+    this.cdr.markForCheck();
+  }
+
+  isMenuExpandedNova(menuId: string): boolean {
+    return this.novaExpandedMenuIds().includes(menuId);
+  }
+
+  selectedCountInMenuNova(node: MenuNode): number {
+    const items = this.submenuItems(node);
+    return items.filter((i) => this.novaSelectedSubIds().includes(i.id)).length;
+  }
+
+  isMenuFullySelectedNova(node: MenuNode): boolean {
+    const items = this.submenuItems(node);
+    if (items.length === 0) return false;
+    return items.every((i) => this.novaSelectedSubIds().includes(i.id));
+  }
+
+  toggleTodasDoMenuNova(node: MenuNode, ev: Event): void {
+    ev.stopPropagation();
+    const items = this.submenuItems(node);
+    const ids = items.map((i) => i.id);
+    const cur = new Set(this.novaSelectedSubIds());
+    const allSelected = ids.every((id) => cur.has(id));
+    if (allSelected) {
+      ids.forEach((id) => cur.delete(id));
+    } else {
+      ids.forEach((id) => cur.add(id));
+    }
+    this.novaSelectedSubIds.set(Array.from(cur));
+    this.cdr.markForCheck();
+  }
+
+  selecionarTodasMenusNova(): void {
+    const all: string[] = [];
+    for (const node of MENU_STRUCTURE) {
+      for (const item of this.submenuItems(node)) {
+        all.push(item.id);
+      }
+    }
+    this.novaSelectedSubIds.set(all);
+    this.cdr.markForCheck();
+  }
+
+  limparSelecaoNova(): void {
+    this.novaSelectedSubIds.set([]);
+    this.cdr.markForCheck();
+  }
+
+  private buildPermissionKey(targetNodeId: string): string {
+    const sufix = targetNodeId.replace(/^(sub-|menu-)/i, '').replace(/-/g, '_');
+    let key = `custom.${sufix}`;
+    const existing = this.menuPermissionsStore.getPermissions(targetNodeId);
+    if (existing.includes(key)) {
+      key = `custom.${sufix}_${Date.now().toString(36)}`;
+    }
+    return key;
+  }
+
+  salvarNovaPermissao(): void {
+    const selected = this.novaSelectedSubIds();
+    if (selected.length === 0) return;
+    for (const targetNodeId of selected) {
+      const key = this.buildPermissionKey(targetNodeId);
+      this.menuPermissionsStore.appendPermission(targetNodeId, key);
+    }
+    this.fecharNovaPermissao();
+    this.cdr.markForCheck();
   }
 }

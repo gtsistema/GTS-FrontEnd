@@ -4,6 +4,12 @@
     <p>Visualize o menu, os módulos e submenus e vincule as permissões que controlam o acesso a cada um.</p>
   </div>
 
+  <div class="tab-content__actions">
+    <button type="button" class="btn btn-primary" (click)="abrirNovaPermissao()">
+      Nova permissão
+    </button>
+  </div>
+
   <div class="table-wrap">
     <table class="data-table">
       <thead>
@@ -64,6 +70,112 @@
     </table>
   </div>
 </div>
+
+@if (novaPermissaoOpen()) {
+  <div class="modal-overlay" (click)="fecharNovaPermissao()">
+    <div
+      class="modal-content modal-content--nova"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-nova-permissao-title"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="modal-header">
+        <h2 id="modal-nova-permissao-title">Nova permissão</h2>
+      </div>
+      <div class="modal-body modal-body--nova">
+        <div class="form-section form-section--permissions form-section--nova-menu">
+          <h3 class="form-section__title">Menus e submenus</h3>
+          <p class="modal-form-hint modal-form-hint--compact">
+            Expanda um menu e marque os submenus desejados. Para cada item será criada uma chave no padrão
+            <span class="mono-hint">custom.&lt;identificador&gt;</span>.
+          </p>
+          <div class="form-section__toolbar">
+            <input
+              type="text"
+              class="input-control input-control--search"
+              placeholder="Filtrar menus ou submenus"
+              [ngModel]="novaMenuFilterTerm()"
+              (ngModelChange)="novaMenuFilterTerm.set($event)"
+            />
+            <span class="form-section__count">{{ novaSelectedCount() }} selecionadas</span>
+            <div class="form-section__toolbar-actions">
+              <button type="button" class="btn btn-secondary btn--sm" (click)="selecionarTodasMenusNova()">
+                Selecionar todas
+              </button>
+              <button
+                type="button"
+                class="filter-clear-btn"
+                (click)="limparSelecaoNova()"
+                aria-label="Limpar seleção"
+                title="Limpar seleção"
+              >
+                ×
+              </button>
+            </div>
+          </div>
+          <div class="permission-list">
+            @for (node of filteredMenusForNova(); track node.id) {
+              <div class="permission-list__row">
+                <div class="permission-list__header-wrap">
+                  <button
+                    type="button"
+                    class="permission-list__header"
+                    (click)="toggleMenuExpandedNova(node.id)"
+                    [attr.aria-expanded]="isMenuExpandedNova(node.id)"
+                  >
+                    <span class="permission-list__name">{{ node.label }}</span>
+                    <span class="permission-list__badge"
+                      >{{ selectedCountInMenuNova(node) }}/{{ submenuItems(node).length }}</span
+                    >
+                    <span
+                      class="permission-list__chevron"
+                      [class.permission-list__chevron--open]="isMenuExpandedNova(node.id)"
+                      >▼</span
+                    >
+                  </button>
+                  <button
+                    type="button"
+                    class="permission-list__select-topic"
+                    [class.permission-list__select-topic--active]="isMenuFullySelectedNova(node)"
+                    (click)="toggleTodasDoMenuNova(node, $event)"
+                  >
+                    {{ isMenuFullySelectedNova(node) ? 'Desmarcar todas' : 'Selecionar todas' }}
+                  </button>
+                </div>
+                @if (isMenuExpandedNova(node.id)) {
+                  <div class="permission-list__body">
+                    @for (item of submenuItems(node); track item.id) {
+                      <label class="permission-checkbox">
+                        <input
+                          type="checkbox"
+                          [checked]="isNovaSubSelected(item.id)"
+                          (change)="toggleNovaSub(item.id)"
+                        />
+                        <span>{{ item.label }}</span>
+                      </label>
+                    }
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="fecharNovaPermissao()">Cancelar</button>
+        <button
+          type="button"
+          class="btn btn-primary"
+          [disabled]="novaSelectedCount() === 0"
+          (click)="salvarNovaPermissao()"
+        >
+          Salvar
+        </button>
+      </div>
+    </div>
+  </div>
+}
 
 @if (isModalOpen()) {
   <div class="modal-overlay" (click)="closeModal()">

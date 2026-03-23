@@ -39,7 +39,7 @@ export const MENU_STRUCTURE: MenuNode[] = [
     icon: 'admin_panel_settings',
     children: [
       { id: 'sub-acessos', label: 'Acessos', route: '/app/gerenciamento' },
-      { id: 'sub-permissoes', label: 'Permissões', route: '/app/gerenciamento/permissoes' },
+      { id: 'sub-permissoes', label: 'Admin', route: '/app/gerenciamento/admin' },
     ],
   },
   {

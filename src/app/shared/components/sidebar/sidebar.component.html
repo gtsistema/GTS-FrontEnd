@@ -18,7 +18,8 @@
   </header>
   <nav class="sidebar-nav">
     <ul class="menu">
-      <li *ngFor="let item of menuItems">
+      @for (item of menuItems(); track item.label + item.route) {
+      <li>
         @if (item.children?.length) {
           <div class="menu-group">
             <button
@@ -64,6 +65,7 @@
           </a>
         }
       </li>
+      }
     </ul>
   </nav>
 

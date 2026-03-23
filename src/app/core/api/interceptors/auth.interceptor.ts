@@ -2,8 +2,7 @@ import { HttpHandlerFn, HttpRequest } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
-
-const TOKEN_KEY = 'authToken';
+import { AUTH_TOKEN_STORAGE_KEY, normalizeBearerValue } from '../../auth/auth-token.storage';
 
 /** Requisições para APIs externas (ex.: BrasilAPI) não devem receber o token do backend. */
 function isExternalApi(req: HttpRequest<unknown>): boolean {
@@ -11,27 +10,31 @@ function isExternalApi(req: HttpRequest<unknown>): boolean {
 }
 
 /**
- * Adiciona o header Authorization: Bearer <token> quando houver token no storage.
- * Usa o mesmo key do AuthService (authToken).
- * Não adiciona token para APIs externas (BrasilAPI, ViaCEP).
+ * Adiciona `Authorization: Bearer <token>` em toda requisição HTTP (exceto APIs externas),
+ * usando o valor gravado no login em {@link AUTH_TOKEN_STORAGE_KEY}.
  */
 export function authInterceptor(req: HttpRequest<unknown>, next: HttpHandlerFn) {
   if (isExternalApi(req)) return next(req);
+
   const platformId = inject(PLATFORM_ID);
-  let token: string | null = null;
+  let raw: string | null = null;
   if (isPlatformBrowser(platformId)) {
     try {
-      token = localStorage.getItem(TOKEN_KEY);
+      raw = localStorage.getItem(AUTH_TOKEN_STORAGE_KEY);
     } catch {
-      token = null;
+      raw = null;
     }
   }
+
+  const token = raw?.trim() ? normalizeBearerValue(raw) : null;
+
   if (token) {
     req = req.clone({
       setHeaders: {
-        Authorization: `Bearer ${token}`
-      }
+        Authorization: `Bearer ${token}`,
+      },
     });
   }
+
   return next(req);
 }

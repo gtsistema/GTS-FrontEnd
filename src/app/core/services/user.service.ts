@@ -11,9 +11,15 @@ export interface AppUser {
   };
 }
 
+/** Sessão derivada do JWT após login (claims: unique_name, role, Permission, email, nameid, …). */
 export interface LoggedUser {
   username: string;
   perfil: string;
+  /** Claim `Permission` do token (ex.: estacionamento.visualizar). */
+  permissionKeys: string[];
+  email?: string;
+  /** Claim `nameid` (id do usuário no servidor). */
+  nameId?: string;
   permissoes: {
     acessoConfiguracoes: boolean;
     verHome: boolean;

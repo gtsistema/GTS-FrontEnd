@@ -1,7 +1,8 @@
-import { Component, OnInit, output, input, computed, signal } from '@angular/core';
+import { Component, OnInit, output, input, computed, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
+import { MenuAdminService } from '../../../features/gerenciamento/services/menu-admin.service';
 
 interface MenuSubItem {
   label: string;
@@ -20,9 +21,13 @@ interface MenuItem {
   standalone: true,
   imports: [CommonModule, RouterModule],
   templateUrl: './sidebar.component.html',
-  styleUrls: ['./sidebar.component.scss']
+  styleUrls: ['./sidebar.component.scss'],
 })
 export class SidebarComponent implements OnInit {
+  private readonly router = inject(Router);
+  private readonly authService = inject(AuthService);
+  private readonly menuAdmin = inject(MenuAdminService);
+
   /** Controlado pelo MainLayout (hamburger na topbar). */
   collapsed = input<boolean>(false);
   mobileOpen = input<boolean>(false);
@@ -32,32 +37,14 @@ export class SidebarComponent implements OnInit {
 
   isCollapsed = computed(() => this.collapsed());
   currentRoute = '';
-  /** Rota do menu com subitens que está expandido (ex: '/app/configuracoes' ou '/app/cadastro'). */
+  /** Rota do menu com subitens que está expandido. */
   expandedMenuRoute = signal<string | null>(null);
 
-  menuItems: MenuItem[] = [
-    { label: 'Dashboard', route: '/app/dashboard', icon: 'dashboard' },
-    { label: 'Movimentos', route: '/app/movimentos', icon: 'swap_horiz' },
-    { label: 'Relatórios', route: '/app/relatorios', icon: 'assessment' },
-    { label: 'Financeiro', route: '/app/financeiro', icon: 'payments' },
-    { label: 'Configurações', route: '/app/configuracoes', icon: 'settings' },
-    { label: 'Gerenciamento', route: '/app/gerenciamento', icon: 'tune' },
-    {
-      label: 'Cadastro',
-      route: '/app/cadastro',
-      icon: 'playlist_add',
-      children: [
-        { label: 'Estacionamento', route: '/app/cadastro/estacionamento' },
-        { label: 'Transportadora', route: '/app/cadastro/transportadora' }
-      ]
-    }
-  ];
+  /** Itens vindos do admin de menus (localStorage); reativo ao estado. */
+  menuItems = computed<MenuItem[]>(() => this.menuAdmin.sidebarMenuItems() as MenuItem[]);
 
-  constructor(private router: Router, private authService: AuthService) {
+  ngOnInit(): void {
     this.currentRoute = this.router.url;
-  }
-
-  ngOnInit() {
     this.router.events.subscribe(() => {
       this.currentRoute = this.router.url;
       this.autoExpandFromRoute();
@@ -66,8 +53,15 @@ export class SidebarComponent implements OnInit {
   }
 
   private autoExpandFromRoute(): void {
-    if (this.currentRoute.startsWith('/app/cadastro')) {
-      this.expandedMenuRoute.set('/app/cadastro');
+    const url = this.currentRoute;
+    for (const item of this.menuItems()) {
+      if (item.children?.length) {
+        const hit = item.children.some((c) => url.startsWith(c.route));
+        if (hit) {
+          this.expandedMenuRoute.set(item.route);
+          return;
+        }
+      }
     }
   }
 
@@ -79,7 +73,6 @@ export class SidebarComponent implements OnInit {
     this.expandedMenuRoute.set(this.expandedMenuRoute() === route ? null : route);
   }
 
-  /** Botão hambúrguer no header da sidebar: no mobile fecha o drawer; no desktop alterna expandida/recolhida. */
   onToggleClick(): void {
     if (this.isMobile()) {
       if (this.mobileOpen()) {
