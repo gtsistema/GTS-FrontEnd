@@ -1,10 +1,13 @@
-import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, inject, ChangeDetectorRef, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { debounceTime, distinctUntilChanged, filter, switchMap } from 'rxjs';
 import { TransportadoraService } from '../../services/transportadora.service';
 import { VeiculoService } from '../../services/veiculo.service';
 import { VeiculoModeloService } from '../../services/veiculo-modelo.service';
 import { ViacepService } from '../../services/viacep.service';
+import { CnpjBrasilApiService } from '../../services/cnpj-brasilapi.service';
 import {
   TransportadoraDTO,
   TransportadoraListItemDTO,
@@ -12,9 +15,12 @@ import {
 } from '../../models/transportadora.dto';
 import { VeiculoDTO, VeiculoListItemDTO } from '../../models/veiculo.dto';
 import { VeiculoModeloListItemDTO } from '../../models/veiculo-modelo.dto';
+import { CnpjFormValue } from '../../models/brasilapi-cnpj.model';
+import { validarCnpj, cnpjTem14Digitos } from '../../utils/cnpj.utils';
 import { CnpjFormatDirective, formatCnpj } from '../../directives/cnpj-format.directive';
 import { CpfFormatDirective, formatCpf } from '../../directives/cpf-format.directive';
 import { TelefoneFormatDirective } from '../../directives/telefone-format.directive';
+import { ToastService } from '../../../../core/api/services/toast.service';
 import { environment } from '../../../../../environments/environment';
 
 export type TransportadoraTab = 'cadastro' | 'frota' | 'condutores';
@@ -222,8 +228,11 @@ export class CadastroTransportadoraPageComponent implements OnInit {
   private veiculoService = inject(VeiculoService);
   private veiculoModeloService = inject(VeiculoModeloService);
   private viacep = inject(ViacepService);
+  private cnpjBrasilApi = inject(CnpjBrasilApiService);
+  private toast = inject(ToastService);
   private fb = inject(FormBuilder);
   private cdr = inject(ChangeDetectorRef);
+  private destroyRef = inject(DestroyRef);
   private transportadorasDemo: TransportadoraDTO[] = DEMO_TRANSPORTADORAS.map((item) => ({ ...item }));
   private veiculosDemo: VeiculoDemoItem[] = DEMO_VEICULOS.map((item) => ({ ...item }));
 
@@ -240,6 +249,9 @@ export class CadastroTransportadoraPageComponent implements OnInit {
   transportadoraForm!: FormGroup;
   salvando = false;
   erroForm: string | null = null;
+  /** Busca automática CNPJ (BrasilAPI): loading e mensagem de erro abaixo do campo. */
+  cnpjLoading = false;
+  cnpjError: string | null = null;
   /** ID da transportadora em edição (usado na Frota e Condutores). */
   transportadoraId: number | null = null;
 
@@ -268,6 +280,8 @@ export class CadastroTransportadoraPageComponent implements OnInit {
   showCondutorForm = false;
   condutorForm!: FormGroup;
   condutorEditId: number | null = null;
+  /** Modal Importar condutores (Excel). */
+  showImportarCondutores = false;
   /** TODO: integrar quando existir endpoint de Condutor no backend. */
 
   // --- Aba Importação ---
@@ -277,6 +291,7 @@ export class CadastroTransportadoraPageComponent implements OnInit {
 
   ngOnInit(): void {
     this.criarFormTransportadora();
+    this.setupCnpjBusca();
     this.criarFormVeiculo();
     this.criarFormCondutor();
     if (!environment.production) {
@@ -324,6 +339,122 @@ export class CadastroTransportadoraPageComponent implements OnInit {
     });
   }
 
+  /**
+   * Configura busca automática de CNPJ (BrasilAPI): debounce 500ms no valueChanges e ao sair do campo (blur).
+   * Só consulta quando tiver 14 dígitos e CNPJ válido. Preenche apenas campos vazios.
+   */
+  private setupCnpjBusca(): void {
+    const cnpjControl = this.transportadoraForm.get('cnpj');
+    if (!cnpjControl) return;
+    cnpjControl.valueChanges
+      .pipe(
+        debounceTime(500),
+        distinctUntilChanged(),
+        filter((v) => cnpjTem14Digitos(v) && validarCnpj(v)),
+        switchMap((v) => {
+          this.cnpjLoading = true;
+          this.cnpjError = null;
+          this.cdr.markForCheck();
+          return this.cnpjBrasilApi.buscar(v);
+        }),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe({
+        next: (res) => {
+          this.cnpjLoading = false;
+          if (res == null) {
+            this.cnpjError = 'CNPJ não encontrado.';
+          } else {
+            this.cnpjError = null;
+            this.applyCnpjToForm(res);
+          }
+          this.cdr.markForCheck();
+        },
+        error: () => {
+          this.cnpjLoading = false;
+          this.cnpjError = 'Não foi possível buscar os dados do CNPJ.';
+          this.cdr.markForCheck();
+        }
+      });
+  }
+
+  /** Aplica dados da consulta de CNPJ ao formulário apenas em campos vazios (não sobrescreve alterações do usuário). */
+  private applyCnpjToForm(value: CnpjFormValue): void {
+    const form = this.transportadoraForm;
+    const isEmpty = (v: unknown) => v == null || String(v).trim() === '';
+
+    if (value.razaoSocial && isEmpty(form.get('razaoSocial')?.value)) {
+      form.get('razaoSocial')?.setValue(value.razaoSocial, { emitEvent: false });
+    }
+    if (value.nomeFantasia && isEmpty(form.get('nomeFantasia')?.value)) {
+      form.get('nomeFantasia')?.setValue(value.nomeFantasia, { emitEvent: false });
+    }
+    form.get('ativo')?.setValue(value.ativo, { emitEvent: false });
+    if (value.inscricaoEstadual != null && value.inscricaoEstadual.trim() && isEmpty(form.get('inscricaoEstadual')?.value)) {
+      form.get('inscricaoEstadual')?.setValue(value.inscricaoEstadual.trim(), { emitEvent: false });
+    }
+    if (value.email != null && value.email.trim() && isEmpty(form.get('email')?.value)) {
+      form.get('email')?.setValue(value.email.trim(), { emitEvent: false });
+    }
+    if (value.telefone != null && value.telefone.trim() && isEmpty(form.get('telefone')?.value)) {
+      form.get('telefone')?.setValue(value.telefone.trim(), { emitEvent: false });
+    }
+
+    if (value.endereco) {
+      const end = form.get('endereco');
+      if (end) {
+        if (value.endereco.logradouro && isEmpty(end.get('logradouro')?.value)) {
+          end.get('logradouro')?.setValue(value.endereco.logradouro, { emitEvent: false });
+        }
+        if (value.endereco.numero && isEmpty(end.get('numero')?.value)) {
+          end.get('numero')?.setValue(value.endereco.numero, { emitEvent: false });
+        }
+        if (value.endereco.complemento && isEmpty(end.get('complemento')?.value)) {
+          end.get('complemento')?.setValue(value.endereco.complemento, { emitEvent: false });
+        }
+        if (value.endereco.bairro && isEmpty(end.get('bairro')?.value)) {
+          end.get('bairro')?.setValue(value.endereco.bairro, { emitEvent: false });
+        }
+        if (value.endereco.cidade && isEmpty(end.get('cidade')?.value)) {
+          end.get('cidade')?.setValue(value.endereco.cidade, { emitEvent: false });
+        }
+        if (value.endereco.estado && isEmpty(end.get('estado')?.value)) {
+          end.get('estado')?.setValue(value.endereco.estado, { emitEvent: false });
+        }
+        if (value.endereco.cep && isEmpty(end.get('cep')?.value)) {
+          end.get('cep')?.setValue(value.endereco.cep, { emitEvent: false });
+        }
+      }
+    }
+  }
+
+  /** Dispara busca por CNPJ ao sair do campo (blur), se tiver 14 dígitos válidos. */
+  onCnpjBlur(): void {
+    const cnpj = this.transportadoraForm.get('cnpj')?.value ?? '';
+    if (!cnpjTem14Digitos(cnpj) || !validarCnpj(cnpj) || this.cnpjLoading) return;
+    this.cnpjLoading = true;
+    this.cnpjError = null;
+    this.cdr.markForCheck();
+    this.cnpjBrasilApi.buscar(cnpj).subscribe({
+      next: (res) => {
+        this.cnpjLoading = false;
+        if (res == null) {
+          this.cnpjError = 'CNPJ não encontrado.';
+        } else {
+          this.cnpjError = null;
+          this.applyCnpjToForm(res);
+        }
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.cnpjLoading = false;
+        this.cnpjError = 'Não foi possível buscar os dados do CNPJ.';
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  /** Listagem sempre via GET /api/Transportadora/Buscar (backend). */
   carregarLista(): void {
     this.loadingList = true;
     this.erroList = null;
@@ -335,20 +466,12 @@ export class CadastroTransportadoraPageComponent implements OnInit {
       })
       .subscribe({
         next: (paged) => {
-          if (!paged.items.length && this.usarDadosDemo()) {
-            this.aplicarTransportadorasDemo();
-            return;
-          }
           this.transportadoraList = paged.items;
           this.totalCount = paged.totalCount;
           this.loadingList = false;
           this.cdr.markForCheck();
         },
         error: () => {
-          if (this.usarDadosDemo()) {
-            this.aplicarTransportadorasDemo();
-            return;
-          }
           this.erroList = 'Erro ao carregar a lista.';
           this.loadingList = false;
           this.cdr.markForCheck();
@@ -391,11 +514,13 @@ export class CadastroTransportadoraPageComponent implements OnInit {
       }
     });
     this.erroForm = null;
+    this.cnpjError = null;
   }
 
   editarTransportadora(item: TransportadoraListItemDTO): void {
     this.listView = false;
     this.erroForm = null;
+    this.cnpjError = null;
     if (this.isDemoId(item.id)) {
       const dto = this.transportadorasDemo.find((transportadora) => transportadora.id === item.id);
       if (!dto) return;
@@ -536,11 +661,12 @@ export class CadastroTransportadoraPageComponent implements OnInit {
       next: (saved) => {
         this.transportadoraId = saved.id ?? null;
         this.salvando = false;
+        this.toast.success(dto.id ? 'Transportadora atualizada com sucesso.' : 'Transportadora cadastrada com sucesso.');
         this.voltarLista();
         this.cdr.markForCheck();
       },
-      error: () => {
-        this.erroForm = 'Erro ao salvar. Tente novamente.';
+      error: (err: { message?: string }) => {
+        this.erroForm = (err?.message && err.message.trim()) ? err.message : 'Erro ao salvar. Tente novamente.';
         this.salvando = false;
         this.cdr.markForCheck();
       }
@@ -641,6 +767,53 @@ export class CadastroTransportadoraPageComponent implements OnInit {
       .toUpperCase()
       .slice(0, 7);
     this.veiculoForm.patchValue({ placa: formatted }, { emitEvent: false });
+  }
+
+  /**
+   * Ao sair do campo placa: busca no backend por essa placa.
+   * Se encontrar um veículo, preenche o formulário com os dados do backend (modo edição).
+   */
+  onPlacaBlur(): void {
+    if (this.veiculoEditId != null) return;
+    if (this.transportadoraId == null || this.isDemoId(this.transportadoraId)) return;
+    const placa = (this.veiculoForm.get('placa')?.value ?? '').replace(/\s/g, '').toUpperCase();
+    if (placa.length < 7) return;
+    this.veiculoService
+      .buscar({ Placa: placa, NumeroPagina: 1, TamanhoPagina: 5 })
+      .subscribe({
+        next: (paged) => {
+          if (paged.items.length === 0) return;
+          const primeiro = paged.items[0];
+          this.veiculoService.obterPorId(primeiro.id).subscribe((dto) => {
+            if (!dto) return;
+            const marcaModelo = (dto.marcaModelo ?? '').trim();
+            const idx = marcaModelo.indexOf(' ');
+            const marca = idx >= 0 ? marcaModelo.slice(0, idx) : marcaModelo;
+            const modelo = idx >= 0 ? marcaModelo.slice(idx + 1) : '';
+            const dtoExt = dto as unknown as Record<string, unknown>;
+            this.veiculoEditId = dto.id ?? null;
+            this.veiculoForm.patchValue({
+              id: dto.id,
+              placa: dto.placa,
+              condutorId: dtoExt['condutorId'] ?? null,
+              veiculoModeloId: dto.veiculoModeloId,
+              marca,
+              modelo,
+              marcaModelo: dto.marcaModelo,
+              cor: dto.cor,
+              anoFabricacao: dto.anoFabricacao,
+              anoModelo: dto.anoModelo,
+              tipoVeiculo: dto.tipoVeiculo,
+              quantidadeEixos: dtoExt['quantidadeEixos'] ?? '',
+              tipoPeso: dtoExt['tipoPeso'] ?? '',
+              transportadoraId: dto.transportadoraId ?? this.transportadoraId,
+              centroCusto: dto.centroCusto,
+              ativo: dto.ativo
+            });
+            this.cdr.markForCheck();
+          });
+        }
+      });
   }
 
   abrirNovoVeiculo(): void {
@@ -817,6 +990,18 @@ export class CadastroTransportadoraPageComponent implements OnInit {
   fecharImportarFrota(): void {
     this.showImportarFrota = false;
     this.fileFrota = null;
+  }
+
+  /** Abre modal de importação de condutores por Excel. */
+  abrirImportarCondutores(): void {
+    this.fileCondutores = null;
+    this.showImportarCondutores = true;
+    this.cdr.markForCheck();
+  }
+
+  fecharImportarCondutores(): void {
+    this.showImportarCondutores = false;
+    this.cdr.markForCheck();
   }
 
   onFileFrotaChange(event: Event): void {
@@ -1045,7 +1230,10 @@ export class CadastroTransportadoraPageComponent implements OnInit {
     alert('Importação de placas: integrar com backend quando o endpoint estiver disponível.');
   }
   importarCondutores(): void {
+    if (!this.fileCondutores || this.transportadoraId == null) return;
+    // TODO: integrar com backend quando o endpoint estiver disponível.
     alert('Importação de condutores: integrar com backend quando o endpoint estiver disponível.');
+    this.fecharImportarCondutores();
   }
 
   downloadModeloClientes(): void {

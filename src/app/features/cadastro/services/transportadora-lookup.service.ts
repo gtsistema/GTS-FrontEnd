@@ -23,6 +23,21 @@ export class TransportadoraLookupService {
   constructor(private http: HttpClient) {}
 
   /**
+   * Lista transportadoras (primeira página) para seleção em formulário.
+   * GET /api/Transportadora/Buscar?NumeroPagina=1&TamanhoPagina=100
+   */
+  list(): Observable<LookupOption[]> {
+    const params = new URLSearchParams();
+    params.set('NumeroPagina', '1');
+    params.set('TamanhoPagina', '100');
+    const url = `${TRANSPORTADORA}/Buscar?${params.toString()}`;
+    return this.http.get<unknown>(url).pipe(
+      timeout(15000),
+      map((body) => this.normalizeToOptions(body))
+    );
+  }
+
+  /**
    * Busca transportadoras por Razão Social ou CNPJ.
    * Swagger: GET /api/Transportadora/Buscar?RazaoSocial=term ou Cnpj=term
    */

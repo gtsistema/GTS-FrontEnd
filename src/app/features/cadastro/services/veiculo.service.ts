@@ -19,10 +19,12 @@ const VEICULO = `${API_BASE}/Veiculo`;
 export class VeiculoService {
   constructor(private http: HttpClient) {}
 
-  /** GET /api/Veiculo/Buscar — backend. */
+  /** GET /api/Veiculo/Buscar — backend. Parâmetros: Termo, Placa, TransportadoraId (Swagger: Placa, Descricao, etc.). */
   buscar(params: VeiculoBuscarParams): Observable<PagedResultVeiculoDTO> {
     const query = new URLSearchParams();
     if (params.Termo?.trim()) query.set('Termo', params.Termo.trim());
+    const placaNorm = (params.Placa ?? '').replace(/\s/g, '').toUpperCase();
+    if (placaNorm.length >= 7) query.set('Placa', placaNorm);
     if (params.TransportadoraId != null) query.set('TransportadoraId', String(params.TransportadoraId));
     query.set('NumeroPagina', String(params.NumeroPagina));
     query.set('TamanhoPagina', String(params.TamanhoPagina));
@@ -133,18 +135,20 @@ export class VeiculoService {
     );
   }
 
+  /** Payload para POST Gravar e PUT Alterar (backend: placa obrigatória). */
   private dtoToPayload(dto: VeiculoDTO): Record<string, unknown> {
+    const placa = (dto.placa ?? '').replace(/\s/g, '').toUpperCase();
     return {
       id: dto.id,
       transportadoraId: dto.transportadoraId,
-      placa: dto.placa,
+      placa: placa || undefined,
       veiculoModeloId: dto.veiculoModeloId,
       marcaModelo: dto.marcaModelo,
-      cor: dto.cor,
-      anoFabricacao: dto.anoFabricacao,
-      anoModelo: dto.anoModelo,
-      tipoVeiculo: dto.tipoVeiculo,
-      centroCusto: dto.centroCusto,
+      cor: dto.cor ?? undefined,
+      anoFabricacao: dto.anoFabricacao ?? undefined,
+      anoModelo: dto.anoModelo ?? undefined,
+      tipoVeiculo: dto.tipoVeiculo ?? undefined,
+      centroCusto: dto.centroCusto ?? undefined,
       ativo: dto.ativo
     };
   }

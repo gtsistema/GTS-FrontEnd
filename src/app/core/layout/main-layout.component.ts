@@ -61,8 +61,10 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
   private updateFullWidthContent(url: string): void {
     const movimentos = url.includes('/movimentos');
     const estacionamento = url.includes('/cadastro/estacionamento');
+    const transportadora = url.includes('/cadastro/transportadora');
     const acessos = url.includes('/configuracoes/');
-    this.isFullWidthContent.set(movimentos || estacionamento || acessos);
+    const gerenciamento = url.includes('/gerenciamento');
+    this.isFullWidthContent.set(movimentos || estacionamento || transportadora || acessos || gerenciamento);
   }
 
   ngOnDestroy(): void {

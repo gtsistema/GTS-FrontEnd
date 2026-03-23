@@ -69,7 +69,9 @@ export class AcessosPerfisPageComponent implements OnInit {
     return result;
   });
 
-  selectedPermissionsCount = computed(() => this.form.permissionIds.length);
+  get selectedPermissionsCount(): number {
+    return this.form.permissionIds.length;
+  }
 
   isModalOpen = computed(() => this.modalKind() !== null);
   isCreate = computed(() => this.modalKind() === 'create');
@@ -169,6 +171,36 @@ export class AcessosPerfisPageComponent implements OnInit {
     } else {
       this.form.permissionIds = [...this.form.permissionIds, key];
     }
+    this.cdr.markForCheck();
+  }
+
+  selecionarTodasPermissoes(): void {
+    this.form.permissionIds = [...getAllPermissionKeys()];
+    this.cdr.markForCheck();
+  }
+
+  limparPermissoesSelecionadas(): void {
+    this.form.permissionIds = [];
+    this.cdr.markForCheck();
+  }
+
+  /** Verifica se todas as permissões do tópico estão selecionadas. */
+  isModuloTotalmenteSelecionado(module: PermissionModule): boolean {
+    const keys = PERMISSION_CATALOG[module] ?? [];
+    if (keys.length === 0) return false;
+    return keys.every((k) => this.form.permissionIds.includes(k));
+  }
+
+  /** Alterna: seleciona todas as permissões do tópico ou desmarca todas. */
+  toggleTodasDoModulo(module: PermissionModule): void {
+    const keys = PERMISSION_CATALOG[module] ?? [];
+    const current = new Set(this.form.permissionIds);
+    if (keys.every((k) => current.has(k))) {
+      keys.forEach((k) => current.delete(k));
+    } else {
+      keys.forEach((k) => current.add(k));
+    }
+    this.form.permissionIds = Array.from(current);
     this.cdr.markForCheck();
   }
 

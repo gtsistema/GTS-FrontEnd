@@ -1,28 +1,28 @@
 <div class="page-container">
   <header class="page-header">
     <div class="page-header__row page-header__row--1">
-      <h1 class="page-title">Configurações</h1>
-      <p class="page-subtitle">Usuários e perfis de acesso.</p>
+      <h1 class="page-title">Gerenciamento</h1>
+      <p class="page-subtitle">Central de gestão de acessos, usuários e permissões do sistema.</p>
     </div>
     <div class="page-header__row page-header__row--2">
-      <nav class="tabs" role="tablist" aria-label="Abas de Configurações">
+      <nav class="tabs" role="tablist" aria-label="Abas de Gerenciamento">
         <a
-          routerLink="/app/configuracoes/usuarios"
+          routerLink="/app/gerenciamento"
           routerLinkActive="tab--active"
-          [routerLinkActiveOptions]="{ exact: false }"
+          [routerLinkActiveOptions]="{ exact: true }"
           class="tab"
           role="tab"
         >
-          Usuários
+          Acessos
         </a>
         <a
-          routerLink="/app/configuracoes/perfis"
+          routerLink="/app/gerenciamento/permissoes"
           routerLinkActive="tab--active"
           [routerLinkActiveOptions]="{ exact: false }"
           class="tab"
           role="tab"
         >
-          Perfil
+          Permissões
         </a>
       </nav>
     </div>

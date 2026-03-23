@@ -29,6 +29,8 @@ export interface VeiculoDTO {
 
 export interface VeiculoBuscarParams {
   Termo?: string;
+  /** Busca por placa (GET /api/Veiculo/Buscar?Placa=xxx) */
+  Placa?: string;
   TransportadoraId?: number;
   NumeroPagina: number;
   TamanhoPagina: number;

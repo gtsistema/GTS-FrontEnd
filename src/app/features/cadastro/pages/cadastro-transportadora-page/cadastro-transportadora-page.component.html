@@ -74,7 +74,7 @@
             }
           </div>
         } @else {
-          <div class="tab-panel">
+          <div class="tab-panel tab-panel--form">
             <div class="container container--form">
               @if (erroForm) {
                 <p class="error-banner">{{ erroForm }}</p>
@@ -82,139 +82,156 @@
               <form [formGroup]="transportadoraForm" (ngSubmit)="salvarTransportadora()" class="form form-compact">
                 <input type="hidden" formControlName="id" />
 
-                <section class="card">
-                  <div class="card__header">
-                    <h2 class="card__title">Dados da transportadora</h2>
-                    <p class="card__description">Campos obrigatórios marcados com *</p>
-                  </div>
-                  <div class="form-compact__body">
-                    <div class="form-row">
-                      <label for="razaoSocial">Razão Social <span class="required">*</span></label>
-                      <div class="form-row__input">
-                        <input id="razaoSocial" class="field__input" type="text" formControlName="razaoSocial" placeholder="Razão Social" />
-                        @if (transportadoraForm.get('razaoSocial')?.invalid && transportadoraForm.get('razaoSocial')?.touched) {
-                          <span class="field__error">Obrigatório. Mín. 2 caracteres.</span>
-                        }
+                <div class="layout-grid">
+                  <section class="card card--span-5">
+                    <div class="card__header">
+                      <h2 class="card__title">Dados da transportadora</h2>
+                      <p class="card__description">Campos obrigatórios marcados com *</p>
+                    </div>
+                    <div class="form-compact__body">
+                      <div class="form-row">
+                        <label for="cnpj">CNPJ <span class="required">*</span></label>
+                        <div class="form-row__input">
+                          <input
+                            id="cnpj"
+                            class="field__input"
+                            type="text"
+                            formControlName="cnpj"
+                            placeholder="00.000.000/0001-00"
+                            maxlength="18"
+                            appCnpjFormat
+                            (blur)="onCnpjBlur()"
+                          />
+                          @if (cnpjLoading) {
+                            <span class="field__hint cnpj-loading">Buscando dados do CNPJ...</span>
+                          }
+                          @if (cnpjError) {
+                            <span class="field__error">{{ cnpjError }}</span>
+                          }
+                          @if (transportadoraForm.get('cnpj')?.invalid && transportadoraForm.get('cnpj')?.touched && !cnpjError) {
+                            <span class="field__error">CNPJ obrigatório.</span>
+                          }
+                        </div>
+                      </div>
+                      <div class="form-row">
+                        <label for="razaoSocial">Razão Social <span class="required">*</span></label>
+                        <div class="form-row__input">
+                          <input id="razaoSocial" class="field__input" type="text" formControlName="razaoSocial" placeholder="Razão Social" />
+                          @if (transportadoraForm.get('razaoSocial')?.invalid && transportadoraForm.get('razaoSocial')?.touched) {
+                            <span class="field__error">Obrigatório. Mín. 2 caracteres.</span>
+                          }
+                        </div>
+                      </div>
+                      <div class="form-row">
+                        <label for="nomeFantasia">Nome Fantasia</label>
+                        <input id="nomeFantasia" class="field__input" type="text" formControlName="nomeFantasia" placeholder="Nome Fantasia" />
+                      </div>
+                      <div class="form-row">
+                        <label for="inscricaoEstadual">Inscrição Estadual</label>
+                        <input id="inscricaoEstadual" class="field__input" type="text" formControlName="inscricaoEstadual" placeholder="Opcional" />
+                      </div>
+                      <div class="form-row">
+                        <label for="email">E-mail</label>
+                        <input id="email" class="field__input" type="email" formControlName="email" placeholder="email@exemplo.com" />
+                      </div>
+                      <div class="form-row">
+                        <label for="telefone">Telefone</label>
+                        <input id="telefone" class="field__input" type="text" formControlName="telefone" placeholder="(00) 0000-0000" appTelefoneFormat />
+                      </div>
+                      <div class="form-row form-row--checkbox">
+                        <label>Status</label>
+                        <label class="field__label--checkbox">
+                          <input type="checkbox" formControlName="ativo" />
+                          Ativo
+                        </label>
                       </div>
                     </div>
-                    <div class="form-row">
-                      <label for="nomeFantasia">Nome Fantasia</label>
-                      <input id="nomeFantasia" class="field__input" type="text" formControlName="nomeFantasia" placeholder="Nome Fantasia" />
+                  </section>
+
+                  <section class="card card--span-7">
+                    <div class="card__header">
+                      <h2 class="card__title">Responsável principal</h2>
                     </div>
-                    <div class="form-row">
-                      <label for="cnpj">CNPJ <span class="required">*</span></label>
-                      <div class="form-row__input">
-                        <input id="cnpj" class="field__input" type="text" formControlName="cnpj" placeholder="00.000.000/0001-00" maxlength="18" appCnpjFormat />
-                        @if (transportadoraForm.get('cnpj')?.invalid && transportadoraForm.get('cnpj')?.touched) {
-                          <span class="field__error">CNPJ obrigatório.</span>
-                        }
+                    <div class="form-compact__body">
+                      <div class="form-row">
+                        <label for="responsavelNome">Nome completo</label>
+                        <input id="responsavelNome" class="field__input" type="text" formControlName="responsavelNome" placeholder="Nome do responsável" />
+                      </div>
+                      <div class="form-row">
+                        <label for="responsavelCpf">CPF</label>
+                        <input id="responsavelCpf" class="field__input" type="text" formControlName="responsavelCpf" placeholder="000.000.000-00" maxlength="14" appCpfFormat />
+                      </div>
+                      <div class="form-row">
+                        <label for="responsavelCelular">Celular</label>
+                        <input id="responsavelCelular" class="field__input" type="text" formControlName="responsavelCelular" placeholder="(00) 00000-0000" appTelefoneFormat />
+                      </div>
+                      <div class="form-row">
+                        <label for="responsavelEmail">E-mail</label>
+                        <input id="responsavelEmail" class="field__input" type="email" formControlName="responsavelEmail" placeholder="email@exemplo.com" />
+                      </div>
+                      <div class="form-row">
+                        <label for="responsavelCargo">Cargo / Função</label>
+                        <input id="responsavelCargo" class="field__input" type="text" formControlName="responsavelCargo" placeholder="Ex.: Gerente" />
                       </div>
                     </div>
-                    <div class="form-row">
-                      <label for="inscricaoEstadual">Inscrição Estadual</label>
-                      <input id="inscricaoEstadual" class="field__input" type="text" formControlName="inscricaoEstadual" placeholder="Opcional" />
-                    </div>
-                    <div class="form-row">
-                      <label for="email">E-mail</label>
-                      <input id="email" class="field__input" type="email" formControlName="email" placeholder="email@exemplo.com" />
-                    </div>
-                    <div class="form-row">
-                      <label for="telefone">Telefone</label>
-                      <input id="telefone" class="field__input" type="text" formControlName="telefone" placeholder="(00) 0000-0000" appTelefoneFormat />
-                    </div>
-                    <div class="form-row form-row--checkbox">
-                      <label>Status</label>
-                      <label class="field__label--checkbox">
-                        <input type="checkbox" formControlName="ativo" />
-                        Ativo
-                      </label>
-                    </div>
-                  </div>
-                </section>
+                  </section>
 
-                <section class="card">
-                  <div class="card__header">
-                    <h2 class="card__title">Responsável principal</h2>
-                  </div>
-                  <div class="form-compact__body">
-                    <div class="form-row">
-                      <label for="responsavelNome">Nome completo</label>
-                      <input id="responsavelNome" class="field__input" type="text" formControlName="responsavelNome" placeholder="Nome do responsável" />
+                  <section class="card card--span-5">
+                    <div class="card__header">
+                      <h2 class="card__title">Acessos</h2>
+                      <p class="card__description card__description--small">Acesso criado pelo admin. Tipo: Unidade única.</p>
                     </div>
-                    <div class="form-row">
-                      <label for="responsavelCpf">CPF</label>
-                      <input id="responsavelCpf" class="field__input" type="text" formControlName="responsavelCpf" placeholder="000.000.000-00" maxlength="14" appCpfFormat />
-                    </div>
-                    <div class="form-row">
-                      <label for="responsavelCelular">Celular</label>
-                      <input id="responsavelCelular" class="field__input" type="text" formControlName="responsavelCelular" placeholder="(00) 00000-0000" appTelefoneFormat />
-                    </div>
-                    <div class="form-row">
-                      <label for="responsavelEmail">E-mail</label>
-                      <input id="responsavelEmail" class="field__input" type="email" formControlName="responsavelEmail" placeholder="email@exemplo.com" />
-                    </div>
-                    <div class="form-row">
-                      <label for="responsavelCargo">Cargo / Função</label>
-                      <input id="responsavelCargo" class="field__input" type="text" formControlName="responsavelCargo" placeholder="Ex.: Gerente" />
-                    </div>
-                  </div>
-                </section>
-
-                <section class="card">
-                  <div class="card__header">
-                    <h2 class="card__title">Acessos</h2>
-                    <p class="card__description card__description--small">Acesso criado pelo admin. Tipo: Unidade única.</p>
-                  </div>
-                  <div class="form-compact__body">
-                    <div class="form-row">
-                      <label for="tipoAcesso">Tipo de acesso</label>
-                      <input id="tipoAcesso" class="field__input field__input--readonly" type="text" formControlName="tipoAcesso" placeholder="Unidade única" readonly />
-                    </div>
-                    <div class="form-row">
-                      <label for="observacaoInterna">Observação interna</label>
-                      <input id="observacaoInterna" class="field__input" type="text" formControlName="observacaoInterna" placeholder="Opcional" />
-                    </div>
-                  </div>
-                </section>
-
-                <section class="card" formGroupName="endereco">
-                  <div class="card__header">
-                    <h2 class="card__title">Endereço</h2>
-                  </div>
-                  <div class="form-compact__body">
-                    <div class="form-row form-row--cep">
-                      <label for="cep">CEP</label>
-                      <div class="field__group field__group--cep">
-                        <input id="cep" class="field__input" type="text" formControlName="cep" placeholder="00000-000" maxlength="9" (blur)="buscarCep()" />
-                        <button type="button" class="btn btn-secondary btn--cep" (click)="buscarCep()">Buscar</button>
+                    <div class="form-compact__body">
+                      <div class="form-row">
+                        <label for="tipoAcesso">Tipo de acesso</label>
+                        <input id="tipoAcesso" class="field__input field__input--readonly" type="text" formControlName="tipoAcesso" placeholder="Unidade única" readonly />
+                      </div>
+                      <div class="form-row">
+                        <label for="observacaoInterna">Observação interna</label>
+                        <input id="observacaoInterna" class="field__input" type="text" formControlName="observacaoInterna" placeholder="Opcional" />
                       </div>
                     </div>
-                    <div class="form-row">
-                      <label for="logradouro">Logradouro</label>
-                      <input id="logradouro" class="field__input" type="text" formControlName="logradouro" placeholder="Rua, Av." />
+                  </section>
+
+                  <section class="card card--span-7" formGroupName="endereco">
+                    <div class="card__header">
+                      <h2 class="card__title">Endereço</h2>
                     </div>
-                    <div class="form-row">
-                      <label for="numero">Número</label>
-                      <input id="numero" class="field__input" type="text" formControlName="numero" placeholder="Nº" />
+                    <div class="form-compact__body">
+                      <div class="form-row form-row--cep">
+                        <label for="cep">CEP</label>
+                        <div class="field__group field__group--cep">
+                          <input id="cep" class="field__input" type="text" formControlName="cep" placeholder="00000-000" maxlength="9" (blur)="buscarCep()" />
+                          <button type="button" class="btn btn-secondary btn--cep" (click)="buscarCep()">Buscar</button>
+                        </div>
+                      </div>
+                      <div class="form-row">
+                        <label for="logradouro">Logradouro</label>
+                        <input id="logradouro" class="field__input" type="text" formControlName="logradouro" placeholder="Rua, Av." />
+                      </div>
+                      <div class="form-row">
+                        <label for="numero">Número</label>
+                        <input id="numero" class="field__input" type="text" formControlName="numero" placeholder="Nº" />
+                      </div>
+                      <div class="form-row">
+                        <label for="complemento">Complemento</label>
+                        <input id="complemento" class="field__input" type="text" formControlName="complemento" placeholder="Opcional" />
+                      </div>
+                      <div class="form-row">
+                        <label for="bairro">Bairro</label>
+                        <input id="bairro" class="field__input" type="text" formControlName="bairro" placeholder="Bairro" />
+                      </div>
+                      <div class="form-row">
+                        <label for="cidade">Cidade</label>
+                        <input id="cidade" class="field__input" type="text" formControlName="cidade" placeholder="Cidade" />
+                      </div>
+                      <div class="form-row">
+                        <label for="estado">Estado</label>
+                        <input id="estado" class="field__input" type="text" formControlName="estado" placeholder="UF" maxlength="2" />
+                      </div>
                     </div>
-                    <div class="form-row">
-                      <label for="complemento">Complemento</label>
-                      <input id="complemento" class="field__input" type="text" formControlName="complemento" placeholder="Opcional" />
-                    </div>
-                    <div class="form-row">
-                      <label for="bairro">Bairro</label>
-                      <input id="bairro" class="field__input" type="text" formControlName="bairro" placeholder="Bairro" />
-                    </div>
-                    <div class="form-row">
-                      <label for="cidade">Cidade</label>
-                      <input id="cidade" class="field__input" type="text" formControlName="cidade" placeholder="Cidade" />
-                    </div>
-                    <div class="form-row">
-                      <label for="estado">Estado</label>
-                      <input id="estado" class="field__input" type="text" formControlName="estado" placeholder="UF" maxlength="2" />
-                    </div>
-                  </div>
-                </section>
+                  </section>
+                </div>
 
                 <div class="form-actions-bar">
                   <div class="form-actions-bar__left">
@@ -239,7 +256,6 @@
             <button
               type="button"
               class="btn btn-primary"
-              [disabled]="transportadoraId == null"
               (click)="abrirNovoVeiculo()"
             >
               Cadastrar frota
@@ -318,10 +334,18 @@
         <div class="tab-panel">
           <!-- TODO: integrar com endpoint de Condutor quando disponível no backend. Estrutura pronta com mock. -->
           <div class="page-header__actions" style="margin-bottom: 12px;">
-            <button type="button" class="btn btn-primary" [disabled]="transportadoraId == null" (click)="abrirNovoCondutor()">Adicionar condutor</button>
+            <button type="button" class="btn btn-primary" (click)="abrirNovoCondutor()">Adicionar condutor</button>
+            <button
+              type="button"
+              class="btn btn-secondary"
+              [disabled]="transportadoraId == null"
+              (click)="abrirImportarCondutores()"
+            >
+              Importar Condutores
+            </button>
           </div>
           @if (transportadoraId == null) {
-            <p class="frota-hint">Salve a transportadora na aba Cadastro para adicionar condutores.</p>
+            <p class="frota-hint">Salve a transportadora na aba Cadastro para adicionar condutores e importar em Excel.</p>
           }
           <div class="table-wrap">
             <table class="data-table">
@@ -380,6 +404,9 @@
         </div>
         <form [formGroup]="veiculoForm" (ngSubmit)="salvarVeiculo()">
           <div class="modal-body modal-body--frota-compact">
+            @if (transportadoraId == null) {
+              <p class="modal-frota-hint" role="alert">Salve a transportadora na aba <strong>Cadastro</strong> para poder cadastrar veículos na frota.</p>
+            }
             <div class="form-row">
               <label for="frota-placa">Placa <span class="required">*</span></label>
               <input
@@ -390,6 +417,7 @@
                 maxlength="7"
                 formControlName="placa"
                 (input)="formatarPlacaFrota($any($event.target).value)"
+                (blur)="onPlacaBlur()"
               />
             </div>
             <div class="form-row">
@@ -446,7 +474,7 @@
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" (click)="fecharModalFrota()">Fechar</button>
-            <button type="submit" class="btn btn-primary" [disabled]="veiculoForm.invalid || salvandoVeiculo">
+            <button type="submit" class="btn btn-primary" [disabled]="transportadoraId == null || veiculoForm.invalid || salvandoVeiculo">
               {{ salvandoVeiculo ? 'Salvando...' : 'Salvar frota' }}
             </button>
           </div>
@@ -470,6 +498,9 @@
         </div>
         <form [formGroup]="condutorForm" (ngSubmit)="salvarCondutor()">
           <div class="modal-body modal-body--frota-compact">
+            @if (transportadoraId == null) {
+              <p class="modal-frota-hint" role="alert">Salve a transportadora na aba <strong>Cadastro</strong> para poder cadastrar condutores.</p>
+            }
             <div class="form-row">
               <label for="cond-nome">Nome completo <span class="required">*</span></label>
               <input id="cond-nome" type="text" class="input-control" formControlName="nomeCompleto" placeholder="Nome completo" />
@@ -508,7 +539,7 @@
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" (click)="fecharModalCondutor()">Fechar</button>
-            <button type="submit" class="btn btn-primary" [disabled]="condutorForm.invalid">Salvar</button>
+            <button type="submit" class="btn btn-primary" [disabled]="condutorForm.invalid || transportadoraId == null">Salvar</button>
           </div>
         </form>
       </div>
@@ -532,6 +563,29 @@
           </div>
           @if (fileFrota) {
             <p class="file-name">Arquivo: {{ fileFrota.name }}</p>
+          }
+        </div>
+      </div>
+    </div>
+  }
+
+  @if (showImportarCondutores) {
+    <div class="modal-overlay" (click)="fecharImportarCondutores()" role="dialog" aria-modal="true" aria-labelledby="importar-condutores-title">
+      <div class="modal modal--importar-frota" (click)="$event.stopPropagation()">
+        <div class="modal__header">
+          <h2 id="importar-condutores-title" class="modal__title">Importar condutores</h2>
+          <button type="button" class="modal__close" (click)="fecharImportarCondutores()" aria-label="Fechar">&times;</button>
+        </div>
+        <div class="modal__body">
+          <p class="modal__description">Selecione um arquivo Excel (.xlsx ou .csv) com as colunas: <strong>Nome</strong>, <strong>CPF</strong>, Celular, E-mail, CNH, Categoria CNH, Venc. CNH, Ativo. A primeira linha deve conter o cabeçalho.</p>
+          <div class="importacao-actions">
+            <input type="file" #fileCondutoresInput accept=".xlsx,.xls,.csv" (change)="onFileCondutores($event)" style="display: none;" />
+            <button type="button" class="btn btn-secondary" (click)="fileCondutoresInput.click()">Selecionar arquivo</button>
+            <button type="button" class="btn btn-primary" (click)="importarCondutores()" [disabled]="!fileCondutores">Importar</button>
+            <button type="button" class="btn btn-secondary" (click)="downloadModeloCondutores()">Baixar modelo</button>
+          </div>
+          @if (fileCondutores) {
+            <p class="file-name">Arquivo: {{ fileCondutores.name }}</p>
           }
         </div>
       </div>

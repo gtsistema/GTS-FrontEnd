@@ -95,21 +95,35 @@
                 [ngModel]="permissionSearchTerm()"
                 (ngModelChange)="permissionSearchTerm.set($event)"
               />
-              <span class="form-section__count">{{ selectedPermissionsCount() }} selecionadas</span>
+              <span class="form-section__count">{{ selectedPermissionsCount }} selecionadas</span>
+              <div class="form-section__toolbar-actions">
+                <button type="button" class="btn btn-secondary btn--sm" (click)="selecionarTodasPermissoes()">Selecionar todas</button>
+                <button type="button" class="filter-clear-btn" (click)="limparPermissoesSelecionadas()" aria-label="Tirar permissões selecionadas" title="Tirar permissões selecionadas">×</button>
+              </div>
             </div>
             <div class="permission-list">
               @for (group of filteredPermissionsByModule(); track group.module) {
                 <div class="permission-list__row">
-                  <button
-                    type="button"
-                    class="permission-list__header"
-                    (click)="toggleModuleExpanded(group.module)"
-                    [attr.aria-expanded]="isModuleExpanded(group.module)"
-                  >
-                    <span class="permission-list__name">{{ group.module }}</span>
-                    <span class="permission-list__badge">{{ getSelectedCountInModule(group.module) }}/{{ group.keys.length }}</span>
-                    <span class="permission-list__chevron" [class.permission-list__chevron--open]="isModuleExpanded(group.module)">▼</span>
-                  </button>
+                  <div class="permission-list__header-wrap">
+                    <button
+                      type="button"
+                      class="permission-list__header"
+                      (click)="toggleModuleExpanded(group.module)"
+                      [attr.aria-expanded]="isModuleExpanded(group.module)"
+                    >
+                      <span class="permission-list__name">{{ group.module }}</span>
+                      <span class="permission-list__badge">{{ getSelectedCountInModule(group.module) }}/{{ group.keys.length }}</span>
+                      <span class="permission-list__chevron" [class.permission-list__chevron--open]="isModuleExpanded(group.module)">▼</span>
+                    </button>
+                    <button
+                      type="button"
+                      class="permission-list__select-topic"
+                      [class.permission-list__select-topic--active]="isModuloTotalmenteSelecionado(group.module)"
+                      (click)="toggleTodasDoModulo(group.module); $event.stopPropagation()"
+                    >
+                      {{ isModuloTotalmenteSelecionado(group.module) ? 'Desmarcar todas' : 'Selecionar todas' }}
+                    </button>
+                  </div>
                   @if (isModuleExpanded(group.module)) {
                     <div class="permission-list__body">
                       @for (key of group.keys; track key) {

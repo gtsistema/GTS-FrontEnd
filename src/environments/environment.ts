@@ -1,13 +1,16 @@
 /**
- * Desenvolvimento: usa proxy (/api) para evitar CORS e ver respostas de erro do backend.
- * O proxy (proxy.conf.json) encaminha /api para https://gtsbackend.azurewebsites.net.
- * Assim as requisições são same-origin (localhost:4200) e 500/erros não são bloqueados por CORS.
+ * Desenvolvimento: API aponta direto para o backend Azure.
+ * Assim o POST/GET de Transportadora aparecem no DevTools como gtsbackend.azurewebsites.net.
+ * O backend deve permitir CORS para a origem do frontend (localhost:4200).
  */
 export const environment = {
   production: false,
-  apiUrl: '/api',
-  /** Base URL da API — em dev usa proxy para não depender de CORS no backend. */
-  API_BASE_URL: '/api',
+  /** Base do backend (sem /api no final). */
+  apiUrl: 'https://gtsbackend.azurewebsites.net',
+  /** Base URL da API — usada pelo TransportadoraService e demais services. */
+  API_BASE_URL: 'https://gtsbackend.azurewebsites.net/api',
   /** Base URL ViaCEP: em dev usa proxy /viacep. */
-  viacepBaseUrl: '/viacep'
+  viacepBaseUrl: '/viacep',
+  /** Base URL BrasilAPI (CNPJ): consulta direta na BrasilAPI. */
+  brasilApiBaseUrl: 'https://brasilapi.com.br'
 };

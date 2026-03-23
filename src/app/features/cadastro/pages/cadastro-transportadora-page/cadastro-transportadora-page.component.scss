@@ -140,6 +140,34 @@
   min-width: 0;
 }
 
+/* ========== Layout grid: 2 colunas desktop (igual Cadastro Estacionamento) */
+.layout-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-16);
+  margin-bottom: var(--space-16);
+  min-width: 0;
+}
+
+@media (min-width: 1024px) {
+  .layout-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-16);
+  }
+
+  .layout-grid .card--span-5,
+  .layout-grid .card--span-7 {
+    grid-column: span 1;
+  }
+}
+
+@media (max-width: 1023px) {
+  .layout-grid .card--span-5,
+  .layout-grid .card--span-7 {
+    grid-column: 1 / -1;
+  }
+}
+
 /* ========== Botões (mesmo padrão Estacionamento) */
 .btn {
   height: 40px;
@@ -422,6 +450,17 @@
   color: var(--danger, #dc3545);
 }
 
+.field__hint {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.75rem;
+  color: var(--color-text-muted, var(--muted));
+}
+
+.cnpj-loading {
+  font-style: italic;
+}
+
 .required {
   color: var(--danger, #dc3545);
 }
@@ -642,13 +681,11 @@
   font-weight: 600;
 }
 
-/* ========== Modal Cadastrar frota (estilo Entrada / Movimentos) */
+/* ========== Modal Cadastrar frota — overlay escurecido, conteúdo sólido */
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.35);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -658,7 +695,7 @@
 }
 
 .modal-content {
-  background: rgba(22, 28, 45, 0.78);
+  background: var(--card-bg, #1a2338);
   border: var(--border-card, 1px solid rgba(255, 255, 255, 0.08));
   border-radius: 22px;
   padding: 0;
@@ -668,9 +705,7 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.03);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
 }
 
 .modal-content--frota .modal-header {
@@ -703,6 +738,16 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+.modal-frota-hint {
+  margin: 0 0 8px 0;
+  padding: 10px 12px;
+  font-size: var(--label-size);
+  color: var(--color-text-muted, var(--muted));
+  background: rgba(255, 193, 7, 0.12);
+  border-radius: 6px;
+  line-height: 1.4;
 }
 
 .modal-content--frota .modal-body--frota-compact .form-row {
@@ -817,10 +862,9 @@
   justify-content: flex-end;
   gap: 12px;
   padding: 0.75rem 1.25rem 1rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
   flex-shrink: 0;
-  background: rgba(0, 0, 0, 0.2);
-  backdrop-filter: blur(8px);
+  background: var(--surface-2, #1e2a45);
 }
 
 .modal-content--frota .modal-footer .btn:disabled {
@@ -833,7 +877,7 @@
   height: 32px;
   padding: 0;
   border: none;
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--surface-2, #1e2a45);
   color: var(--muted);
   font-size: 1.5rem;
   line-height: 1;
@@ -846,7 +890,7 @@
 }
 
 .modal-content--frota .modal-close:hover {
-  background: rgba(255, 255, 255, 0.12);
+  background: #252f4a;
   color: var(--text);
 }
 

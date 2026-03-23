@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { LOGIN_ROUTES } from './features/login/login.routes';
 import { CONFIGURACOES_ROUTES } from './features/configuracoes/configuracoes.routes';
+import { GERENCIAMENTO_ROUTES } from './features/gerenciamento/gerenciamento.routes';
 import { DASHBOARD_ROUTES } from './features/dashboard/dashboard.routes';
 import { MOVIMENTOS_ROUTES } from './features/movimentos/movimentos.routes';
 import { RELATORIOS_ROUTES } from './features/relatorios/relatorios.routes';
@@ -51,7 +52,12 @@ export const routes: Routes = [
 				path: 'configuracoes',
 				children: CONFIGURACOES_ROUTES
 			},
-			// 7. CADASTRO
+			// 7. GERENCIAMENTO
+			{
+				path: 'gerenciamento',
+				children: GERENCIAMENTO_ROUTES
+			},
+			// 8. CADASTRO
 			{
 				path: 'cadastro',
 				component: CadastroLayoutComponent,

@@ -150,12 +150,11 @@
   flex-wrap: wrap;
   gap: 4px;
   padding: 5px;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--surface-2, #1e2a45);
   border-radius: 14px;
   width: fit-content;
   max-width: 100%;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  backdrop-filter: blur(8px);
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
 }
 
 .tab {
@@ -181,7 +180,7 @@
 }
 
 .tab.tab--active {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--surface, #1c2642);
   color: var(--text);
   font-weight: 600;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
@@ -201,10 +200,9 @@
 
 .tab-placeholder {
   padding: 32px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--surface-2, #1e2a45);
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
   border-radius: 18px;
-  backdrop-filter: blur(8px);
 }
 
 .tab-placeholder__text {
@@ -944,13 +942,11 @@
   gap: 24px;
 }
 
-/* Modal Entrada (Check-in) — clean, leve transparência, moderno */
+/* Modal Entrada (Check-in) — overlay escurecido, conteúdo sólido */
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.35);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -960,7 +956,7 @@
 }
 
 .modal-content {
-  background: rgba(22, 28, 45, 0.78);
+  background: var(--card-bg, #1a2338);
   border: var(--border-card, 1px solid rgba(255, 255, 255, 0.08));
   border-radius: 22px;
   padding: 0;
@@ -968,12 +964,9 @@
   width: 100%;
   max-height: 90vh;
   overflow: hidden;
-  box-shadow: var(--shadow-lg);
   display: flex;
   flex-direction: column;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.03);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
 }
 
 .modal-header {
@@ -1020,19 +1013,19 @@
 .modal-body .input-control {
   width: 100%;
   box-sizing: border-box;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--input-bg, #1c2642);
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.1));
   border-radius: 10px;
   transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
 .modal-body .input-control:hover {
-  background: rgba(255, 255, 255, 0.07);
+  background: var(--surface-2, #1e2a45);
   border-color: rgba(255, 255, 255, 0.12);
 }
 
 .modal-body .input-control:focus {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--input-bg, #1c2642);
   border-color: var(--focus);
   box-shadow: 0 0 0 3px rgba(91, 124, 255, 0.2);
 }
@@ -1044,7 +1037,7 @@
   appearance: none;
   -webkit-appearance: none;
   color: rgba(255, 255, 255, 0.95);
-  background-color: rgba(255, 255, 255, 0.06);
+  background-color: var(--input-bg, #1c2642);
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none' stroke='rgba(255,255,255,0.6)' stroke-width='2'%3E%3Cpath d='M2 4l4 4 4-4'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 14px center;
@@ -1071,10 +1064,9 @@
   justify-content: flex-end;
   gap: 12px;
   padding: 0.75rem 1.25rem 1rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
   flex-shrink: 0;
-  background: rgba(0, 0, 0, 0.2);
-  backdrop-filter: blur(8px);
+  background: var(--surface-2, #1e2a45);
 }
 
 .modal-footer .btn:disabled {
@@ -1087,7 +1079,7 @@
   height: 32px;
   padding: 0;
   border: none;
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--surface-2, #1e2a45);
   color: var(--mov-muted);
   font-size: 1.5rem;
   line-height: 1;
@@ -1100,7 +1092,7 @@
 }
 
 .modal-close:hover {
-  background: rgba(255, 255, 255, 0.12);
+  background: #252f4a;
   color: var(--mov-text);
 }
 

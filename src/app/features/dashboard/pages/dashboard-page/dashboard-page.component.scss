@@ -51,7 +51,6 @@
   border-radius: 12px;
   padding: 16px;
   box-shadow: var(--card-shadow);
-  backdrop-filter: blur(10px);
   transition: all 0.3s ease;
 
   h3 {
@@ -69,7 +68,7 @@
 
   &:hover {
     border-color: var(--accent);
-    background: rgba(10, 14, 28, 0.6);
+    background: var(--surface-2, #1e2a45);
     transform: translateY(-2px);
   }
 }

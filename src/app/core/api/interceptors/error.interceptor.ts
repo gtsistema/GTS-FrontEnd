@@ -55,9 +55,14 @@ function isLoginRequest(req: HttpRequest<unknown>): boolean {
   return req.url.includes('auth/Usuario/Login');
 }
 
+/** Consulta CNPJ (BrasilAPI direta): mensagem de erro é exibida no próprio campo do formulário. */
+function isBrasilApiCnpjRequest(req: HttpRequest<unknown>): boolean {
+  return req.url.includes('brasilapi.com.br');
+}
+
 /**
  * Padroniza erros HTTP em ApiError, exibe toast e repassa o erro com mensagem e fieldErrors.
- * Não exibe toast para o endpoint de login (a tela de login exibe com a mensagem da API).
+ * Não exibe toast para: login (tela exibe); BrasilAPI CNPJ (formulário exibe abaixo do campo).
  */
 export function errorInterceptor(req: HttpRequest<unknown>, next: HttpHandlerFn) {
   const toast = inject(ToastService);
@@ -68,7 +73,7 @@ export function errorInterceptor(req: HttpRequest<unknown>, next: HttpHandlerFn)
         status: undefined,
         fieldErrors: undefined
       };
-      if (!isLoginRequest(req)) {
+      if (!isLoginRequest(req) && !isBrasilApiCnpjRequest(req)) {
         toast.error(apiError.message);
       }
       return throwError(() => apiError);

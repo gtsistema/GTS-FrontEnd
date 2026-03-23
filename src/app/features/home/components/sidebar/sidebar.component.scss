@@ -1,5 +1,5 @@
 :host {
-  --sidebar-bg: rgba(10, 14, 28, 0.95);
+  --sidebar-bg: #141c2e;
   --sidebar-text: rgba(255, 255, 255, 0.95);
   --accent: #5b7cff;
   --muted: rgba(255, 255, 255, 0.72);
@@ -11,7 +11,7 @@
   justify-content: space-between;
   gap: 1rem;
   padding: 1rem;
-  background: linear-gradient(90deg, rgba(10, 14, 28, 0.8), rgba(15, 27, 61, 0.8));
+  background: linear-gradient(90deg, #141c2e 0%, #1a2742 100%);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   position: relative;
   z-index: 100;
@@ -68,7 +68,7 @@
 }
 
 .btn-pin {
-  background: none;
+  background: transparent;
   border: 1px solid rgba(255, 255, 255, 0.2);
   color: var(--sidebar-text);
   padding: 0.5rem;
@@ -78,12 +78,12 @@
   transition: all 0.2s ease;
 
   &:hover {
-    background: rgba(91, 124, 255, 0.1);
+    background: #252f4a;
     border-color: var(--accent);
   }
 
   &.pinned {
-    background: rgba(91, 124, 255, 0.2);
+    background: #252f4a;
     border-color: var(--accent);
   }
 }

@@ -94,7 +94,7 @@
 .tree {
   margin: 0;
   padding: 16px 20px;
-  background: rgba(0, 0, 0, 0.25);
+  background: var(--surface-2, #1e2a45);
   border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
   border-radius: 10px;
   font-size: 0.8125rem;
@@ -123,7 +123,7 @@
   }
 
   th {
-    background: rgba(255, 255, 255, 0.04);
+    background: var(--surface-2, #1e2a45);
     color: var(--muted);
     font-weight: 600;
     font-size: 0.75rem;
@@ -141,7 +141,7 @@
   }
 
   tbody tr:hover td {
-    background: rgba(255, 255, 255, 0.02);
+    background: var(--table-row-hover, #1e2a45);
   }
 }
 
@@ -157,7 +157,7 @@
 .code-cell {
   font-size: 0.8125rem;
   padding: 2px 6px;
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--surface-2, #1e2a45);
   border-radius: 4px;
   word-break: break-all;
 }

@@ -25,13 +25,6 @@ export const CONFIGURACOES_ROUTES: Routes = [
         ],
       },
       {
-        path: 'permissoes',
-        loadComponent: () =>
-          import('../cadastro/pages/acessos-permissoes-page/acessos-permissoes-page.component').then(
-            (m) => m.AcessosPermissoesPageComponent
-          ),
-      },
-      {
         path: 'perfis',
         loadComponent: () =>
           import('../cadastro/pages/acessos-perfis-page/acessos-perfis-page.component').then(

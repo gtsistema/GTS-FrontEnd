@@ -146,6 +146,278 @@
             </div>
             </section>
           </div>
+
+          <div class="complementares-contatos-row">
+          <section class="card card--accordion card--complementares" [class.card--open]="complementaresOpen">
+            <button type="button" class="card__trigger" (click)="toggleComplementares()" [attr.aria-expanded]="complementaresOpen">
+              <h2 class="card__title">Dados complementares</h2>
+              <span class="card__chevron" aria-hidden="true">{{ complementaresOpen ? '▼' : '▶' }}</span>
+            </button>
+            @if (complementaresOpen) {
+              <div class="card__body complementares-body">
+                <div class="complementares-grid">
+                  <div class="complementares-block">
+                    <h3 class="card__subtitle">Estrutura</h3>
+                    <div class="form-compact__body">
+                      <div class="form-row">
+                        <label for="capacidadeVeiculos">Capacidade (veíc.)</label>
+                        <input id="capacidadeVeiculos" class="field__input" type="number" formControlName="capacidadeVeiculos" min="0" />
+                      </div>
+                      <div class="form-row">
+                        <label for="tamanho">Tamanho (m²)</label>
+                        <input id="tamanho" class="field__input" type="number" formControlName="tamanho" min="0" step="1" placeholder="Ex: 500" />
+                      </div>
+                      <div class="form-row form-row--checkbox">
+                        <label>Segurança</label>
+                        <label class="field__label--checkbox"><input type="checkbox" formControlName="possuiSeguranca" /></label>
+                      </div>
+                      <div class="form-row form-row--checkbox">
+                        <label>Banheiro</label>
+                        <label class="field__label--checkbox"><input type="checkbox" formControlName="possuiBanheiro" /></label>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="complementares-block">
+                    <h3 class="card__subtitle">Valores</h3>
+                    <div class="form-compact__body">
+                      <div class="form-row form-row--valores">
+                        <label>Taxa ou Mensalidade</label>
+                        <div class="form-row__input">
+                          <div class="segmented">
+                            <label class="segmented__item">
+                              <input type="radio" formControlName="tipoTaxaMensalidade" [value]="'taxa'" />
+                              Taxa (%)
+                            </label>
+                            <label class="segmented__item">
+                              <input type="radio" formControlName="tipoTaxaMensalidade" [value]="'mensalidade'" />
+                              Mensalidade (R$)
+                            </label>
+                          </div>
+                          @if (isTaxa) {
+                            <div class="field__input-wrap">
+                              <input id="taxaPercentual" class="field__input" type="number" formControlName="taxaPercentual" min="0" max="100" step="0.01" placeholder="0" />
+                              <span class="field__suffix">%</span>
+                            </div>
+                          }
+                          @if (isMensalidade) {
+                            <div class="field__input-wrap">
+                              <span class="field__prefix">R$</span>
+                              <input id="mensalidadeValor" class="field__input" type="number" formControlName="mensalidadeValor" min="0" step="0.01" placeholder="0,00" />
+                            </div>
+                          }
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="complementares-block">
+                    <h3 class="card__subtitle">Localização</h3>
+                    <div class="form-compact__body">
+                      <div class="form-row">
+                        <label for="latitude">Latitude</label>
+                        <input id="latitude" class="field__input" type="number" formControlName="latitude" step="any" placeholder="Ex: -23.55" />
+                      </div>
+                      <div class="form-row">
+                        <label for="longitude">Longitude</label>
+                        <input id="longitude" class="field__input" type="number" formControlName="longitude" step="any" placeholder="Ex: -46.63" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="complementares-block complementares-block--full">
+                    <h3 class="card__subtitle">Endereço</h3>
+                    <div class="enderecos-actions">
+                      <button
+                        type="button"
+                        class="btn btn--secondary btn--sm"
+                        (click)="adicionarEndereco()"
+                        aria-label="Adicionar endereço"
+                      >
+                        <span class="material-symbols-outlined enderecos-add-icon">add</span>
+                        Adicionar endereço
+                      </button>
+                    </div>
+                    <div formArrayName="enderecos">
+                      @for (item of enderecosArray.controls; track $index) {
+                        <div class="endereco-block" [formGroupName]="$index">
+                          <div class="endereco-block__header">
+                            <span class="endereco-block__title">Endereço {{ $index + 1 }}</span>
+                            <button
+                              type="button"
+                              class="btn btn--ghost btn--sm"
+                              (click)="removerEndereco($index)"
+                              aria-label="Remover endereço"
+                            >
+                              Remover
+                            </button>
+                          </div>
+                          <div class="form-compact__body form-compact__body--endereco">
+                            <div class="form-row">
+                              <label [attr.for]="'endCep' + $index">CEP</label>
+                              <input
+                                [id]="'endCep' + $index"
+                                class="field__input"
+                                type="text"
+                                formControlName="cep"
+                                placeholder="00000-000"
+                                maxlength="9"
+                                (blur)="onCepBlur($index)"
+                              />
+                            </div>
+                            <div class="form-row">
+                              <label [attr.for]="'endLogradouro' + $index">Logradouro</label>
+                              <input [id]="'endLogradouro' + $index" class="field__input" type="text" formControlName="logradouro" placeholder="Rua, avenida..." />
+                            </div>
+                            <div class="form-row">
+                              <label [attr.for]="'endNumero' + $index">Número</label>
+                              <input [id]="'endNumero' + $index" class="field__input" type="text" formControlName="numero" placeholder="Nº" />
+                            </div>
+                            <div class="form-row">
+                              <label [attr.for]="'endComplemento' + $index">Complemento</label>
+                              <input [id]="'endComplemento' + $index" class="field__input" type="text" formControlName="complemento" placeholder="Apto, sala..." />
+                            </div>
+                            <div class="form-row">
+                              <label [attr.for]="'endBairro' + $index">Bairro</label>
+                              <input [id]="'endBairro' + $index" class="field__input" type="text" formControlName="bairro" placeholder="Bairro" />
+                            </div>
+                            <div class="form-row">
+                              <label [attr.for]="'endCidade' + $index">Cidade</label>
+                              <input [id]="'endCidade' + $index" class="field__input" type="text" formControlName="cidade" placeholder="Cidade" />
+                            </div>
+                            <div class="form-row">
+                              <label [attr.for]="'endEstado' + $index">Estado</label>
+                              <input [id]="'endEstado' + $index" class="field__input" type="text" formControlName="estado" placeholder="UF" maxlength="2" />
+                            </div>
+                            <div class="form-row form-row--checkbox">
+                              <label>Principal</label>
+                              <label class="field__label--checkbox">
+                                <input type="checkbox" formControlName="principal" />
+                                Marcar como principal
+                              </label>
+                            </div>
+                          </div>
+                        </div>
+                      }
+                    </div>
+                  </div>
+                </div>
+              </div>
+            }
+          </section>
+
+          <section class="card card--accordion card--contatos" [class.card--open]="contatosOpen">
+            <button type="button" class="card__trigger" (click)="toggleContatos()" [attr.aria-expanded]="contatosOpen">
+              <h2 class="card__title">Contatos (Responsável legal e complementares)</h2>
+              <span class="card__chevron" aria-hidden="true">{{ contatosOpen ? '▼' : '▶' }}</span>
+            </button>
+            @if (contatosOpen) {
+              <div class="card__body contatos-body">
+                <div class="contatos-block">
+                  <h3 class="card__subtitle">Responsável legal</h3>
+                  <div class="form-compact__body">
+                    <div class="form-row">
+                      <label for="responsavelLegalNome">Nome</label>
+                      <input id="responsavelLegalNome" class="field__input" type="text" formControlName="responsavelLegalNome" placeholder="Nome do responsável" />
+                    </div>
+                    <div class="form-row">
+                      <label for="responsavelLegalCpf">CPF</label>
+                      <input
+                        id="responsavelLegalCpf"
+                        class="field__input"
+                        type="text"
+                        formControlName="responsavelLegalCpf"
+                        appCpfFormat
+                        maxlength="14"
+                        placeholder="000.000.000-00"
+                      />
+                    </div>
+                    <div class="form-row">
+                      <label for="contatoTelefone">Telefone</label>
+                      <input
+                        id="contatoTelefone"
+                        class="field__input"
+                        type="tel"
+                        formControlName="contatoTelefone"
+                        appTelefoneFormat
+                        placeholder="(00) 00000-0000"
+                      />
+                    </div>
+                    <div class="form-row">
+                      <label for="responsavelLegalEmail">E-mail</label>
+                      <input id="responsavelLegalEmail" class="field__input" type="email" formControlName="responsavelLegalEmail" placeholder="email@exemplo.com" />
+                    </div>
+                  </div>
+                </div>
+
+                <div class="contatos-complementares-actions">
+                  <button
+                    type="button"
+                    class="btn btn--secondary btn--sm contatos-add-btn"
+                    (click)="adicionarContatoComplementar()"
+                    [disabled]="!podeAdicionarContatoComplementar"
+                    aria-label="Adicionar contato complementar"
+                  >
+                    <span class="material-symbols-outlined contatos-add-btn__icon">add</span>
+                    Adicionar contato complementar
+                  </button>
+                  @if (contatosComplementaresArray.length >= maxContatosComplementares) {
+                    <span class="contatos-complementares-limit">Máximo {{ maxContatosComplementares }} contatos complementares.</span>
+                  }
+                </div>
+
+                <div formArrayName="contatosComplementares">
+                @for (item of contatosComplementaresArray.controls; track $index) {
+                  <div class="contatos-block contatos-block--complementar" [formGroupName]="$index">
+                    <div class="contatos-block__header">
+                      <h3 class="card__subtitle">Contato complementar {{ $index + 1 }}</h3>
+                      <button
+                        type="button"
+                        class="btn btn--ghost btn--sm"
+                        (click)="removerContatoComplementar($index)"
+                        aria-label="Remover contato complementar"
+                      >
+                        Remover
+                      </button>
+                    </div>
+                    <div class="form-compact__body">
+                      <div class="form-row">
+                        <label [attr.for]="'compNome' + $index">Nome</label>
+                        <input [id]="'compNome' + $index" class="field__input" type="text" formControlName="nome" placeholder="Nome" />
+                      </div>
+                      <div class="form-row">
+                        <label [attr.for]="'compCpf' + $index">CPF</label>
+                        <input
+                          [id]="'compCpf' + $index"
+                          class="field__input"
+                          type="text"
+                          formControlName="cpf"
+                          appCpfFormat
+                          maxlength="14"
+                          placeholder="000.000.000-00"
+                        />
+                      </div>
+                      <div class="form-row">
+                        <label [attr.for]="'compTel' + $index">Telefone</label>
+                        <input
+                          [id]="'compTel' + $index"
+                          class="field__input"
+                          type="tel"
+                          formControlName="telefone"
+                          appTelefoneFormat
+                          placeholder="(00) 00000-0000"
+                        />
+                      </div>
+                      <div class="form-row">
+                        <label [attr.for]="'compEmail' + $index">E-mail</label>
+                        <input [id]="'compEmail' + $index" class="field__input" type="email" formControlName="email" placeholder="email@exemplo.com" />
+                      </div>
+                    </div>
+                  </div>
+                }
+                </div>
+              </div>
+            }
+          </section>
+          </div>
           }
 
           @if (currentStep === 2) {
@@ -438,280 +710,6 @@
             </div>
           }
           }
-
-          @if (currentStep === 1) {
-          <div class="complementares-contatos-row">
-          <section class="card card--accordion card--complementares" [class.card--open]="complementaresOpen">
-            <button type="button" class="card__trigger" (click)="toggleComplementares()" [attr.aria-expanded]="complementaresOpen">
-              <h2 class="card__title">Dados complementares</h2>
-              <span class="card__chevron" aria-hidden="true">{{ complementaresOpen ? '▼' : '▶' }}</span>
-            </button>
-            @if (complementaresOpen) {
-              <div class="card__body complementares-body">
-                <div class="complementares-grid">
-                  <div class="complementares-block">
-                    <h3 class="card__subtitle">Estrutura</h3>
-                    <div class="form-compact__body">
-                      <div class="form-row">
-                        <label for="capacidadeVeiculos">Capacidade (veíc.)</label>
-                        <input id="capacidadeVeiculos" class="field__input" type="number" formControlName="capacidadeVeiculos" min="0" />
-                      </div>
-                      <div class="form-row">
-                        <label for="tamanho">Tamanho (m²)</label>
-                        <input id="tamanho" class="field__input" type="number" formControlName="tamanho" min="0" step="1" placeholder="Ex: 500" />
-                      </div>
-                      <div class="form-row form-row--checkbox">
-                        <label>Segurança</label>
-                        <label class="field__label--checkbox"><input type="checkbox" formControlName="possuiSeguranca" /></label>
-                      </div>
-                      <div class="form-row form-row--checkbox">
-                        <label>Banheiro</label>
-                        <label class="field__label--checkbox"><input type="checkbox" formControlName="possuiBanheiro" /></label>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="complementares-block">
-                    <h3 class="card__subtitle">Valores</h3>
-                    <div class="form-compact__body">
-                      <div class="form-row form-row--valores">
-                        <label>Taxa ou Mensalidade</label>
-                        <div class="form-row__input">
-                          <div class="segmented">
-                            <label class="segmented__item">
-                              <input type="radio" formControlName="tipoTaxaMensalidade" [value]="'taxa'" />
-                              Taxa (%)
-                            </label>
-                            <label class="segmented__item">
-                              <input type="radio" formControlName="tipoTaxaMensalidade" [value]="'mensalidade'" />
-                              Mensalidade (R$)
-                            </label>
-                          </div>
-                          @if (isTaxa) {
-                            <div class="field__input-wrap">
-                              <input id="taxaPercentual" class="field__input" type="number" formControlName="taxaPercentual" min="0" max="100" step="0.01" placeholder="0" />
-                              <span class="field__suffix">%</span>
-                            </div>
-                          }
-                          @if (isMensalidade) {
-                            <div class="field__input-wrap">
-                              <span class="field__prefix">R$</span>
-                              <input id="mensalidadeValor" class="field__input" type="number" formControlName="mensalidadeValor" min="0" step="0.01" placeholder="0,00" />
-                            </div>
-                          }
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="complementares-block">
-                    <h3 class="card__subtitle">Localização</h3>
-                    <div class="form-compact__body">
-                      <div class="form-row">
-                        <label for="latitude">Latitude</label>
-                        <input id="latitude" class="field__input" type="number" formControlName="latitude" step="any" placeholder="Ex: -23.55" />
-                      </div>
-                      <div class="form-row">
-                        <label for="longitude">Longitude</label>
-                        <input id="longitude" class="field__input" type="number" formControlName="longitude" step="any" placeholder="Ex: -46.63" />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="complementares-block complementares-block--full">
-                    <h3 class="card__subtitle">Endereço</h3>
-                    <div class="enderecos-actions">
-                      <button
-                        type="button"
-                        class="btn btn--secondary btn--sm"
-                        (click)="adicionarEndereco()"
-                        aria-label="Adicionar endereço"
-                      >
-                        <span class="material-symbols-outlined enderecos-add-icon">add</span>
-                        Adicionar endereço
-                      </button>
-                    </div>
-                    <div formArrayName="enderecos">
-                      @for (item of enderecosArray.controls; track $index) {
-                        <div class="endereco-block" [formGroupName]="$index">
-                          <div class="endereco-block__header">
-                            <span class="endereco-block__title">Endereço {{ $index + 1 }}</span>
-                            <button
-                              type="button"
-                              class="btn btn--ghost btn--sm"
-                              (click)="removerEndereco($index)"
-                              aria-label="Remover endereço"
-                            >
-                              Remover
-                            </button>
-                          </div>
-                          <div class="form-compact__body form-compact__body--endereco">
-                            <div class="form-row">
-                              <label [attr.for]="'endCep' + $index">CEP</label>
-                              <input
-                                [id]="'endCep' + $index"
-                                class="field__input"
-                                type="text"
-                                formControlName="cep"
-                                placeholder="00000-000"
-                                maxlength="9"
-                                (blur)="onCepBlur($index)"
-                              />
-                            </div>
-                            <div class="form-row">
-                              <label [attr.for]="'endLogradouro' + $index">Logradouro</label>
-                              <input [id]="'endLogradouro' + $index" class="field__input" type="text" formControlName="logradouro" placeholder="Rua, avenida..." />
-                            </div>
-                            <div class="form-row">
-                              <label [attr.for]="'endNumero' + $index">Número</label>
-                              <input [id]="'endNumero' + $index" class="field__input" type="text" formControlName="numero" placeholder="Nº" />
-                            </div>
-                            <div class="form-row">
-                              <label [attr.for]="'endComplemento' + $index">Complemento</label>
-                              <input [id]="'endComplemento' + $index" class="field__input" type="text" formControlName="complemento" placeholder="Apto, sala..." />
-                            </div>
-                            <div class="form-row">
-                              <label [attr.for]="'endBairro' + $index">Bairro</label>
-                              <input [id]="'endBairro' + $index" class="field__input" type="text" formControlName="bairro" placeholder="Bairro" />
-                            </div>
-                            <div class="form-row">
-                              <label [attr.for]="'endCidade' + $index">Cidade</label>
-                              <input [id]="'endCidade' + $index" class="field__input" type="text" formControlName="cidade" placeholder="Cidade" />
-                            </div>
-                            <div class="form-row">
-                              <label [attr.for]="'endEstado' + $index">Estado</label>
-                              <input [id]="'endEstado' + $index" class="field__input" type="text" formControlName="estado" placeholder="UF" maxlength="2" />
-                            </div>
-                            <div class="form-row form-row--checkbox">
-                              <label>Principal</label>
-                              <label class="field__label--checkbox">
-                                <input type="checkbox" formControlName="principal" />
-                                Marcar como principal
-                              </label>
-                            </div>
-                          </div>
-                        </div>
-                      }
-                    </div>
-                  </div>
-                </div>
-              </div>
-            }
-          </section>
-
-          <section class="card card--accordion card--contatos" [class.card--open]="contatosOpen">
-            <button type="button" class="card__trigger" (click)="toggleContatos()" [attr.aria-expanded]="contatosOpen">
-              <h2 class="card__title">Contatos (Responsável legal e complementares)</h2>
-              <span class="card__chevron" aria-hidden="true">{{ contatosOpen ? '▼' : '▶' }}</span>
-            </button>
-            @if (contatosOpen) {
-              <div class="card__body contatos-body">
-                <div class="contatos-block">
-                  <h3 class="card__subtitle">Responsável legal</h3>
-                  <div class="form-compact__body">
-                    <div class="form-row">
-                      <label for="responsavelLegalNome">Nome</label>
-                      <input id="responsavelLegalNome" class="field__input" type="text" formControlName="responsavelLegalNome" placeholder="Nome do responsável" />
-                    </div>
-                    <div class="form-row">
-                      <label for="responsavelLegalCpf">CPF</label>
-                      <input
-                        id="responsavelLegalCpf"
-                        class="field__input"
-                        type="text"
-                        formControlName="responsavelLegalCpf"
-                        appCpfFormat
-                        maxlength="14"
-                        placeholder="000.000.000-00"
-                      />
-                    </div>
-                    <div class="form-row">
-                      <label for="contatoTelefone">Telefone</label>
-                      <input
-                        id="contatoTelefone"
-                        class="field__input"
-                        type="tel"
-                        formControlName="contatoTelefone"
-                        appTelefoneFormat
-                        placeholder="(00) 00000-0000"
-                      />
-                    </div>
-                    <div class="form-row">
-                      <label for="responsavelLegalEmail">E-mail</label>
-                      <input id="responsavelLegalEmail" class="field__input" type="email" formControlName="responsavelLegalEmail" placeholder="email@exemplo.com" />
-                    </div>
-                  </div>
-                </div>
-
-                <div class="contatos-complementares-actions">
-                  <button
-                    type="button"
-                    class="btn btn--secondary btn--sm contatos-add-btn"
-                    (click)="adicionarContatoComplementar()"
-                    [disabled]="!podeAdicionarContatoComplementar"
-                    aria-label="Adicionar contato complementar"
-                  >
-                    <span class="material-symbols-outlined contatos-add-btn__icon">add</span>
-                    Adicionar contato complementar
-                  </button>
-                  @if (contatosComplementaresArray.length >= maxContatosComplementares) {
-                    <span class="contatos-complementares-limit">Máximo {{ maxContatosComplementares }} contatos complementares.</span>
-                  }
-                </div>
-
-                <div formArrayName="contatosComplementares">
-                @for (item of contatosComplementaresArray.controls; track $index) {
-                  <div class="contatos-block contatos-block--complementar" [formGroupName]="$index">
-                    <div class="contatos-block__header">
-                      <h3 class="card__subtitle">Contato complementar {{ $index + 1 }}</h3>
-                      <button
-                        type="button"
-                        class="btn btn--ghost btn--sm"
-                        (click)="removerContatoComplementar($index)"
-                        aria-label="Remover contato complementar"
-                      >
-                        Remover
-                      </button>
-                    </div>
-                    <div class="form-compact__body">
-                      <div class="form-row">
-                        <label [attr.for]="'compNome' + $index">Nome</label>
-                        <input [id]="'compNome' + $index" class="field__input" type="text" formControlName="nome" placeholder="Nome" />
-                      </div>
-                      <div class="form-row">
-                        <label [attr.for]="'compCpf' + $index">CPF</label>
-                        <input
-                          [id]="'compCpf' + $index"
-                          class="field__input"
-                          type="text"
-                          formControlName="cpf"
-                          appCpfFormat
-                          maxlength="14"
-                          placeholder="000.000.000-00"
-                        />
-                      </div>
-                      <div class="form-row">
-                        <label [attr.for]="'compTel' + $index">Telefone</label>
-                        <input
-                          [id]="'compTel' + $index"
-                          class="field__input"
-                          type="tel"
-                          formControlName="telefone"
-                          appTelefoneFormat
-                          placeholder="(00) 00000-0000"
-                        />
-                      </div>
-                      <div class="form-row">
-                        <label [attr.for]="'compEmail' + $index">E-mail</label>
-                        <input [id]="'compEmail' + $index" class="field__input" type="email" formControlName="email" placeholder="email@exemplo.com" />
-                      </div>
-                    </div>
-                  </div>
-                }
-                </div>
-              </div>
-            }
-          </section>
-          </div>
-        }
 
         @if (form.invalid && (currentStep === 1 || currentStep === 2)) {
           <p class="form-invalid-hint" role="alert">

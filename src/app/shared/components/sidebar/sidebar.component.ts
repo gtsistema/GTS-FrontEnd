@@ -41,6 +41,7 @@ export class SidebarComponent implements OnInit {
     { label: 'Relatórios', route: '/app/relatorios', icon: 'assessment' },
     { label: 'Financeiro', route: '/app/financeiro', icon: 'payments' },
     { label: 'Configurações', route: '/app/configuracoes', icon: 'settings' },
+    { label: 'Gerenciamento', route: '/app/gerenciamento', icon: 'tune' },
     {
       label: 'Cadastro',
       route: '/app/cadastro',

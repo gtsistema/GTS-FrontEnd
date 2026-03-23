@@ -10,7 +10,7 @@ import {
   TransportadoraObterPorIdResultDTO
 } from '../models/transportadora.dto';
 
-/** Base da API do backend (proxy em dev: /api → gtsbackend.azurewebsites.net). Todas as requisições da tela de Cadastro Transportadora usam estes endpoints. */
+/** Base da API do backend Azure. Todas as requisições da tela de Cadastro Transportadora usam estes endpoints. */
 const API_BASE = environment.API_BASE_URL;
 const TRANSPORTADORA = `${API_BASE}/Transportadora`;
 
@@ -132,11 +132,12 @@ export class TransportadoraService {
   }
 
   /**
-   * POST /api/Transportadora/Gravar — backend.
+   * POST /api/Transportadora/Gravar — backend Azure.
    */
   gravar(dto: TransportadoraDTO): Observable<TransportadoraDTO> {
     const payload = this.dtoToPayload(dto);
-    return this.http.post<TransportadoraDTO>(`${TRANSPORTADORA}/Gravar`, payload).pipe(
+    const url = `${TRANSPORTADORA}/Gravar`;
+    return this.http.post<TransportadoraDTO>(url, payload).pipe(
       timeout(15000),
       map((res) => (res && typeof res === 'object' ? { ...dto, id: (res as { id?: number }).id ?? (res as { Id?: number }).Id } : dto)),
       catchError((err) => throwError(() => err))
@@ -164,33 +165,45 @@ export class TransportadoraService {
     );
   }
 
+  /**
+   * Monta o payload para Gravar/Alterar.
+   * Campos obrigatórios sempre enviados; opcionais só quando preenchidos. Id só em alteração.
+   */
   private dtoToPayload(dto: TransportadoraDTO): Record<string, unknown> {
     const payload: Record<string, unknown> = {
-      id: dto.id,
-      razaoSocial: dto.razaoSocial,
-      nomeFantasia: dto.nomeFantasia,
-      cnpj: dto.cnpj,
-      inscricaoEstadual: dto.inscricaoEstadual,
-      email: dto.email,
-      telefone: dto.telefone,
-      ativo: dto.ativo,
-      responsavelNome: dto.responsavelNome,
-      responsavelCpf: dto.responsavelCpf,
-      responsavelCelular: dto.responsavelCelular,
-      responsavelEmail: dto.responsavelEmail,
-      responsavelCargo: dto.responsavelCargo,
-      tipoAcesso: dto.tipoAcesso,
-      observacaoInterna: dto.observacaoInterna
+      razaoSocial: dto.razaoSocial ?? '',
+      nomeFantasia: dto.nomeFantasia ?? '',
+      cnpj: (dto.cnpj ?? '').replace(/\D/g, ''),
+      email: dto.email ?? '',
+      ativo: dto.ativo !== false
     };
-    if (dto.endereco) {
+    if (dto.id != null && dto.id !== 0) {
+      payload['id'] = dto.id;
+    }
+    if (dto.inscricaoEstadual != null && dto.inscricaoEstadual.trim() !== '') {
+      payload['inscricaoEstadual'] = dto.inscricaoEstadual.trim();
+    }
+    if (dto.telefone != null && dto.telefone.trim() !== '') {
+      payload['telefone'] = dto.telefone.trim();
+    }
+    if (dto.responsavelNome?.trim()) payload['responsavelNome'] = dto.responsavelNome.trim();
+    if (dto.responsavelCpf != null && dto.responsavelCpf.trim() !== '') {
+      payload['responsavelCpf'] = dto.responsavelCpf.replace(/\D/g, '');
+    }
+    if (dto.responsavelCelular?.trim()) payload['responsavelCelular'] = dto.responsavelCelular.trim();
+    if (dto.responsavelEmail?.trim()) payload['responsavelEmail'] = dto.responsavelEmail.trim();
+    if (dto.responsavelCargo?.trim()) payload['responsavelCargo'] = dto.responsavelCargo.trim();
+    if (dto.tipoAcesso?.trim()) payload['tipoAcesso'] = dto.tipoAcesso.trim();
+    if (dto.observacaoInterna?.trim()) payload['observacaoInterna'] = dto.observacaoInterna.trim();
+    if (dto.endereco && (dto.endereco.cep?.replace(/\D/g, '') || dto.endereco.logradouro || dto.endereco.cidade)) {
       payload['endereco'] = {
-        cep: dto.endereco.cep,
-        logradouro: dto.endereco.logradouro,
-        numero: dto.endereco.numero,
-        bairro: dto.endereco.bairro,
-        cidade: dto.endereco.cidade,
-        estado: dto.endereco.estado,
-        complemento: dto.endereco.complemento
+        cep: (dto.endereco.cep ?? '').replace(/\D/g, ''),
+        logradouro: dto.endereco.logradouro ?? '',
+        numero: dto.endereco.numero ?? '',
+        bairro: dto.endereco.bairro ?? '',
+        cidade: dto.endereco.cidade ?? '',
+        estado: dto.endereco.estado ?? '',
+        complemento: dto.endereco.complemento ?? ''
       };
     }
     return payload;
