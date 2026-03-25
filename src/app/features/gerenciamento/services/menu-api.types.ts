@@ -32,7 +32,9 @@ export interface SubMenuCreateInput {
 
 export interface MenuCreateInput {
   id?: number;
+  /** Alguns backends expõem só `descricao` no modelo (Buscar retorna descricao). */
   nome?: string | null;
+  descricao?: string | null;
   ordem?: number;
   ativo?: boolean;
   icone?: string | null;
@@ -42,8 +44,25 @@ export interface MenuCreateInput {
 export interface MenuUpdateInput {
   id?: number;
   nome?: string | null;
+  descricao?: string | null;
   ordem?: number;
   ativo?: boolean;
   icone?: string | null;
   subMenus?: SubMenuCreateInput[] | null;
+}
+
+/** Corpo de PUT /api/auth/Menu/OrganizarMenus — apenas ordem de menus e submenus já persistidos. */
+export interface SubMenuOrdemInput {
+  id: number;
+  ordem: number;
+}
+
+export interface MenuOrdemInput {
+  id: number;
+  ordem: number;
+  subMenus: SubMenuOrdemInput[];
+}
+
+export interface OrganizarMenusInput {
+  menus: MenuOrdemInput[];
 }

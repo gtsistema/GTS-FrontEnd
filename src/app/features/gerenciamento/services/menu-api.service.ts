@@ -1,21 +1,22 @@
-import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable, catchError, defer, from, firstValueFrom, timeout } from 'rxjs';
+import { Observable, defer, from, firstValueFrom, timeout } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { MenuAdminService } from './menu-admin.service';
-import {
-  computeNextIdFromMenus,
-  mapBuscarResponseToMenuAdmins,
-  menuAdminToCreateInput,
-  menuAdminToUpdateInput,
-} from './menu-api.mapper';
-import type { MenuCreateInput, MenuFilterInput, MenuUpdateInput } from './menu-api.types';
+import type { MenuAdminState } from '../models/menu-admin.model';
+import { computeNextIdFromMenus, mapBuscarResponseToMenuAdmins } from './menu-api.mapper';
+import type {
+  MenuCreateInput,
+  MenuFilterInput,
+  MenuUpdateInput,
+  OrganizarMenusInput,
+} from './menu-api.types';
 
 const AUTH_MENU = `${environment.API_BASE_URL}/auth/Menu`;
 
 /**
  * Integração com os endpoints Menu do backend (Swagger).
- * Buscar, POST Gravar, PUT Alterar, DELETE Delete/{id}
+ * GET Buscar, POST Gravar, PUT Alterar, DELETE Delete/{id}
  *
  * @see https://gtsbackend.azurewebsites.net/swagger/index.html
  */
@@ -27,40 +28,36 @@ export class MenuApiService {
   private readonly menuAdmin = inject(MenuAdminService);
 
   /**
-   * Lista menus no servidor (MenuFilterInput).
-   * 1) POST com JSON — costuma evitar 415 em IIS quando GET+query não aceita `Content-Type`.
-   * 2) GET com body — conforme Swagger.
+   * Lista menus no servidor. O backend expõe **GET** em `/auth/Menu/Buscar` (POST retorna 405).
+   * Filtros opcionais via query string (binding ASP.NET costuma ser case-insensitive).
    */
   buscar(filter: MenuFilterInput = {}): Observable<unknown> {
-    const body = {
-      numeroPagina: filter.numeroPagina ?? 1,
-      tamanhoPagina: filter.tamanhoPagina ?? 500,
-      descricao: filter.descricao ?? null,
-      dataInicial: filter.dataInicial ?? null,
-      dataFinal: filter.dataFinal ?? null,
-      propriedade: filter.propriedade ?? null,
-      sort: filter.sort ?? null,
-    };
-    const headers = new HttpHeaders({ 'Content-Type': 'application/json' });
-    return this.http.post<unknown>(`${AUTH_MENU}/Buscar`, body, { headers }).pipe(
-      timeout(60000),
-      catchError(() =>
-        this.http
-          .request<unknown>('GET', `${AUTH_MENU}/Buscar`, {
-            body,
-            headers,
-          })
-          .pipe(timeout(60000))
-      )
-    );
+    let params = new HttpParams()
+      .set('numeroPagina', String(filter.numeroPagina ?? 1))
+      .set('tamanhoPagina', String(filter.tamanhoPagina ?? 500));
+    if (filter.descricao != null && String(filter.descricao).trim() !== '') {
+      params = params.set('descricao', String(filter.descricao));
+    }
+    if (filter.dataInicial) params = params.set('dataInicial', filter.dataInicial);
+    if (filter.dataFinal) params = params.set('dataFinal', filter.dataFinal);
+    if (filter.propriedade) params = params.set('propriedade', filter.propriedade);
+    if (filter.sort) params = params.set('sort', filter.sort);
+    return this.http.get<unknown>(`${AUTH_MENU}/Buscar`, { params }).pipe(timeout(60000));
   }
 
+  /**
+   * POST /auth/Menu/Gravar — cria módulo (menu) no servidor.
+   * Se a API retornar erro EF ("entity type 'Module' was not found"), o DbContext
+   * da API precisa registrar a entidade `Module`; não é corrigível só no front.
+   */
   gravar(dto: MenuCreateInput): Observable<unknown> {
-    return this.http.post<unknown>(`${AUTH_MENU}/Gravar`, dto).pipe(timeout(60000));
+    const headers = new HttpHeaders({ 'Content-Type': 'application/json' });
+    return this.http.post<unknown>(`${AUTH_MENU}/Gravar`, dto, { headers }).pipe(timeout(60000));
   }
 
   alterar(dto: MenuUpdateInput): Observable<unknown> {
-    return this.http.put<unknown>(`${AUTH_MENU}/Alterar`, dto).pipe(timeout(60000));
+    const headers = new HttpHeaders({ 'Content-Type': 'application/json' });
+    return this.http.put<unknown>(`${AUTH_MENU}/Alterar`, dto, { headers }).pipe(timeout(60000));
   }
 
   delete(id: number): Observable<unknown> {
@@ -68,45 +65,43 @@ export class MenuApiService {
   }
 
   /**
-   * Persiste o estado do Admin: primeiro **Alterar** / **Gravar** (e depois **Delete** de órfãos),
-   * e só então **Buscar** para alinhar ids locais com o servidor.
+   * PUT /api/auth/Menu/OrganizarMenus — persiste **apenas** a ordem dos menus e submenus no servidor.
+   * Itens com `id` local 0 (ainda não gravados no backend) são ignorados no payload.
+   * Em seguida executa **Buscar** para alinhar o estado local.
    */
   salvarAlteracoesNoBackend(): Observable<void> {
-    return defer(() => from(this.syncMenusToBackend()));
+    return defer(() => from(this.organizarOrdemNoBackend()));
   }
 
-  private async syncMenusToBackend(): Promise<void> {
+  organizarMenus(payload: OrganizarMenusInput): Observable<unknown> {
+    const headers = new HttpHeaders({ 'Content-Type': 'application/json' });
+    return this.http.put<unknown>(`${AUTH_MENU}/OrganizarMenus`, payload, { headers }).pipe(timeout(60000));
+  }
+
+  private buildOrganizarMenusPayload(snap: MenuAdminState): OrganizarMenusInput {
+    const menusSorted = [...snap.menus].sort((a, b) => a.ordem - b.ordem);
+    const menus: OrganizarMenusInput['menus'] = [];
+    for (const m of menusSorted) {
+      if (m.id <= 0) continue;
+      const subMenus = [...m.subMenus]
+        .filter((s) => s.id > 0)
+        .sort((a, b) => a.ordem - b.ordem)
+        .map((s) => ({ id: s.id, ordem: s.ordem }));
+      menus.push({ id: m.id, ordem: m.ordem, subMenus });
+    }
+    return { menus };
+  }
+
+  private async organizarOrdemNoBackend(): Promise<void> {
     const snap = this.menuAdmin.getSnapshot();
-    const localMenus = [...snap.menus].sort((a, b) => a.ordem - b.ordem);
-
-    for (const menu of localMenus) {
-      if (menu.existeNoServidor === true) {
-        await firstValueFrom(this.alterar(menuAdminToUpdateInput(menu)));
-      } else {
-        await firstValueFrom(this.gravar(menuAdminToCreateInput(menu)));
-      }
+    const payload = this.buildOrganizarMenusPayload(snap);
+    if (payload.menus.length === 0) {
+      throw new Error(
+        'Nenhum menu com id do servidor para organizar. Sincronize com Buscar ou crie menus antes.'
+      );
     }
-
-    let raw = await firstValueFrom(this.buscar());
-    const serverIds = new Set(
-      mapBuscarResponseToMenuAdmins(raw)
-        .map((m) => m.id)
-        .filter((id) => id > 0)
-    );
-    const localIds = new Set(localMenus.map((m) => m.id));
-
-    for (const id of serverIds) {
-      if (!localIds.has(id)) {
-        try {
-          await firstValueFrom(this.delete(id));
-        } catch (err: unknown) {
-          const status = err instanceof HttpErrorResponse ? err.status : (err as { status?: number })?.status;
-          if (status !== 404) throw err;
-        }
-      }
-    }
-
-    raw = await firstValueFrom(this.buscar());
+    await firstValueFrom(this.organizarMenus(payload));
+    const raw = await firstValueFrom(this.buscar());
     const menus = mapBuscarResponseToMenuAdmins(raw);
     const nextId = computeNextIdFromMenus(menus);
     this.menuAdmin.replaceMenusHidratar(menus, nextId);

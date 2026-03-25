@@ -1,5 +1,6 @@
 import type { MenuAdmin, MenuPermissionRow, SubMenuAdmin } from '../models/menu-admin.model';
 import type { MenuCreateInput, MenuUpdateInput, PermissionInput, SubMenuCreateInput } from './menu-api.types';
+import { resolveAppRouteFromNome, resolveMaterialSymbolIconFromModule } from './menu-route-resolver';
 
 function getProp(row: Record<string, unknown>, k: string): unknown {
   return row[k] ?? row[k.charAt(0).toUpperCase() + k.slice(1)];
@@ -28,6 +29,12 @@ function mapPermissionRow(row: Record<string, unknown>, subId: number, index: nu
   };
 }
 
+function nomeOuDescricao(row: Record<string, unknown>): string {
+  const n = getProp(row, 'nome') ?? getProp(row, 'Nome');
+  if (n != null && String(n).trim() !== '') return String(n);
+  return String(getProp(row, 'descricao') ?? getProp(row, 'Descricao') ?? '');
+}
+
 function mapSubMenuRow(row: Record<string, unknown>, fallbackOrdem: number): SubMenuAdmin {
   const id = Number(getProp(row, 'id')) || 0;
   const permRaw = getProp(row, 'permissions') ?? getProp(row, 'Permissions');
@@ -37,11 +44,14 @@ function mapSubMenuRow(row: Record<string, unknown>, fallbackOrdem: number): Sub
   );
   const ativo = getProp(row, 'ativo');
   const Ativo = getProp(row, 'Ativo');
+  const nome = nomeOuDescricao(row);
+  const rawRota = getProp(row, 'rota') ?? getProp(row, 'Rota');
+  const rotaApi = rawRota == null ? null : String(rawRota);
   return {
     id,
-    nome: String(getProp(row, 'nome') ?? ''),
+    nome,
     ordem: Number(getProp(row, 'ordem')) ?? fallbackOrdem,
-    rota: String(getProp(row, 'rota') ?? getProp(row, 'Rota') ?? '/app'),
+    rota: resolveAppRouteFromNome(nome, rotaApi),
     ativo: ativo !== false && Ativo !== false,
     permissions,
   };
@@ -49,17 +59,26 @@ function mapSubMenuRow(row: Record<string, unknown>, fallbackOrdem: number): Sub
 
 function mapMenuRow(row: Record<string, unknown>): MenuAdmin {
   const id = Number(getProp(row, 'id')) || 0;
-  const subRaw = getProp(row, 'subMenus') ?? getProp(row, 'SubMenus');
+  const subRaw =
+    getProp(row, 'subMenus') ??
+    getProp(row, 'SubMenus') ??
+    getProp(row, 'subModules') ??
+    getProp(row, 'SubModules');
   const subs = (Array.isArray(subRaw) ? subRaw : []).map((s, i) =>
     mapSubMenuRow(s as Record<string, unknown>, i)
   );
   const ativo = getProp(row, 'ativo');
   const Ativo = getProp(row, 'Ativo');
+  const nomeMenu = nomeOuDescricao(row);
+  const rawIcone = getProp(row, 'icone') ?? getProp(row, 'Icone');
   return {
     id,
-    nome: String(getProp(row, 'nome') ?? ''),
+    nome: nomeMenu,
     ordem: Number(getProp(row, 'ordem')) ?? 0,
-    icone: String(getProp(row, 'icone') ?? getProp(row, 'Icone') ?? 'menu'),
+    icone: resolveMaterialSymbolIconFromModule(
+      nomeMenu,
+      rawIcone == null ? null : String(rawIcone)
+    ),
     ativo: ativo !== false && Ativo !== false,
     subMenus: subs,
     existeNoServidor: true,
@@ -129,6 +148,7 @@ export function menuAdminToCreateInput(m: MenuAdmin): MenuCreateInput {
   return {
     id: 0,
     nome: m.nome,
+    descricao: m.nome,
     ordem: m.ordem,
     ativo: m.ativo,
     icone: m.icone,
@@ -140,6 +160,7 @@ export function menuAdminToUpdateInput(m: MenuAdmin): MenuUpdateInput {
   return {
     id: m.id,
     nome: m.nome,
+    descricao: m.nome,
     ordem: m.ordem,
     ativo: m.ativo,
     icone: m.icone,

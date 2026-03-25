@@ -3,11 +3,18 @@ import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import {
   MenuAdmin,
   MenuAdminState,
+  MenuPermissionRow,
   PERMISSOES_ACOES,
   RolePermissionBinding,
   SubMenuAdmin,
 } from '../models/menu-admin.model';
+import {
+  buildFullAcaoPermissao,
+  hasMatchingPermissionAcao,
+  removePermissionRowsForUi,
+} from './menu-permission-acao';
 import { MENU_STRUCTURE } from '../../cadastro/constants/menu-structure';
+import { resolveAppRouteFromNome, resolveMaterialSymbolIconFromModule } from './menu-route-resolver';
 
 const STORAGE_KEY = 'gts-menu-admin-state-v1';
 
@@ -81,7 +88,7 @@ export class MenuAdminService {
   readonly menus = computed(() => this.state().menus);
   readonly roles = computed(() => this.state().roles);
 
-  /** Menu dinâmico para a sidebar (atualiza quando o estado muda). */
+  /** Menu dinâmico para a sidebar (atualiza quando o estado muda). Gerenciamento entra sem submenus (link único). */
   readonly sidebarMenuItems = computed(() => this.getSidebarMenuItems());
 
   private loadInitial(): MenuAdminState {
@@ -126,7 +133,7 @@ export class MenuAdminService {
   replaceMenusHidratar(menus: MenuAdmin[], nextId: number): void {
     this.state.update((s) => {
       const next = cloneState(s);
-      next.menus = menus;
+      next.menus = menus.map((m) => ({ ...m, existeNoServidor: true }));
       next.nextId = nextId;
       return next;
     });
@@ -267,7 +274,7 @@ export class MenuAdminService {
   // ——— Permissões no submenu (ações CRUD) ———
 
   hasAcao(sub: SubMenuAdmin, acao: string): boolean {
-    return sub.permissions.some((p) => p.acao === acao);
+    return hasMatchingPermissionAcao(sub.permissions, sub.nome, acao);
   }
 
   togglePermissaoAcao(menuId: number, subId: number, acao: string, enabled: boolean): void {
@@ -276,16 +283,16 @@ export class MenuAdminService {
       const sub = menu?.subMenus.find((x) => x.id === subId);
       if (!sub) return;
       if (enabled) {
-        if (sub.permissions.some((p) => p.acao === acao)) return;
+        if (hasMatchingPermissionAcao(sub.permissions, sub.nome, acao)) return;
         const id = s.nextId++;
         sub.permissions.push({
           id,
           ordem: sub.permissions.length,
           subModuleId: subId,
-          acao,
+          acao: buildFullAcaoPermissao(sub.nome, acao),
         });
       } else {
-        sub.permissions = sub.permissions.filter((p) => p.acao !== acao);
+        sub.permissions = removePermissionRowsForUi(sub.permissions, sub.nome, acao);
       }
     });
   }
@@ -295,18 +302,31 @@ export class MenuAdminService {
       const menu = s.menus.find((x) => x.id === menuId);
       const sub = menu?.subMenus.find((x) => x.id === subId);
       if (!sub) return;
-      const existing = new Set(sub.permissions.map((p) => p.acao));
       for (const acao of PERMISSOES_ACOES) {
-        if (!existing.has(acao)) {
+        if (!hasMatchingPermissionAcao(sub.permissions, sub.nome, acao)) {
           const id = s.nextId++;
           sub.permissions.push({
             id,
             ordem: sub.permissions.length,
             subModuleId: subId,
-            acao,
+            acao: buildFullAcaoPermissao(sub.nome, acao),
           });
         }
       }
+    });
+  }
+
+  /** Substitui permissões do submenu (ex.: após edição em rascunho antes do PUT Alterar). */
+  setSubMenuPermissions(menuId: number, subId: number, permissions: MenuPermissionRow[]): void {
+    this.patch((s) => {
+      const menu = s.menus.find((x) => x.id === menuId);
+      const sub = menu?.subMenus.find((x) => x.id === subId);
+      if (!sub) return;
+      sub.permissions = permissions.map((p, i) => ({
+        ...p,
+        ordem: i,
+        subModuleId: subId,
+      }));
     });
   }
 
@@ -353,8 +373,27 @@ export class MenuAdminService {
     this.setRoleSubMenuPermissoes(roleId, subMenuId, cur);
   }
 
-  /** Itens para sidebar (formato consumido pelo layout). */
+  /**
+   * Itens para sidebar. Gerenciamento aparece como um único link (`/app/gerenciamento`), sem submenus na barra lateral
+   * (Acessos/Admin continuam na própria área de Gerenciamento).
+   */
   getSidebarMenuItems(): {
+    label: string;
+    route: string;
+    icon: string;
+    children?: { label: string; route: string }[];
+  }[] {
+    return this.buildNavItemsFromState().map((item) => {
+      if (!this.isGerenciamentoNavItem(item)) return item;
+      return {
+        label: item.label,
+        route: '/app/gerenciamento',
+        icon: item.icon,
+      };
+    });
+  }
+
+  private buildNavItemsFromState(): {
     label: string;
     route: string;
     icon: string;
@@ -365,24 +404,46 @@ export class MenuAdminService {
       .sort((a, b) => a.ordem - b.ordem)
       .map((m) => {
         const subs = m.subMenus.filter((s) => s.ativo).sort((a, b) => a.ordem - b.ordem);
-        // Menu com submenus cadastrados mas todos inativos: não aparece na navegação
         if (m.subMenus.length > 0 && subs.length === 0) {
           return null;
         }
         if (subs.length === 0) {
-          return { label: m.nome, route: '/app', icon: m.icone };
+          return {
+            label: m.nome,
+            route: resolveAppRouteFromNome(m.nome, null),
+            icon: resolveMaterialSymbolIconFromModule(m.nome, m.icone),
+          };
         }
         if (subs.length === 1) {
-          return { label: m.nome, route: subs[0].rota, icon: m.icone };
+          return {
+            label: m.nome,
+            route: resolveAppRouteFromNome(subs[0].nome, subs[0].rota),
+            icon: resolveMaterialSymbolIconFromModule(m.nome, m.icone),
+          };
         }
-        const base = subs[0].rota.replace(/\/[^/]*$/, '') || '/app';
+        const firstRota = resolveAppRouteFromNome(subs[0].nome, subs[0].rota);
+        const base = firstRota.replace(/\/[^/]*$/, '') || '/app';
         return {
           label: m.nome,
           route: base,
-          icon: m.icone,
-          children: subs.map((s) => ({ label: s.nome, route: s.rota })),
+          icon: resolveMaterialSymbolIconFromModule(m.nome, m.icone),
+          children: subs.map((s) => ({
+            label: s.nome,
+            route: resolveAppRouteFromNome(s.nome, s.rota),
+          })),
         };
       })
       .filter((item): item is NonNullable<typeof item> => item !== null);
+  }
+
+  /** Identifica o nó de menu cujas rotas são de Gerenciamento (sidebar: item único, sem filhos). */
+  private isGerenciamentoNavItem(item: {
+    route: string;
+    children?: { route: string }[];
+  }): boolean {
+    if (item.route.startsWith('/app/gerenciamento')) {
+      return true;
+    }
+    return item.children?.some((c) => c.route.startsWith('/app/gerenciamento')) ?? false;
   }
 }

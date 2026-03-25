@@ -30,21 +30,32 @@
                 <td>{{ formatDocumento(item) }}</td>
                 <td>{{ item.email }}</td>
                 <td>{{ item.ativo ? 'Sim' : 'Não' }}</td>
-                <td>
+                <td class="acoes-cell">
                   <a
                     class="btn btn-primary btn--sm"
                     [routerLink]="['/app/cadastro/estacionamento/editar', item.id]"
                   >
                     Editar
                   </a>
+                  <button
+                    type="button"
+                    class="btn btn-danger btn--outline btn--sm"
+                    [disabled]="excluindoId === item.id"
+                    (click)="excluir(item)"
+                  >
+                    {{ excluindoId === item.id ? 'Excluindo…' : 'Excluir' }}
+                  </button>
                 </td>
               </tr>
             }
           </tbody>
         </table>
       </div>
-      @if (itens.length === 0 && !loading) {
+      @if (itens.length === 0 && !loading && toolbar.trigger() > 0) {
         <p class="empty-msg">Nenhum registro encontrado.</p>
+      }
+      @if (toolbar.trigger() === 0 && !loading && !erro) {
+        <p class="empty-msg empty-msg--hint">Clique em «Buscar» para consultar o backend.</p>
       }
       @if (totalPaginas > 1 && itens.length > 0) {
         <nav class="paginacao" aria-label="Paginação">

@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, map, catchError, of, timeout, throwError } from 'rxjs';
 import { environment } from '../../../../environments/environment';
+import { EstacionamentoPaths } from '../constants/estacionamento-api.paths';
 
 const API_BASE = environment.API_BASE_URL;
 const ESTACIONAMENTO = `${API_BASE}/Estacionamento`;
@@ -35,8 +36,7 @@ type BuscarFotosRaw =
 
 /**
  * Serviço para operações de fotos do estacionamento na Azure.
- * Endpoints: BuscarFotos, UploadFotos, DeletarFotos.
- * Todas as requisições usam API_BASE_URL (https://gtsbackend.azurewebsites.net/api).
+ * Endpoints alinhados ao Swagger: BuscarFotos/buscar-fotos/{id}, UploadFotos/upload-fotos, DeletarFotos/deletar-fotos/{fotoId}.
  */
 @Injectable({
   providedIn: 'root'
@@ -45,7 +45,7 @@ export class EstacionamentoFotosService {
   constructor(private http: HttpClient) {}
 
   /**
-   * GET /api/Estacionamento/BuscarFotos/{id}
+   * GET /api/Estacionamento/BuscarFotos/buscar-fotos/{id}
    * Lista fotos do estacionamento. Retorna itens com id (quando o backend envia) para permitir DeletarFotos.
    */
   buscarFotos(estacionamentoId: number | string): Observable<FotoItem[]> {
@@ -53,7 +53,7 @@ export class EstacionamentoFotosService {
     if (!Number.isFinite(id)) {
       return of([]);
     }
-    return this.http.get<BuscarFotosRaw>(`${ESTACIONAMENTO}/BuscarFotos/${id}`).pipe(
+    return this.http.get<BuscarFotosRaw>(`${ESTACIONAMENTO}/${EstacionamentoPaths.buscarFotos(id)}`).pipe(
       timeout(15000),
       map((body) => this.normalizeBuscarFotosResponse(body)),
       catchError(() => of([]))
@@ -61,8 +61,8 @@ export class EstacionamentoFotosService {
   }
 
   /**
-   * POST /api/Estacionamento/UploadFotos
-   * multipart/form-data: EstacionamentoId, Fotos (arquivos). Opcional: Ordem, PadraoIndex.
+   * POST /api/Estacionamento/UploadFotos/upload-fotos
+   * multipart/form-data: EstacionamentoId, Fotos (arquivos).
    */
   uploadFotos(
     estacionamentoId: number | string,
@@ -81,21 +81,21 @@ export class EstacionamentoFotosService {
     fileList.forEach((file, index) => {
       form.append('Fotos', file, file.name || `foto-${index}`);
     });
-    return this.http.post<unknown>(`${ESTACIONAMENTO}/UploadFotos`, form).pipe(
+    return this.http.post<unknown>(`${ESTACIONAMENTO}/${EstacionamentoPaths.uploadFotos}`, form).pipe(
       timeout(60000),
       catchError((err) => throwError(() => err))
     );
   }
 
   /**
-   * DELETE /api/Estacionamento/DeletarFotos/{fotoId}
+   * DELETE /api/Estacionamento/DeletarFotos/deletar-fotos/{fotoId}
    */
   deletarFoto(fotoId: number | string): Observable<void> {
     const id = Number(fotoId);
     if (!Number.isFinite(id)) {
       return throwError(() => new Error('ID da foto inválido'));
     }
-    return this.http.delete<void>(`${ESTACIONAMENTO}/DeletarFotos/${id}`).pipe(
+    return this.http.delete<void>(`${ESTACIONAMENTO}/${EstacionamentoPaths.deletarFoto(id)}`).pipe(
       timeout(15000),
       catchError((err) => throwError(() => err))
     );

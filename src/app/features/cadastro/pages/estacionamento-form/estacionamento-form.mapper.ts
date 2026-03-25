@@ -150,7 +150,7 @@ export function formValueToEstacionamentoPayload(
   const tipoCobranca = mapTipoCobranca(value.tipoTaxaMensalidade ?? null);
   const capacidade = value.capacidadeVeiculos != null ? Number(value.capacidadeVeiculos) : 0;
 
-  return {
+  const payload: Record<string, unknown> = {
     id: value.id ?? 0,
     descricao: value.descricao ?? '',
     dataCriacao: new Date().toISOString(),
@@ -172,7 +172,13 @@ export function formValueToEstacionamentoPayload(
     tipoConta: value.tipoConta ?? '',
     chavePix: value.chavePix ?? '',
     titularRazaoSocial: value.titularRazaoSocial ?? '',
-    titularCnpj: String(value.titularCnpj ?? '').replace(/\D/g, ''),
-    fotos: fotosBase64 ?? []
+    titularCnpj: String(value.titularCnpj ?? '').replace(/\D/g, '')
   };
+
+  const fotos = fotosBase64?.filter((f) => typeof f === 'string' && f.length > 0) ?? [];
+  if (fotos.length > 0) {
+    payload['fotos'] = fotos;
+  }
+
+  return payload;
 }

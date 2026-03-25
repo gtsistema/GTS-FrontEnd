@@ -1,0 +1,129 @@
+import { MENU_STRUCTURE } from '../../cadastro/constants/menu-structure';
+
+function norm(s: string): string {
+  return s
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
+
+/**
+ * Sinônimos comuns entre API (descricao) e rotas reais do front.
+ * Evita que `rota: null` vire `/app` e todos os itens caiam no dashboard.
+ */
+const ALIAS_NOME_PARA_ROTA: Record<string, string> = {
+  dashbord: '/app/dashboard',
+  dashboard: '/app/dashboard',
+  movimentos: '/app/movimentos',
+  relatorios: '/app/relatorios',
+  financeiro: '/app/financeiro',
+  configuracoes: '/app/configuracoes',
+  configuracao: '/app/configuracoes',
+  cadastros: '/app/cadastro',
+  cadastro: '/app/cadastro',
+  gerenciamento: '/app/gerenciamento',
+  transportadora: '/app/cadastro/transportadora',
+  estacionamento: '/app/cadastro/estacionamento',
+  /** Submódulo "menu" na API ≈ aba Admin em Gerenciamento */
+  menu: '/app/gerenciamento/admin',
+  acessos: '/app/gerenciamento',
+  admin: '/app/gerenciamento/admin',
+};
+
+function tryMatchMenuStructure(nome: string): string | null {
+  const key = norm(nome);
+  for (const node of MENU_STRUCTURE) {
+    if (norm(node.label) === key) return node.route;
+    if (node.children?.length) {
+      for (const c of node.children) {
+        if (norm(c.label) === key) return c.route;
+      }
+    }
+  }
+  return null;
+}
+
+function normalizeApiRota(raw: string | null | undefined): string | null {
+  if (raw == null) return null;
+  const t = String(raw).trim();
+  if (!t || t === '/app') return null;
+  if (t.startsWith('/app/')) return t;
+  if (t === '/app') return null;
+  if (t.startsWith('/')) return t.startsWith('/app') ? t : `/app${t}`;
+  return `/app/${t.replace(/^\//, '')}`;
+}
+
+/**
+ * Define a rota do Angular para sidebar/navegação quando a API omite `rota` ou
+ * envia só `/app` (equivalente a "sem rota").
+ */
+export function resolveAppRouteFromNome(nome: string, rotaFromApi?: string | null): string {
+  const fromApi = normalizeApiRota(rotaFromApi ?? undefined);
+  if (fromApi) return fromApi;
+
+  const key = norm(nome);
+  if (key && ALIAS_NOME_PARA_ROTA[key]) {
+    return ALIAS_NOME_PARA_ROTA[key];
+  }
+
+  const fromStructure = tryMatchMenuStructure(nome);
+  if (fromStructure) return fromStructure;
+
+  const slug = key.replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  if (slug) return `/app/${slug}`;
+  return '/app/dashboard';
+}
+
+/** Rota → nome do ícone Material Symbols (mesmos usados em `MENU_STRUCTURE`). */
+const ROUTE_TO_MATERIAL_ICON = new Map<string, string>();
+/** Label normalizado → ícone (módulos de topo). */
+const LABEL_TO_MATERIAL_ICON = new Map<string, string>();
+
+for (const node of MENU_STRUCTURE) {
+  LABEL_TO_MATERIAL_ICON.set(norm(node.label), node.icon);
+  ROUTE_TO_MATERIAL_ICON.set(node.route, node.icon);
+  if (node.children?.length) {
+    for (const c of node.children) {
+      ROUTE_TO_MATERIAL_ICON.set(c.route, node.icon);
+    }
+  }
+}
+
+/**
+ * Ícone Material Symbols para a sidebar (`<span class="material-symbols-outlined">`).
+ * Quando a API não manda `icone` ou manda só `menu`, recupera o mesmo símbolo do
+ * `MENU_STRUCTURE` / rota resolvida (comportamento anterior ao seed local).
+ */
+export function resolveMaterialSymbolIconFromModule(
+  nomeModulo: string,
+  iconeApi?: string | null
+): string {
+  const t = (iconeApi ?? '').trim();
+  if (t && t !== 'menu') {
+    return t;
+  }
+
+  const key = norm(nomeModulo);
+  const byLabel = LABEL_TO_MATERIAL_ICON.get(key);
+  if (byLabel) return byLabel;
+
+  const route = resolveAppRouteFromNome(nomeModulo, null);
+  if (ROUTE_TO_MATERIAL_ICON.has(route)) {
+    return ROUTE_TO_MATERIAL_ICON.get(route)!;
+  }
+
+  let bestLen = -1;
+  let bestIcon: string | null = null;
+  for (const [r, icon] of ROUTE_TO_MATERIAL_ICON) {
+    if (route === r || route.startsWith(r + '/')) {
+      if (r.length > bestLen) {
+        bestLen = r.length;
+        bestIcon = icon;
+      }
+    }
+  }
+  if (bestIcon) return bestIcon;
+
+  return 'menu';
+}

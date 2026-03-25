@@ -112,8 +112,15 @@
                     placeholder="00.000.000/0001-00"
                     maxlength="18"
                     appCnpjFormat
+                    (blur)="onDocumentoCnpjBlur()"
                   />
-                  @if (form.get('pessoa.documento')?.invalid && form.get('pessoa.documento')?.touched) {
+                  @if (cnpjLoading) {
+                    <span class="field__hint cnpj-loading">Buscando dados do CNPJ...</span>
+                  }
+                  @if (cnpjError) {
+                    <span class="field__error">{{ cnpjError }}</span>
+                  }
+                  @if (form.get('pessoa.documento')?.invalid && form.get('pessoa.documento')?.touched && !cnpjError) {
                     <span class="field__error">{{ documentoErrorMessage }}</span>
                   }
                 </div>

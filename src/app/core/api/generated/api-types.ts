@@ -98,10 +98,45 @@ export interface paths {
             };
             requestBody?: {
                 content: {
-                    "application/json-patch+json": components["schemas"]["EstacionamentoPostInput"];
-                    "application/json": components["schemas"]["EstacionamentoPostInput"];
-                    "text/json": components["schemas"]["EstacionamentoPostInput"];
-                    "application/*+json": components["schemas"]["EstacionamentoPostInput"];
+                    "multipart/form-data": {
+                        /** Format: int32 */
+                        PessoaId?: number;
+                        /** Format: int32 */
+                        CapacidadeVeiculo?: number;
+                        TamanhoTerreno?: string;
+                        ResposanvelLegal?: string;
+                        ResponsavelCpf?: string;
+                        PossuiSeguranca?: boolean;
+                        PossuiBanheiro?: boolean;
+                        TipoCobranca?: components["schemas"]["TipoCobranca"];
+                        /** Format: int32 */
+                        CobrancaPorcentagem?: number;
+                        /** Format: double */
+                        CobrancaValor?: number;
+                        "Pessoa.TipoPessoa"?: components["schemas"]["TipoPessoa"];
+                        "Pessoa.NomeRazaoSocial"?: string;
+                        "Pessoa.NomeFantasia"?: string;
+                        "Pessoa.Documento"?: string;
+                        "Pessoa.Email"?: string;
+                        "Pessoa.Ativo"?: boolean;
+                        "Pessoa.Enderecos"?: components["schemas"]["PessoaEnderecoInput"][];
+                        "Pessoa.Contatos"?: components["schemas"]["PessoaContatoInput"][];
+                        /** Format: int32 */
+                        "Pessoa.Id"?: number;
+                        "Pessoa.Descricao"?: string;
+                        /** Format: date-time */
+                        "Pessoa.DataCriacao"?: string;
+                        /** Format: date-time */
+                        "Pessoa.DataAtualizacao"?: string;
+                        ContaBancaria?: components["schemas"]["ContaBancariaInput"][];
+                        /** Format: int32 */
+                        Id?: number;
+                        Descricao?: string;
+                        /** Format: date-time */
+                        DataCriacao?: string;
+                        /** Format: date-time */
+                        DataAtualizacao?: string;
+                    };
                 };
             };
             responses: {
@@ -161,6 +196,307 @@ export interface paths {
         trace?: never;
     };
     "/api/Estacionamento/Delete/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/Estacionamento/BuscarFotos/buscar-fotos/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/Estacionamento/UploadFotos/upload-fotos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "multipart/form-data": {
+                        /** Format: int32 */
+                        EstacionamentoId?: number;
+                        Fotos?: string[];
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/Estacionamento/DeletarFotos/deletar-fotos/{fotoId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    fotoId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/Menu/Buscar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json-patch+json": components["schemas"]["MenuFilterInput"];
+                    "application/json": components["schemas"]["MenuFilterInput"];
+                    "text/json": components["schemas"]["MenuFilterInput"];
+                    "application/*+json": components["schemas"]["MenuFilterInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/Menu/ObterPorId/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/Menu/Gravar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json-patch+json": components["schemas"]["MenuCreateInput"];
+                    "application/json": components["schemas"]["MenuCreateInput"];
+                    "text/json": components["schemas"]["MenuCreateInput"];
+                    "application/*+json": components["schemas"]["MenuCreateInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/Menu/Alterar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json-patch+json": components["schemas"]["MenuUpdateInput"];
+                    "application/json": components["schemas"]["MenuUpdateInput"];
+                    "text/json": components["schemas"]["MenuUpdateInput"];
+                    "application/*+json": components["schemas"]["MenuUpdateInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/Menu/Delete/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -432,7 +768,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    id: string;
+                    id: number;
                 };
                 cookie?: never;
             };
@@ -473,10 +809,10 @@ export interface paths {
             };
             requestBody?: {
                 content: {
-                    "application/json-patch+json": components["schemas"]["ApplicationRole"];
-                    "application/json": components["schemas"]["ApplicationRole"];
-                    "text/json": components["schemas"]["ApplicationRole"];
-                    "application/*+json": components["schemas"]["ApplicationRole"];
+                    "application/json-patch+json": components["schemas"]["PerfilCreateInput"];
+                    "application/json": components["schemas"]["PerfilCreateInput"];
+                    "text/json": components["schemas"]["PerfilCreateInput"];
+                    "application/*+json": components["schemas"]["PerfilCreateInput"];
                 };
             };
             responses: {
@@ -550,7 +886,7 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    id: string;
+                    id: number;
                 };
                 cookie?: never;
             };
@@ -565,6 +901,41 @@ export interface paths {
                 };
             };
         };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/Perfil/Buscar/usuario/{usuarioId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    usuarioId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -1232,13 +1603,13 @@ export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         ApplicationRole: {
-            /** Format: uuid */
-            id?: string;
+            /** Format: int32 */
+            id?: number;
             name?: string | null;
             normalizedName?: string | null;
             concurrencyStamp?: string | null;
         };
-        EstacionamentoPostInput: {
+        ContaBancariaInput: {
             /** Format: int32 */
             id?: number;
             descricao?: string | null;
@@ -1247,20 +1618,23 @@ export interface components {
             /** Format: date-time */
             dataAtualizacao?: string | null;
             /** Format: int32 */
-            pessoaId?: number;
-            /** Format: int32 */
-            capacidadeVeiculo?: number | null;
-            tamanhoTerreno?: string | null;
-            resposanvelLegal?: string | null;
-            responsavelCpf?: string | null;
-            possuiSeguranca?: boolean | null;
-            possuiBanheiro?: boolean | null;
-            tipoCobranca?: components["schemas"]["TipoCobranca"];
-            /** Format: int32 */
-            cobrancaPorcentagem?: number | null;
-            /** Format: double */
-            cobrancaValor?: number | null;
-            pessoa?: components["schemas"]["PessoaInput"];
+            estacionamentoId?: number;
+            readonly titular?: string | null;
+            readonly cpfCnpj?: string | null;
+            readonly banco?: string | null;
+            readonly agencia?: string | null;
+            readonly agenciaDigito?: string | null;
+            readonly conta?: string | null;
+            readonly contaDigito?: string | null;
+            readonly tipoConta?: string | null;
+            readonly ativa?: boolean;
+            readonly chavePix?: string | null;
+        };
+        CrudPermissaoInput: {
+            visualizar?: boolean;
+            criar?: boolean;
+            alterar?: boolean;
+            excluir?: boolean;
         };
         EstacionamentoPutInput: {
             /** Format: int32 */
@@ -1285,10 +1659,46 @@ export interface components {
             /** Format: double */
             cobrancaValor?: number | null;
             pessoa?: components["schemas"]["PessoaInput"];
+            contaBancaria?: components["schemas"]["ContaBancariaInput"][] | null;
         };
         LoginInput: {
             userName: string;
             password: string;
+        };
+        MenuCreateInput: {
+            /** Format: int32 */
+            id?: number;
+            nome?: string | null;
+            /** Format: int32 */
+            ordem?: number;
+            ativo?: boolean;
+            subMenus?: components["schemas"]["SubMenuCreateInput"][] | null;
+        };
+        MenuFilterInput: {
+            descricao?: string | null;
+            /** Format: date-time */
+            dataInicial?: string | null;
+            /** Format: date-time */
+            dataFinal?: string | null;
+            /** Format: int32 */
+            numeroPagina?: number;
+            /** Format: int32 */
+            tamanhoPagina?: number;
+            propriedade?: string | null;
+            sort?: string | null;
+        };
+        MenuUpdateInput: {
+            /** Format: int32 */
+            id?: number;
+            nome?: string | null;
+            /** Format: int32 */
+            ordem?: number;
+            ativo?: boolean;
+            subMenus?: components["schemas"]["SubMenuCreateInput"][] | null;
+        };
+        ModuloInput: {
+            modulo?: string | null;
+            subModulos?: components["schemas"]["SubModuloInput"][] | null;
         };
         MotoristaPostInput: {
             /** Format: int32 */
@@ -1319,6 +1729,20 @@ export interface components {
             /** Format: int32 */
             pessoaId?: number;
             pessoa?: components["schemas"]["PessoaInput"];
+        };
+        PerfilCreateInput: {
+            id?: string | null;
+            nome?: string | null;
+            modulos?: components["schemas"]["ModuloInput"][] | null;
+        };
+        PermissionInput: {
+            /** Format: int32 */
+            ordem?: number;
+            /** Format: int32 */
+            id?: number;
+            /** Format: int32 */
+            subModuleId?: number;
+            descricao?: string | null;
         };
         PessoaContatoInput: {
             /** Format: int32 */
@@ -1374,6 +1798,18 @@ export interface components {
             estacionamentoId?: number;
             pessoa?: components["schemas"]["PessoaUsuarioImput"];
             perfil?: components["schemas"]["ApplicationRole"];
+        };
+        SubMenuCreateInput: {
+            /** Format: int32 */
+            id?: number;
+            nome?: string | null;
+            /** Format: int32 */
+            ordem?: number;
+            permissions?: components["schemas"]["PermissionInput"][] | null;
+        };
+        SubModuloInput: {
+            nome?: string | null;
+            permissoes?: components["schemas"]["CrudPermissaoInput"];
         };
         /**
          * Format: int32

@@ -1,5 +1,7 @@
-import { ChangeDetectorRef, Component, NgZone, OnInit, OnDestroy, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, NgZone, OnInit, OnDestroy, inject, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Subscription, combineLatest } from 'rxjs';
+import { debounceTime, distinctUntilChanged, filter, switchMap } from 'rxjs';
 import { startWith } from 'rxjs/operators';
 import { CommonModule } from '@angular/common';
 import {
@@ -22,6 +24,9 @@ import { CpfFormatDirective, formatCpf } from '../../directives/cpf-format.direc
 import { TelefoneFormatDirective, formatTelefone } from '../../directives/telefone-format.directive';
 import { formValueToEstacionamentoPayload } from './estacionamento-form.mapper';
 import { BANCOS_BRASIL, bancoToOption } from '../../data/bancos-brasil';
+import { CnpjBrasilApiService } from '../../services/cnpj-brasilapi.service';
+import { CnpjFormValue } from '../../models/brasilapi-cnpj.model';
+import { validarCnpj, cnpjTem14Digitos } from '../../utils/cnpj.utils';
 
 const MAX_FOTOS = 4;
 const MAX_CONTATOS_COMPLEMENTARES = 5;
@@ -71,7 +76,13 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
   /** True se o backend não expõe endpoint para definir foto principal após envio (apenas PadraoIndex no upload). */
   readonly endpointPrincipalFalta = true;
 
+  /** Mesma consulta da tela Transportadora: BrasilAPI direta (`CnpjBrasilApiService.buscar`). */
+  cnpjLoading = false;
+  cnpjError: string | null = null;
+
   private stepService = inject(EstacionamentoFormStepService);
+  private destroyRef = inject(DestroyRef);
+  private cnpjBrasilApi = inject(CnpjBrasilApiService);
   private titularSyncSub?: Subscription;
 
   constructor(
@@ -170,6 +181,155 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
     });
     this.setupTaxaMensalidadeToggle();
     this.setupTitularBancarioSync();
+    this.setupCnpjBusca();
+  }
+
+  /**
+   * Busca automática por CNPJ (BrasilAPI), igual ao cadastro de transportadora:
+   * debounce no campo `pessoa.documento` e blur; preenche só campos vazios.
+   */
+  private setupCnpjBusca(): void {
+    const docControl = this.form.get('pessoa.documento');
+    if (!docControl) return;
+    docControl.valueChanges
+      .pipe(
+        debounceTime(500),
+        distinctUntilChanged(),
+        filter((v) => cnpjTem14Digitos(v) && validarCnpj(v)),
+        switchMap((v) => {
+          this.cnpjLoading = true;
+          this.cnpjError = null;
+          this.cdr.markForCheck();
+          return this.cnpjBrasilApi.buscar(v);
+        }),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe({
+        next: (res) => {
+          this.cnpjLoading = false;
+          if (res == null) {
+            this.cnpjError = 'CNPJ não encontrado.';
+          } else {
+            this.cnpjError = null;
+            this.applyCnpjBrasilApiToForm(res);
+          }
+          this.cdr.markForCheck();
+        },
+        error: () => {
+          this.cnpjLoading = false;
+          this.cnpjError = 'Não foi possível buscar os dados do CNPJ.';
+          this.cdr.markForCheck();
+        }
+      });
+  }
+
+  /** Dispara busca ao sair do CNPJ (evita depender só do debounce). */
+  onDocumentoCnpjBlur(): void {
+    const cnpj = this.form.get('pessoa.documento')?.value ?? '';
+    if (!cnpjTem14Digitos(cnpj) || !validarCnpj(cnpj) || this.cnpjLoading) return;
+    this.cnpjLoading = true;
+    this.cnpjError = null;
+    this.cdr.markForCheck();
+    this.cnpjBrasilApi.buscar(cnpj).subscribe({
+      next: (res) => {
+        this.cnpjLoading = false;
+        if (res == null) {
+          this.cnpjError = 'CNPJ não encontrado.';
+        } else {
+          this.cnpjError = null;
+          this.applyCnpjBrasilApiToForm(res);
+        }
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.cnpjLoading = false;
+        this.cnpjError = 'Não foi possível buscar os dados do CNPJ.';
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  private applyCnpjBrasilApiToForm(value: CnpjFormValue): void {
+    const isEmpty = (v: unknown) => v == null || String(v).trim() === '';
+    const pessoa = this.form.get('pessoa');
+    if (!pessoa) return;
+
+    if (value.razaoSocial && isEmpty(pessoa.get('nomeRazaoSocial')?.value)) {
+      pessoa.get('nomeRazaoSocial')?.setValue(value.razaoSocial, { emitEvent: false });
+    }
+    if (value.nomeFantasia && isEmpty(pessoa.get('nomeFantasia')?.value)) {
+      pessoa.get('nomeFantasia')?.setValue(value.nomeFantasia, { emitEvent: false });
+    }
+    pessoa.get('ativo')?.setValue(value.ativo, { emitEvent: false });
+    if (value.email?.trim() && isEmpty(pessoa.get('email')?.value)) {
+      pessoa.get('email')?.setValue(value.email.trim(), { emitEvent: false });
+    }
+    const telDigits = (value.telefone ?? '').replace(/\D/g, '');
+    if (telDigits.length >= 10 && isEmpty(this.form.get('contatoTelefone')?.value)) {
+      this.form.get('contatoTelefone')?.setValue(formatTelefone(telDigits), { emitEvent: false });
+    }
+
+    const desc = this.form.get('descricao');
+    if (desc && isEmpty(desc.value)) {
+      const nome =
+        (value.nomeFantasia && value.nomeFantasia.trim()) ||
+        (value.razaoSocial && value.razaoSocial.trim()) ||
+        '';
+      if (nome) {
+        desc.setValue(nome, { emitEvent: false });
+      }
+    }
+
+    if (value.endereco) {
+      const arr = this.enderecosArray;
+      const patchEndereco = (end: FormGroup) => {
+        const e = value.endereco!;
+        if (e.logradouro && isEmpty(end.get('logradouro')?.value)) {
+          end.get('logradouro')?.setValue(e.logradouro, { emitEvent: false });
+        }
+        if (e.numero && isEmpty(end.get('numero')?.value)) {
+          end.get('numero')?.setValue(e.numero, { emitEvent: false });
+        }
+        if (e.complemento && isEmpty(end.get('complemento')?.value)) {
+          end.get('complemento')?.setValue(e.complemento, { emitEvent: false });
+        }
+        if (e.bairro && isEmpty(end.get('bairro')?.value)) {
+          end.get('bairro')?.setValue(e.bairro, { emitEvent: false });
+        }
+        if (e.cidade && isEmpty(end.get('cidade')?.value)) {
+          end.get('cidade')?.setValue(e.cidade, { emitEvent: false });
+        }
+        if (e.estado && isEmpty(end.get('estado')?.value)) {
+          end.get('estado')?.setValue(e.estado, { emitEvent: false });
+        }
+        if (e.cep && isEmpty(end.get('cep')?.value)) {
+          end.get('cep')?.setValue(e.cep, { emitEvent: false });
+        }
+      };
+
+      if (arr.length === 0) {
+        arr.push(
+          this.criarGrupoEndereco({
+            principal: true,
+            tipoEndereco: 1,
+            cep: value.endereco.cep ?? '',
+            logradouro: value.endereco.logradouro ?? '',
+            numero: value.endereco.numero ?? '',
+            complemento: value.endereco.complemento ?? '',
+            bairro: value.endereco.bairro ?? '',
+            cidade: value.endereco.cidade ?? '',
+            estado: value.endereco.estado ?? ''
+          })
+        );
+      } else {
+        patchEndereco(arr.at(0) as FormGroup);
+      }
+      this.complementaresOpen = true;
+    }
+
+    if (this.form.get('titularMesmoResponsavel')?.value === true) {
+      this.syncTitularFromPessoa();
+    }
   }
 
   /** Habilita/desabilita campos Taxa e Mensalidade conforme o radio selecionado. */

@@ -7,6 +7,7 @@ import { EstacionamentoListItemDTO, TipoPessoa } from '../../models/estacionamen
 import { formatCnpj } from '../../directives/cnpj-format.directive';
 import { formatCpf } from '../../directives/cpf-format.directive';
 import { ApiError } from '../../../../core/api/models';
+import { ToastService } from '../../../../core/api/services/toast.service';
 
 const TAMANHO_PAGINA = 50;
 
@@ -19,20 +20,36 @@ const TAMANHO_PAGINA = 50;
 })
 export class EstacionamentoListComponent {
   private estacionamentoService = inject(EstacionamentoService);
-  private toolbar = inject(EstacionamentoToolbarService);
+  /** Exposto para o template: `trigger() === 0` = ainda não houve clique em Buscar. */
+  readonly toolbar = inject(EstacionamentoToolbarService);
   private cdr = inject(ChangeDetectorRef);
   private ngZone = inject(NgZone);
+  private toast = inject(ToastService);
 
   itens: EstacionamentoListItemDTO[] = [];
-  loading = true;
+  /** Só vira true durante GET Buscar; antes do primeiro clique em "Buscar" não há requisição. */
+  loading = false;
   erro: string | null = null;
+  /** Durante DELETE /Delete/{id} */
+  excluindoId: number | null = null;
   numeroPagina = 1;
   totalCount = 0;
   tamanhoPagina = TAMANHO_PAGINA;
 
   constructor() {
     effect(() => {
-      this.toolbar.trigger();
+      const t = this.toolbar.trigger();
+      // Gatilho 0 = ainda não clicou em "Buscar" no layout; não chama a API.
+      if (t === 0) {
+        this.ngZone.run(() => {
+          this.loading = false;
+          this.itens = [];
+          this.erro = null;
+          this.totalCount = 0;
+          this.cdr.markForCheck();
+        });
+        return;
+      }
       this.buscar();
     });
   }
@@ -98,5 +115,29 @@ export class EstacionamentoListComponent {
     if (item.tipoPessoa === 2 && doc.length === 14) return formatCnpj(doc);
     if (item.tipoPessoa === 1 && doc.length === 11) return formatCpf(doc);
     return item.documento ?? '';
+  }
+
+  excluir(item: EstacionamentoListItemDTO): void {
+    const label = item.descricao?.trim() || `Id ${item.id}`;
+    if (!confirm(`Excluir o estacionamento "${label}"? Esta ação não pode ser desfeita.`)) {
+      return;
+    }
+    this.excluindoId = item.id;
+    this.estacionamentoService.excluir(item.id).subscribe({
+      next: () => {
+        this.ngZone.run(() => {
+          this.excluindoId = null;
+          this.toast.success('Estacionamento excluído.');
+          this.carregar();
+          this.cdr.markForCheck();
+        });
+      },
+      error: () => {
+        this.ngZone.run(() => {
+          this.excluindoId = null;
+          this.cdr.markForCheck();
+        });
+      }
+    });
   }
 }

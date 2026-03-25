@@ -1,25 +1,27 @@
 <div class="menu-admin tab-content">
   <p class="page-description">
-    Gerencie menus, submenus, ordem (arrastar) e permissões por ação em cada submenu. Use
-    <strong>Salvar</strong> para persistir no backend; o estado local fica em
-    <strong>localStorage</strong> e pode ser exportado/importado em JSON.
+    Gerencie menus, submenus, ordem (arrastar) e permissões por ação em cada submenu. O botão
+    <strong>Salvar</strong> envia apenas a <strong>ordem</strong> dos menus e submenus (API
+    OrganizarMenus).
   </p>
+
+  @if (carregandoLista()) {
+    <p class="menu-admin__status" role="status">Carregando menus do servidor…</p>
+  }
+  @if (erroLista(); as msg) {
+    <div class="menu-admin__alert" role="alert">
+      <span>{{ msg }}</span>
+      <button type="button" class="menu-admin__btn menu-admin__btn--solid" (click)="carregarMenusDoBackend()">
+        Tentar novamente
+      </button>
+    </div>
+  }
 
   <div class="menu-admin__action-bar" role="toolbar" aria-label="Ações do admin de menus">
     <div class="menu-admin__action-bar-inner">
       <div class="menu-admin__action-bar-left">
         <button type="button" class="menu-admin__btn menu-admin__btn--solid" (click)="openNovoMenu()">
           Novo menu
-        </button>
-        <button type="button" class="menu-admin__btn menu-admin__btn--muted" (click)="exportar()">
-          Exportar JSON
-        </button>
-        <label class="menu-admin__btn menu-admin__btn--muted import-label">
-          Importar JSON
-          <input type="file" accept="application/json,.json" hidden (change)="onImportFile($event)" />
-        </label>
-        <button type="button" class="menu-admin__btn menu-admin__btn--muted" (click)="resetSeed()">
-          Restaurar padrão
         </button>
       </div>
       <div class="menu-admin__action-bar-right">
@@ -109,14 +111,38 @@
                         <label class="perm-check">
                           <input
                             type="checkbox"
-                            [checked]="hasAcao(sub, acao)"
-                            (change)="toggleAcao(menu.id, sub, acao, $event)"
+                            [checked]="hasPermUi(menu.id, sub, acao)"
+                            [disabled]="salvandoPermKey() !== null"
+                            (change)="onTogglePermDraft(menu.id, sub, acao, $event)"
                           />
                           {{ acao }}
                         </label>
                       }
-                      <button type="button" class="btn btn-secondary btn--xs" (click)="selTodosAcoe(menu.id, sub)">Selecionar todas</button>
-                      <button type="button" class="btn btn-secondary btn--xs" (click)="limparAcoe(menu.id, sub)">Limpar</button>
+                      <button
+                        type="button"
+                        class="btn btn-secondary btn--xs"
+                        [disabled]="salvandoPermKey() !== null"
+                        (click)="selTodosPermDraft(menu.id, sub)"
+                      >
+                        Selecionar todas
+                      </button>
+                      <button
+                        type="button"
+                        class="btn btn-secondary btn--xs"
+                        [disabled]="salvandoPermKey() !== null"
+                        (click)="limparPermDraft(menu.id, sub)"
+                      >
+                        Limpar
+                      </button>
+                      <button
+                        type="button"
+                        class="btn btn-primary btn--xs"
+                        [disabled]="salvandoPermKey() !== null || !temRascunhoPerm(menu.id, sub)"
+                        [title]="!temRascunhoPerm(menu.id, sub) ? 'Altere as caixas antes de salvar no servidor' : 'Gravar permissões (PUT Alterar)'"
+                        (click)="salvarPermissoesSubmenu(menu.id, sub)"
+                      >
+                        {{ isSalvandoPerm(menu.id, sub) ? 'Salvando…' : 'Salvar' }}
+                      </button>
                     </div>
                   </div>
                   <div class="sub-row__actions">
@@ -138,7 +164,7 @@
 </div>
 
 @if (menuModalOpen()) {
-  <div class="modal-overlay" (click)="menuModalOpen.set(false)">
+  <div class="modal-overlay" (click)="!salvandoMenuModal() && menuModalOpen.set(false)">
     <div class="modal-content modal-content--form" role="dialog" (click)="$event.stopPropagation()">
       <div class="modal-header">
         <h2>{{ menuEditId() === null ? 'Novo menu' : 'Editar menu' }}</h2>
@@ -146,22 +172,47 @@
       <div class="modal-body">
         <div class="form-group">
           <label for="m-nome">Nome</label>
-          <input id="m-nome" class="input-control" [(ngModel)]="menuFormNome" />
+          <input
+            id="m-nome"
+            class="input-control"
+            [(ngModel)]="menuFormNome"
+            [disabled]="salvandoMenuModal()"
+          />
         </div>
         <div class="form-group">
           <label for="m-icon">Ícone (Material Symbol)</label>
-          <input id="m-icon" class="input-control" [(ngModel)]="menuFormIcon" placeholder="ex.: dashboard" />
+          <input
+            id="m-icon"
+            class="input-control"
+            [(ngModel)]="menuFormIcon"
+            placeholder="ex.: dashboard"
+            [disabled]="salvandoMenuModal()"
+          />
         </div>
         @if (menuEditId() !== null) {
           <label class="form-row-check">
-            <input type="checkbox" [(ngModel)]="menuFormAtivo" />
+            <input type="checkbox" [(ngModel)]="menuFormAtivo" [disabled]="salvandoMenuModal()" />
             Ativo
           </label>
         }
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" (click)="menuModalOpen.set(false)">Cancelar</button>
-        <button type="button" class="btn btn-primary" (click)="salvarMenu()">Salvar</button>
+        <button
+          type="button"
+          class="btn btn-secondary"
+          [disabled]="salvandoMenuModal()"
+          (click)="menuModalOpen.set(false)"
+        >
+          Cancelar
+        </button>
+        <button
+          type="button"
+          class="btn btn-primary"
+          [disabled]="salvandoMenuModal()"
+          (click)="salvarMenu()"
+        >
+          {{ salvandoMenuModal() ? 'Salvando…' : 'Salvar' }}
+        </button>
       </div>
     </div>
   </div>

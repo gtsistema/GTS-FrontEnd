@@ -854,6 +854,18 @@ select.field__input.ng-invalid.ng-touched {
   border-radius: var(--radius-sm);
 }
 
+.field__hint {
+  display: block;
+  margin-top: var(--space-6);
+  font-size: 0.75rem;
+  color: var(--muted, #8b9bb4);
+  line-height: 1.3;
+}
+
+.cnpj-loading {
+  font-style: italic;
+}
+
 .field__error {
   display: block;
   margin-top: var(--space-6);

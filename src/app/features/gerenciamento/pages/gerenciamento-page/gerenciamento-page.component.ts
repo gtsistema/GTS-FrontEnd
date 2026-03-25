@@ -54,6 +54,8 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
   loading = false;
   erro: string | null = null;
   itens: UsuarioGerenciamentoItem[] = [];
+  /** Só após o usuário clicar em «Buscar» (ou Enter nos filtros) — igual à lista de estacionamento. */
+  buscaRealizada = false;
   perfisList: ApplicationRole[] = [];
 
   modalFormOpen = signal(false);
@@ -175,7 +177,6 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.carregarPerfis();
-    this.buscar();
     this.setupEmpresaSearch();
   }
 
@@ -254,6 +255,7 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
   }
 
   buscar(): void {
+    this.buscaRealizada = true;
     this.loading = true;
     this.erro = null;
     this.cdr.markForCheck();
@@ -282,7 +284,11 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
       perfilId: '',
       status: ''
     };
-    this.buscar();
+    this.buscaRealizada = false;
+    this.itens = [];
+    this.erro = null;
+    this.loading = false;
+    this.cdr.markForCheck();
   }
 
   abrirNovo(): void {

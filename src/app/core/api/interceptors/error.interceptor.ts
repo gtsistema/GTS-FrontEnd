@@ -4,14 +4,21 @@ import { catchError, throwError } from 'rxjs';
 import { ApiError, ApiErrorResponseBody } from '../models';
 import { ToastService } from '../services/toast.service';
 
+/**
+ * Status 0 no Angular costuma ser: offline, CORS bloqueando leitura da resposta,
+ * ou erro de rede — mesmo quando a aba Rede mostra 4xx/5xx (corpo inacessível ao JS).
+ */
 const DEFAULT_MESSAGES: Record<number, string> = {
-  0: 'Sem conexão. Verifique sua rede.',
+  0: 'Não foi possível ler a resposta (rede ou CORS). Na aba Rede confira o status HTTP; se for 5xx, veja os logs da API no Azure.',
   400: 'Requisição inválida.',
   401: 'Não autorizado. Faça login novamente.',
   403: 'Acesso negado.',
   404: 'Recurso não encontrado.',
   422: 'Dados inválidos.',
-  500: 'Erro interno do servidor. Tente mais tarde.'
+  500: 'Erro interno no servidor (500). Consulte os logs da API.',
+  502: 'Servidor indisponível (502). Tente mais tarde.',
+  503: 'Serviço temporariamente indisponível (503).',
+  504: 'Tempo esgotado ao contatar o servidor (504).'
 };
 
 function parseFieldErrors(errors: Record<string, string[]> | string[]): Record<string, string[]> | undefined {

@@ -273,6 +273,11 @@
   margin: 0;
 }
 
+.empty-msg--hint {
+  font-style: italic;
+  opacity: 0.9;
+}
+
 .error-msg {
   color: var(--danger, var(--color-error));
   margin: 0 0 8px 0;

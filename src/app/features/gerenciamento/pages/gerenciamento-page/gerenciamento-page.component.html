@@ -110,8 +110,11 @@
           </tbody>
         </table>
       </div>
-      @if (itens.length === 0) {
+      @if (buscaRealizada && itens.length === 0) {
         <p class="empty-msg">Nenhum registro encontrado.</p>
+      }
+      @if (!buscaRealizada) {
+        <p class="empty-msg empty-msg--hint">Clique em «Buscar» para carregar os usuários do backend.</p>
       }
     }
   </div>

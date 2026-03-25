@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, map, timeout, of } from 'rxjs';
 import { environment } from '../../../../environments/environment';
+import { EstacionamentoPaths } from '../constants/estacionamento-api.paths';
 
 const API_BASE = environment.API_BASE_URL;
 const ESTACIONAMENTO = `${API_BASE}/Estacionamento`;
@@ -30,7 +31,7 @@ export class EstacionamentoLookupService {
     const params = new URLSearchParams();
     params.set('NumeroPagina', '1');
     params.set('TamanhoPagina', '100');
-    const url = `${ESTACIONAMENTO}/Buscar?${params.toString()}`;
+    const url = `${ESTACIONAMENTO}/${EstacionamentoPaths.buscar}?${params.toString()}`;
     return this.http.get<unknown>(url).pipe(
       timeout(15000),
       map((body) => this.normalizeToOptions(body))
@@ -50,7 +51,7 @@ export class EstacionamentoLookupService {
     params.set('Descricao', t);
     params.set('NumeroPagina', '1');
     params.set('TamanhoPagina', '20');
-    const url = `${ESTACIONAMENTO}/Buscar?${params.toString()}`;
+    const url = `${ESTACIONAMENTO}/${EstacionamentoPaths.buscar}?${params.toString()}`;
     return this.http.get<unknown>(url).pipe(
       timeout(15000),
       map((body) => this.normalizeToOptions(body))
