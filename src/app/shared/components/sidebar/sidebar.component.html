@@ -5,7 +5,9 @@
   [class.sidebar--mobile]="isMobile()"
 >
   <header class="sidebar-header">
-    <span class="sidebar-header__logo" [class.sidebar-header__logo--hidden]="isCollapsed()">GTSistema</span>
+    <div class="sidebar-header__brand">
+      <img class="sidebar-header__logo-img" src="/logo-gts-transparent.png" alt="GTS" />
+    </div>
     <button
       type="button"
       class="sidebar-header__toggle"

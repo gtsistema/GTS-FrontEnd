@@ -1,4 +1,4 @@
-import { Injectable, computed, signal } from '@angular/core';
+import { Injectable, computed, inject, signal } from '@angular/core';
 import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import {
   MenuAdmin,
@@ -15,6 +15,7 @@ import {
 } from './menu-permission-acao';
 import { MENU_STRUCTURE } from '../../cadastro/constants/menu-structure';
 import { resolveAppRouteFromNome, resolveMaterialSymbolIconFromModule } from './menu-route-resolver';
+import { SessionAccessService } from '../../../core/services/session-access.service';
 
 const STORAGE_KEY = 'gts-menu-admin-state-v1';
 
@@ -84,6 +85,7 @@ function buildSeedState(): MenuAdminState {
 @Injectable({ providedIn: 'root' })
 export class MenuAdminService {
   private readonly state = signal<MenuAdminState>(this.loadInitial());
+  private readonly sessionAccess = inject(SessionAccessService);
 
   readonly menus = computed(() => this.state().menus);
   readonly roles = computed(() => this.state().roles);
@@ -375,7 +377,7 @@ export class MenuAdminService {
 
   /**
    * Itens para sidebar. Gerenciamento aparece como um único link (`/app/gerenciamento`), sem submenus na barra lateral
-   * (Acessos/Admin continuam na própria área de Gerenciamento).
+   * (Acessos/Menu/Perfil continuam na própria área de Gerenciamento).
    */
   getSidebarMenuItems(): {
     label: string;
@@ -383,7 +385,11 @@ export class MenuAdminService {
     icon: string;
     children?: { label: string; route: string }[];
   }[] {
-    return this.buildNavItemsFromState().map((item) => {
+    const source = this.sessionAccess.hasSessionMenus()
+      ? this.buildNavItemsFromSessionMenus()
+      : this.buildNavItemsFromState();
+
+    return source.map((item) => {
       if (!this.isGerenciamentoNavItem(item)) return item;
       return {
         label: item.label,
@@ -391,6 +397,56 @@ export class MenuAdminService {
         icon: item.icon,
       };
     });
+  }
+
+  private buildNavItemsFromSessionMenus(): {
+    label: string;
+    route: string;
+    icon: string;
+    children?: { label: string; route: string }[];
+  }[] {
+    return this.sessionAccess
+      .menus()
+      .filter((m) => m.ativo !== false)
+      .sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0))
+      .map((m) => {
+        const menuLabel = m.descricao?.trim() ?? 'menu';
+        const icon = resolveMaterialSymbolIconFromModule(menuLabel, m.icone);
+        const activeSubs = (m.subMenus ?? [])
+          .filter((s) => s.ativo !== false)
+          .sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0));
+
+        if (activeSubs.length === 0) {
+          return {
+            label: menuLabel,
+            route: resolveAppRouteFromNome(menuLabel, null),
+            icon,
+          };
+        }
+
+        if (activeSubs.length === 1) {
+          const sub = activeSubs[0];
+          const subLabel = sub.descricao?.trim() || menuLabel;
+          return {
+            label: menuLabel,
+            route: resolveAppRouteFromNome(subLabel, sub.rota),
+            icon,
+          };
+        }
+
+        const first = activeSubs[0];
+        const firstRoute = resolveAppRouteFromNome(first.descricao?.trim() || menuLabel, first.rota);
+        const base = firstRoute.replace(/\/[^/]*$/, '') || '/app';
+        return {
+          label: menuLabel,
+          route: base,
+          icon,
+          children: activeSubs.map((s) => ({
+            label: s.descricao?.trim() || 'submenu',
+            route: resolveAppRouteFromNome(s.descricao?.trim() || menuLabel, s.rota),
+          })),
+        };
+      });
   }
 
   private buildNavItemsFromState(): {
@@ -405,7 +461,11 @@ export class MenuAdminService {
       .map((m) => {
         const subs = m.subMenus.filter((s) => s.ativo).sort((a, b) => a.ordem - b.ordem);
         if (m.subMenus.length > 0 && subs.length === 0) {
-          return null;
+          return {
+            label: m.nome,
+            route: resolveAppRouteFromNome(m.nome, null),
+            icon: resolveMaterialSymbolIconFromModule(m.nome, m.icone),
+          };
         }
         if (subs.length === 0) {
           return {

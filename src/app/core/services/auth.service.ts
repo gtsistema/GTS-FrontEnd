@@ -11,6 +11,7 @@ import {
 } from '../auth/jwt.util';
 import { LoggedUser } from './user.service';
 import { PermissionCacheService } from './permission-cache.service';
+import { SessionAccessService, SessionMenuAccess } from './session-access.service';
 import { environment } from '../../../environments/environment';
 import { ApiError } from '../api/models';
 
@@ -47,7 +48,8 @@ export class AuthService {
   constructor(
     private http: HttpClient,
     private router: Router,
-    private permissionCache: PermissionCacheService
+    private permissionCache: PermissionCacheService,
+    private sessionAccess: SessionAccessService
   ) {}
 
   /**
@@ -131,6 +133,7 @@ export class AuthService {
 
     const permissionKeys = extractJwtPermissionKeys(payload);
     this.permissionCache.setKeys(permissionKeys);
+    this.sessionAccess.setMenus(extractMenusFromLoginBody(res));
 
     const loggedUser = buildLoggedUserFromJwtClaims(username, payload, permissionKeys);
 
@@ -151,6 +154,7 @@ export class AuthService {
     localStorage.removeItem(this.TOKEN_KEY);
     sessionStorage.removeItem('welcomeSeen');
     this.permissionCache.clear();
+    this.sessionAccess.clear();
     this.router.navigate(['/']);
   }
 
@@ -300,4 +304,62 @@ function resolveJwtRole(payload: Record<string, unknown>): string | null {
     }
   }
   return null;
+}
+
+function extractMenusFromLoginBody(res: LoginResponse): SessionMenuAccess[] {
+  const root = res as Record<string, unknown>;
+
+  const candidates: unknown[] = [root['menus']];
+  const nestedKeys = ['result', 'Result', 'data', 'Data'];
+  for (const key of nestedKeys) {
+    const value = root[key];
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      candidates.push((value as Record<string, unknown>)['menus']);
+      candidates.push((value as Record<string, unknown>)['Menus']);
+    }
+  }
+
+  for (const candidate of candidates) {
+    if (!Array.isArray(candidate)) continue;
+    return candidate
+      .filter((item): item is Record<string, unknown> => !!item && typeof item === 'object')
+      .map((menu) => ({
+        id: toNumber(menu['id']),
+        descricao: toStringValue(menu['descricao']) ?? toStringValue(menu['nome']),
+        icone: toStringValue(menu['icone']),
+        ativo: toBoolean(menu['ativo']),
+        ordem: toNumber(menu['ordem']),
+        subMenus: mapSubMenus(menu['subMenus'] ?? menu['submodules'] ?? menu['subModules']),
+      }));
+  }
+
+  return [];
+}
+
+function mapSubMenus(value: unknown): SessionMenuAccess['subMenus'] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((item): item is Record<string, unknown> => !!item && typeof item === 'object')
+    .map((sub) => ({
+      id: toNumber(sub['id']),
+      descricao: toStringValue(sub['descricao']) ?? toStringValue(sub['nome']),
+      rota: toStringValue(sub['rota']),
+      ativo: toBoolean(sub['ativo']),
+      ordem: toNumber(sub['ordem']),
+    }));
+}
+
+function toStringValue(v: unknown): string | null {
+  return typeof v === 'string' && v.trim() ? v.trim() : null;
+}
+
+function toBoolean(v: unknown): boolean | null {
+  if (typeof v === 'boolean') return v;
+  return null;
+}
+
+function toNumber(v: unknown): number | undefined {
+  if (typeof v === 'number' && Number.isFinite(v)) return v;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : undefined;
 }

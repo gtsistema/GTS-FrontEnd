@@ -21,11 +21,12 @@ export function extractMenuArrayFromBuscar(body: unknown): unknown[] {
 
 function mapPermissionRow(row: Record<string, unknown>, subId: number, index: number): MenuPermissionRow {
   const id = Number(getProp(row, 'id')) || 0;
+  const acao = getProp(row, 'acao') ?? getProp(row, 'descricao');
   return {
     id,
     ordem: Number(getProp(row, 'ordem')) ?? index,
     subModuleId: Number(getProp(row, 'subModuleId')) || subId,
-    acao: String(getProp(row, 'acao') ?? ''),
+    acao: String(acao ?? ''),
   };
 }
 
@@ -108,19 +109,26 @@ function toPermissionInput(p: MenuPermissionRow): PermissionInput {
     id: p.id,
     ordem: p.ordem,
     subModuleId: p.subModuleId,
-    acao: p.acao,
+    descricao: p.acao,
   };
 }
 
 /** Payload para **Alterar** — mantém ids do servidor/front sincronizados. */
-function toSubMenuInputForUpdate(s: SubMenuAdmin): SubMenuCreateInput {
+function toSubMenuInputForUpdate(
+  s: SubMenuAdmin,
+  options?: { includePermissions?: boolean }
+): SubMenuCreateInput {
+  const includePermissions = options?.includePermissions === true;
   return {
     id: s.id,
     nome: s.nome,
+    descricao: s.nome,
     ordem: s.ordem,
-    permissions: s.permissions.map(toPermissionInput),
+    permissions: includePermissions ? s.permissions.map(toPermissionInput) : undefined,
     rota: s.rota,
     ativo: s.ativo,
+    isAtivo: s.ativo,
+    isActive: s.ativo,
   };
 }
 
@@ -131,15 +139,18 @@ function toSubMenuInputForInsert(s: SubMenuAdmin): SubMenuCreateInput {
   return {
     id: 0,
     nome: s.nome,
+    descricao: s.nome,
     ordem: s.ordem,
     permissions: s.permissions.map((p, i) => ({
       id: 0,
       ordem: p.ordem ?? i,
       subModuleId: 0,
-      acao: p.acao,
+      descricao: p.acao,
     })),
     rota: s.rota,
     ativo: s.ativo,
+    isAtivo: s.ativo,
+    isActive: s.ativo,
   };
 }
 
@@ -151,19 +162,28 @@ export function menuAdminToCreateInput(m: MenuAdmin): MenuCreateInput {
     descricao: m.nome,
     ordem: m.ordem,
     ativo: m.ativo,
-    icone: m.icone,
     subMenus: m.subMenus.map(toSubMenuInputForInsert),
   };
 }
 
-export function menuAdminToUpdateInput(m: MenuAdmin): MenuUpdateInput {
+export function menuAdminToUpdateInput(
+  m: MenuAdmin,
+  options?: { includePermissions?: boolean; permissionSubMenuId?: number }
+): MenuUpdateInput {
+  const includePermissions = options?.includePermissions === true;
+  const permissionSubMenuId = options?.permissionSubMenuId;
   return {
     id: m.id,
     nome: m.nome,
     descricao: m.nome,
     ordem: m.ordem,
     ativo: m.ativo,
-    icone: m.icone,
-    subMenus: m.subMenus.map(toSubMenuInputForUpdate),
+    subMenus: m.subMenus.map((s) =>
+      toSubMenuInputForUpdate(s, {
+        includePermissions:
+          includePermissions &&
+          (permissionSubMenuId == null || permissionSubMenuId === s.id),
+      })
+    ),
   };
 }

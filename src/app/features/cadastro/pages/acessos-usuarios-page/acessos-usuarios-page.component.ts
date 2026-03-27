@@ -481,6 +481,7 @@ export class AcessosUsuariosPageComponent implements OnDestroy {
   validarFormulario(): boolean {
     if (!this.form.nome.trim()) return false;
     if (!this.form.email.trim()) return false;
+    if (!this.isEdit() && !this.form.senha.trim()) return false;
     if (this.estacionamentoObrigatorio && (this.form.estacionamentoId == null || this.form.estacionamentoId === 0)) {
       return false;
     }
@@ -493,7 +494,7 @@ export class AcessosUsuariosPageComponent implements OnDestroy {
   salvar(): void {
     this.saveError.set(null);
     if (!this.validarFormulario()) {
-      this.saveError.set('Preencha os campos obrigatórios (nome, email e vínculo quando exigido).');
+      this.saveError.set('Preencha os campos obrigatórios (nome, email, senha no cadastro e vínculo quando exigido).');
       this.cdr.markForCheck();
       return;
     }
@@ -509,8 +510,30 @@ export class AcessosUsuariosPageComponent implements OnDestroy {
       userPermissionIds: this.form.userPermissionIds,
       ...(this.editItem()?.id ? { id: this.editItem()!.id } : {}),
     };
-    this.toast.show('Backend de usuários pendente. Payload pronto para integração.', 'info');
-    this.closeModal();
-    this.cdr.markForCheck();
+    if (this.isEdit()) {
+      this.toast.show('Backend ainda não possui endpoint para editar usuário.', 'info');
+      this.cdr.markForCheck();
+      return;
+    }
+
+    this.saving.set(true);
+    this.usuariosService.register({
+      userName: payload.email,
+      password: payload.senha ?? '',
+      confirmPassword: payload.senha ?? '',
+    }).subscribe({
+      next: () => {
+        this.saving.set(false);
+        this.toast.success('Usuário cadastrado no backend com sucesso.');
+        this.closeModal();
+        this.cdr.markForCheck();
+      },
+      error: (err: unknown) => {
+        this.saving.set(false);
+        const e = err as { message?: string };
+        this.saveError.set(e?.message?.trim() || 'Não foi possível cadastrar o usuário no backend.');
+        this.cdr.markForCheck();
+      }
+    });
   }
 }

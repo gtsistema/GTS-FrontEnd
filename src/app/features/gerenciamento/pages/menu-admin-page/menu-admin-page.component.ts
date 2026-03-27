@@ -22,7 +22,8 @@ import {
 import {
   buildFullAcaoPermissao,
   hasMatchingPermissionAcao,
-  removePermissionRowsForUi,
+  permissionRowMatchesUi,
+  slugSubModuloNome,
 } from '../../services/menu-permission-acao';
 
 @Component({
@@ -47,12 +48,10 @@ export class MenuAdminPageComponent implements OnInit {
 
   /** Modal Novo/Editar menu — POST Gravar / PUT Alterar. */
   protected readonly salvandoMenuModal = signal(false);
-
-  /** Rascunho de permissões por submenu até clicar em Salvar (chave `menuId:subId`). */
-  private readonly permDrafts = new Map<string, MenuPermissionRow[]>();
-
-  /** PUT Alterar permissões de um submenu (linha em salvamento). */
-  protected readonly salvandoPermKey = signal<string | null>(null);
+  /** Modal de submenu em salvamento (PUT Alterar). */
+  protected readonly salvandoSubModal = signal(false);
+  /** DELETE em andamento para menu/submenu. */
+  protected readonly excluindoKey = signal<string | null>(null);
 
   ngOnInit(): void {
     this.carregarMenusDoBackend();
@@ -83,7 +82,6 @@ export class MenuAdminPageComponent implements OnInit {
     const menus = mapBuscarResponseToMenuAdmins(raw);
     const nextId = computeNextIdFromMenus(menus);
     this.admin.replaceMenusHidratar(menus, nextId);
-    this.permDrafts.clear();
   }
 
   /** Atualiza lista após Gravar/Alterar sem bloquear a tela com o spinner inicial. */
@@ -123,6 +121,10 @@ export class MenuAdminPageComponent implements OnInit {
   protected subFormNome = '';
   protected subFormRota = '';
   protected subFormAtivo = true;
+  protected subFormPermissoesSelecionadas: string[] = [];
+  protected subFormPermissoesCustomizadas: string[] = [];
+  protected novaPermissaoCustom = '';
+  private subPermissoesOriginais: MenuPermissionRow[] = [];
 
   protected toggleExpand(menuId: number): void {
     this.expandedMenuIds.update((set) => {
@@ -168,7 +170,6 @@ export class MenuAdminPageComponent implements OnInit {
         descricao: nome,
         ordem: this.admin.menus().length,
         ativo: true,
-        icone,
         subMenus: null,
       };
       this.salvandoMenuModal.set(true);
@@ -212,19 +213,34 @@ export class MenuAdminPageComponent implements OnInit {
       });
   }
 
+  protected isExcluindoMenu(menuId: number): boolean {
+    return this.excluindoKey() === `menu:${menuId}`;
+  }
+
+  protected isExcluindoSub(subId: number): boolean {
+    return this.excluindoKey() === `sub:${subId}`;
+  }
+
   protected excluirMenu(m: MenuAdmin): void {
+    if (this.isExcluindoMenu(m.id)) return;
     if (!confirm(`Excluir o menu "${m.nome}" e todos os submenus?`)) return;
-    this.admin.deleteMenu(m.id);
-  }
+    if (m.id <= 0) {
+      this.admin.deleteMenu(m.id);
+      this.toast.success('Menu removido.');
+      return;
+    }
 
-  /** Alterna visibilidade do menu na sidebar (somente menus ativos aparecem). */
-  protected toggleMenuAtivo(m: MenuAdmin): void {
-    this.admin.updateMenu(m.id, { ativo: !m.ativo });
-  }
-
-  /** Alterna visibilidade do submenu na sidebar (somente submenus ativos aparecem). */
-  protected toggleSubAtivo(menuId: number, sub: SubMenuAdmin): void {
-    this.admin.updateSubMenu(menuId, sub.id, { ativo: !sub.ativo });
+    this.excluindoKey.set(`menu:${m.id}`);
+    this.menuApi
+      .delete(m.id)
+      .pipe(finalize(() => this.excluindoKey.set(null)))
+      .subscribe({
+        next: () => {
+          this.toast.success('Menu excluído no servidor.');
+          this.refreshMenusAfterMutation();
+        },
+        // Erro: toast já exibido pelo errorInterceptor.
+      });
   }
 
   protected onMenuDrop(e: CdkDragDrop<MenuAdmin[]>): void {
@@ -236,8 +252,12 @@ export class MenuAdminPageComponent implements OnInit {
     this.subModalMenuId.set(menuId);
     this.subEditId.set(null);
     this.subFormNome = '';
-    this.subFormRota = '';
+    this.subFormRota = this.buildSubmenuBaseRoute(menuId);
     this.subFormAtivo = true;
+    this.subFormPermissoesSelecionadas = [];
+    this.subFormPermissoesCustomizadas = [];
+    this.novaPermissaoCustom = '';
+    this.subPermissoesOriginais = [];
     this.subModalOpen.set(true);
   }
 
@@ -247,154 +267,362 @@ export class MenuAdminPageComponent implements OnInit {
     this.subFormNome = s.nome;
     this.subFormRota = s.rota;
     this.subFormAtivo = s.ativo;
+    this.subPermissoesOriginais = s.permissions.map((p) => ({ ...p }));
+    this.subFormPermissoesSelecionadas = this.acoes.filter((acao) =>
+      hasMatchingPermissionAcao(s.permissions, s.nome, acao)
+    ) as string[];
+    this.subFormPermissoesCustomizadas = s.permissions
+      .map((p) => (p.acao ?? '').trim())
+      .filter((acao) => !!acao)
+      .filter((acao) => !this.isPermissaoPadraoMapeada(s.nome, acao));
+    this.novaPermissaoCustom = '';
     this.subModalOpen.set(true);
   }
 
+  protected isPermissaoSubSelecionada(acao: string): boolean {
+    return this.subFormPermissoesSelecionadas.includes(acao);
+  }
+
+  protected togglePermissaoSub(acao: string, enabled: boolean): void {
+    const current = new Set(this.subFormPermissoesSelecionadas);
+    if (enabled) current.add(acao);
+    else current.delete(acao);
+    this.subFormPermissoesSelecionadas = this.acoes.filter((a) => current.has(a)) as string[];
+  }
+
+  protected selecionarTodasPermissoesSub(): void {
+    this.subFormPermissoesSelecionadas = [...this.acoes];
+  }
+
+  protected limparPermissoesSub(): void {
+    this.subFormPermissoesSelecionadas = [];
+    this.subFormPermissoesCustomizadas = [];
+    this.novaPermissaoCustom = '';
+  }
+
+  protected adicionarPermissaoCustomizada(): void {
+    const normalized = this.normalizeCustomPermission(this.subFormNome, this.novaPermissaoCustom);
+    if (!normalized) return;
+    if (
+      this.subFormPermissoesCustomizadas.some(
+        (p) => this.normalizePermissionToken(p) === this.normalizePermissionToken(normalized)
+      )
+    ) {
+      this.toast.show('Permissão já adicionada.', 'info');
+      return;
+    }
+    this.subFormPermissoesCustomizadas = [...this.subFormPermissoesCustomizadas, normalized];
+    this.novaPermissaoCustom = '';
+  }
+
+  protected removerPermissaoCustomizada(index: number): void {
+    this.subFormPermissoesCustomizadas = this.subFormPermissoesCustomizadas.filter(
+      (_p, i) => i !== index
+    );
+  }
+
+  protected openNovaPermissaoNoMenu(menuId: number): void {
+    const menu = this.admin.getSnapshot().menus.find((m) => m.id === menuId);
+    if (!menu || menu.subMenus.length === 0) {
+      this.toast.show('Crie um submenu antes de adicionar permissões.', 'info');
+      return;
+    }
+    if (menu.subMenus.length === 1) {
+      this.openEditSub(menuId, menu.subMenus[0]);
+      return;
+    }
+    this.toast.show(
+      'Selecione um submenu e clique no lápis para criar/editar permissões.',
+      'info'
+    );
+  }
+
+  protected formatPermissoesResumo(sub: SubMenuAdmin): string {
+    if (!sub.permissions?.length) return 'Sem permissões';
+    return sub.permissions.map((p) => p.acao).filter(Boolean).join(', ');
+  }
+
+  private isPermissaoPadraoMapeada(subNome: string, acao: string): boolean {
+    return this.acoes.some((uiAcao) =>
+      permissionRowMatchesUi(
+        { id: 0, ordem: 0, subModuleId: 0, acao },
+        subNome,
+        uiAcao
+      )
+    );
+  }
+
+  private normalizePermissionToken(value: string): string {
+    return value.trim().toLowerCase();
+  }
+
+  private normalizeCustomPermission(subNome: string, raw: string): string {
+    const token = raw.trim().toLowerCase().replace(/\s+/g, '');
+    if (!token) return '';
+    if (token.includes('.')) return token;
+    const prefix = slugSubModuloNome(subNome || 'submenu');
+    return `${prefix}.${token}`;
+  }
+
+  private buildPermissionRowsForSubmenu(
+    subId: number,
+    subNome: string,
+    selectedAcoes: string[],
+    selectedCustomPermissions: string[],
+    existingRows: MenuPermissionRow[]
+  ): MenuPermissionRow[] {
+    const rows: MenuPermissionRow[] = [];
+    for (const acao of selectedAcoes) {
+      const current = existingRows.find((row) => permissionRowMatchesUi(row, subNome, acao));
+      rows.push({
+        id: current?.id ?? 0,
+        ordem: rows.length,
+        subModuleId: subId,
+        acao: buildFullAcaoPermissao(subNome, acao),
+      });
+    }
+
+    for (const rawCustom of selectedCustomPermissions) {
+      const acao = this.normalizeCustomPermission(subNome, rawCustom);
+      if (!acao) continue;
+      const current = existingRows.find(
+        (row) => this.normalizePermissionToken(row.acao) === this.normalizePermissionToken(acao)
+      );
+      rows.push({
+        id: current?.id ?? 0,
+        ordem: rows.length,
+        subModuleId: subId,
+        acao,
+      });
+    }
+    return rows;
+  }
+
+  private slugifyRouteSegment(value: string): string {
+    return value
+      .trim()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+  }
+
+  private buildSubmenuRoute(menuId: number, nome: string): string {
+    const base = this.buildSubmenuBaseRoute(menuId).replace(/\/+$/, '');
+    const subSeg = this.slugifyRouteSegment(nome) || 'submenu';
+    return `${base}/${subSeg}`.replace(/\/{2,}/g, '/');
+  }
+
+  private buildSubmenuBaseRoute(menuId: number): string {
+    const snap = this.admin.getSnapshot();
+    const menu = snap.menus.find((x) => x.id === menuId);
+    const firstSubRoute = menu?.subMenus.find((s) => s.rota?.startsWith('/app/'))?.rota ?? '';
+    let base = '/app';
+    if (firstSubRoute) {
+      const idx = firstSubRoute.lastIndexOf('/');
+      base = idx > 0 ? firstSubRoute.slice(0, idx) : '/app';
+    } else if (menu?.nome) {
+      const menuSeg = this.slugifyRouteSegment(menu.nome);
+      if (menuSeg) base = `/app/${menuSeg}`;
+    }
+    return `${base}/`.replace(/\/{2,}/g, '/');
+  }
+
+  /** Novo submenu: rota final segue automaticamente o nome digitado. */
+  protected onNovoSubmenuNomeChange(value: string): void {
+    if (this.subEditId() !== null) return;
+    const menuId = this.subModalMenuId();
+    if (menuId == null) return;
+    const nome = value.trim();
+    this.subFormRota = nome
+      ? this.buildSubmenuRoute(menuId, nome)
+      : this.buildSubmenuBaseRoute(menuId);
+  }
+
+  private normalizeSubRoute(rawRoute: string, menuId: number, nome: string): string {
+    const route = rawRoute.trim();
+    if (!route) return this.buildSubmenuRoute(menuId, nome);
+    if (route.startsWith('/app/')) return route;
+    if (route.startsWith('/')) return `/app${route}`.replace(/\/{2,}/g, '/');
+    return `/app/${route}`.replace(/\/{2,}/g, '/');
+  }
+
+  /**
+   * Criação de submenu em menu já existente:
+   * backend atualizado passou a aceitar melhor via POST Gravar.
+   */
+  private buildGravarPayloadFromMenu(menu: MenuAdmin): MenuCreateInput {
+    return {
+      id: menu.id > 0 ? menu.id : 0,
+      nome: menu.nome,
+      descricao: menu.nome,
+      ordem: menu.ordem,
+      ativo: menu.ativo,
+      subMenus: menu.subMenus.map((s) => ({
+        id: s.id > 0 ? s.id : 0,
+        nome: s.nome,
+        descricao: s.nome,
+        ordem: s.ordem,
+        rota: s.rota,
+        ativo: s.ativo,
+        isAtivo: s.ativo,
+        isActive: s.ativo,
+        permissions: (s.permissions ?? []).map((p, i) => ({
+          ordem: p.ordem ?? i,
+          id: p.id > 0 ? p.id : 0,
+          subModuleId: s.id > 0 ? s.id : 0,
+          descricao: p.acao,
+        })),
+      })),
+    };
+  }
+
   protected salvarSub(): void {
+    if (this.salvandoSubModal()) return;
     const menuId = this.subModalMenuId();
     if (menuId == null) return;
     const nome = this.subFormNome.trim();
-    const rota = this.subFormRota.trim();
-    if (!nome || !rota) return;
+    if (!nome) return;
+    const rota = this.normalizeSubRoute(this.subFormRota, menuId, nome);
     const sid = this.subEditId();
     if (sid == null) {
+      const snap = this.admin.getSnapshot();
+      const menu = snap.menus.find((x) => x.id === menuId);
+      if (!menu) return;
+
+      if (menuId > 0) {
+        const novoSub: SubMenuAdmin = {
+          id: 0,
+          nome,
+          ordem: menu.subMenus.length,
+          rota,
+          ativo: this.subFormAtivo,
+          permissions: this.buildPermissionRowsForSubmenu(
+            0,
+            nome,
+            this.subFormPermissoesSelecionadas,
+            this.subFormPermissoesCustomizadas,
+            []
+          ),
+        };
+        const menuComNovoSub: MenuAdmin = { ...menu, subMenus: [...menu.subMenus, novoSub] };
+        const payload = this.buildGravarPayloadFromMenu(menuComNovoSub);
+        this.salvandoSubModal.set(true);
+        this.menuApi
+          .gravar(payload)
+          .pipe(finalize(() => this.salvandoSubModal.set(false)))
+          .subscribe({
+            next: () => {
+              this.subModalOpen.set(false);
+              this.toast.success('Submenu criado e publicado no servidor.');
+              this.refreshMenusAfterMutation();
+            },
+            // Erro: toast do errorInterceptor.
+          });
+        return;
+      }
+
       this.admin.addSubMenu(menuId, nome, rota);
-    } else {
+      const subs = this.admin.getSnapshot().menus.find((x) => x.id === menuId)?.subMenus ?? [];
+      const created = subs.length > 0 ? subs[subs.length - 1] : undefined;
+      if (created) {
+        this.admin.setSubMenuPermissions(
+          menuId,
+          created.id,
+          this.buildPermissionRowsForSubmenu(
+            created.id,
+            nome,
+            this.subFormPermissoesSelecionadas,
+            this.subFormPermissoesCustomizadas,
+            []
+          )
+        );
+      }
+      if (!this.subFormAtivo) {
+        if (created) this.admin.updateSubMenu(menuId, created.id, { ativo: false });
+      }
+      this.subModalOpen.set(false);
+      return;
+    }
+
+    const snap = this.admin.getSnapshot();
+    const menu = snap.menus.find((x) => x.id === menuId);
+    if (!menu) return;
+
+    const atualizado: MenuAdmin = {
+      ...menu,
+      subMenus: menu.subMenus.map((s) =>
+        s.id === sid
+          ? {
+              ...s,
+              nome,
+              rota,
+              ativo: this.subFormAtivo,
+              permissions: this.buildPermissionRowsForSubmenu(
+                sid,
+                nome,
+                this.subFormPermissoesSelecionadas,
+                this.subFormPermissoesCustomizadas,
+                this.subPermissoesOriginais
+              ),
+            }
+          : s
+      ),
+    };
+
+    if (menuId <= 0 || sid <= 0) {
       this.admin.updateSubMenu(menuId, sid, {
         nome,
         rota,
         ativo: this.subFormAtivo,
       });
-    }
-    this.subModalOpen.set(false);
-  }
-
-  protected excluirSub(menuId: number, s: SubMenuAdmin): void {
-    if (!confirm(`Excluir o submenu "${s.nome}"?`)) return;
-    this.admin.deleteSubMenu(menuId, s.id);
-  }
-
-  protected onSubDrop(menuId: number, e: CdkDragDrop<SubMenuAdmin[]>): void {
-    this.admin.onSubMenuDrop(menuId, e);
-  }
-
-  // ——— Permissões (rascunho + PUT Alterar; strings alinhadas à API: modulo.visualizar, etc.) ———
-
-  protected permKey(menuId: number, subId: number): string {
-    return `${menuId}:${subId}`;
-  }
-
-  protected temRascunhoPerm(menuId: number, sub: SubMenuAdmin): boolean {
-    return this.permDrafts.has(this.permKey(menuId, sub.id));
-  }
-
-  protected isSalvandoPerm(menuId: number, sub: SubMenuAdmin): boolean {
-    return this.salvandoPermKey() === this.permKey(menuId, sub.id);
-  }
-
-  private getDraftPermRows(menuId: number, sub: SubMenuAdmin): MenuPermissionRow[] {
-    const k = this.permKey(menuId, sub.id);
-    if (!this.permDrafts.has(k)) {
-      this.permDrafts.set(
-        k,
-        sub.permissions.map((p) => ({ ...p }))
-      );
-    }
-    return this.permDrafts.get(k)!;
-  }
-
-  protected hasPermUi(menuId: number, sub: SubMenuAdmin, uiAcao: string): boolean {
-    if (this.permDrafts.has(this.permKey(menuId, sub.id))) {
-      const rows = this.permDrafts.get(this.permKey(menuId, sub.id))!;
-      return hasMatchingPermissionAcao(rows, sub.nome, uiAcao);
-    }
-    return this.admin.hasAcao(sub, uiAcao);
-  }
-
-  protected onTogglePermDraft(menuId: number, sub: SubMenuAdmin, uiAcao: string, ev: Event): void {
-    const el = ev.target as HTMLInputElement;
-    const rows = this.getDraftPermRows(menuId, sub);
-    if (el.checked) {
-      if (hasMatchingPermissionAcao(rows, sub.nome, uiAcao)) return;
-      rows.push({
-        id: 0,
-        ordem: rows.length,
-        subModuleId: sub.id,
-        acao: buildFullAcaoPermissao(sub.nome, uiAcao),
-      });
-    } else {
-      const next = removePermissionRowsForUi(rows, sub.nome, uiAcao);
-      rows.length = 0;
-      rows.push(...next);
-    }
-  }
-
-  protected selTodosPermDraft(menuId: number, sub: SubMenuAdmin): void {
-    const rows = this.getDraftPermRows(menuId, sub);
-    for (const acao of PERMISSOES_ACOES) {
-      if (!hasMatchingPermissionAcao(rows, sub.nome, acao)) {
-        rows.push({
-          id: 0,
-          ordem: rows.length,
-          subModuleId: sub.id,
-          acao: buildFullAcaoPermissao(sub.nome, acao),
-        });
-      }
-    }
-  }
-
-  protected limparPermDraft(menuId: number, sub: SubMenuAdmin): void {
-    const rows = this.getDraftPermRows(menuId, sub);
-    rows.length = 0;
-  }
-
-  private mergeMenuComPermissoesSub(
-    menuId: number,
-    subId: number,
-    permissionRows: MenuPermissionRow[]
-  ): MenuAdmin | null {
-    const snap = this.admin.getSnapshot();
-    const m = snap.menus.find((x) => x.id === menuId);
-    if (!m) return null;
-    const normalized = permissionRows.map((p, i) => ({
-      ...p,
-      ordem: i,
-      subModuleId: subId,
-    }));
-    return {
-      ...m,
-      subMenus: m.subMenus.map((s) =>
-        s.id === subId ? { ...s, permissions: normalized } : s
-      ),
-    };
-  }
-
-  protected salvarPermissoesSubmenu(menuId: number, sub: SubMenuAdmin): void {
-    const k = this.permKey(menuId, sub.id);
-    if (!this.permDrafts.has(k)) {
-      this.toast.show('Nenhuma alteração nas permissões.', 'info');
+      this.subModalOpen.set(false);
       return;
     }
-    if (menuId <= 0 || sub.id <= 0) {
-      this.toast.show('Sincronize o menu com o servidor antes de salvar permissões.', 'info');
-      return;
-    }
-    const draft = this.permDrafts.get(k)!.map((p) => ({ ...p }));
-    const merged = this.mergeMenuComPermissoesSub(menuId, sub.id, draft);
-    if (!merged) return;
 
-    this.salvandoPermKey.set(k);
+    const payloadAlterar = menuAdminToUpdateInput(atualizado, {
+      includePermissions: true,
+      permissionSubMenuId: sid,
+    });
+    this.salvandoSubModal.set(true);
     this.menuApi
-      .alterar(menuAdminToUpdateInput(merged))
-      .pipe(finalize(() => this.salvandoPermKey.set(null)))
+      .alterar(payloadAlterar)
+      .pipe(finalize(() => this.salvandoSubModal.set(false)))
       .subscribe({
         next: () => {
-          this.permDrafts.delete(k);
-          this.toast.success('Permissões salvas no servidor.');
+          this.subModalOpen.set(false);
+          this.toast.success('Submenu atualizado no servidor.');
           this.refreshMenusAfterMutation();
         },
         // Erro: toast do errorInterceptor.
       });
+  }
+
+  protected excluirSub(menuId: number, s: SubMenuAdmin): void {
+    if (this.isExcluindoSub(s.id)) return;
+    if (!confirm(`Excluir o submenu "${s.nome}"?`)) return;
+    if (s.id <= 0) {
+      this.admin.deleteSubMenu(menuId, s.id);
+      this.toast.success('Submenu removido.');
+      return;
+    }
+
+    this.excluindoKey.set(`sub:${s.id}`);
+    this.menuApi
+      .deleteSubMenu(s.id)
+      .pipe(finalize(() => this.excluindoKey.set(null)))
+      .subscribe({
+        next: () => {
+          this.toast.success('Submenu excluído no servidor.');
+          this.refreshMenusAfterMutation();
+        },
+        // Erro: toast já exibido pelo errorInterceptor.
+      });
+  }
+
+  protected onSubDrop(menuId: number, e: CdkDragDrop<SubMenuAdmin[]>): void {
+    this.admin.onSubMenuDrop(menuId, e);
   }
 
   protected salvarNoBackend(): void {

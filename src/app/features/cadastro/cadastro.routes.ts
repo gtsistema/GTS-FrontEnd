@@ -43,6 +43,6 @@ export const CADASTRO_ROUTES: Routes = [
   },
   { path: 'acessos', redirectTo: '/app/configuracoes/usuarios', pathMatch: 'full' },
   { path: 'acessos/usuarios', redirectTo: '/app/configuracoes/usuarios', pathMatch: 'full' },
-  { path: 'acessos/perfis', redirectTo: '/app/configuracoes/perfis', pathMatch: 'full' },
-  { path: 'acessos/permissoes', redirectTo: '/app/gerenciamento/admin', pathMatch: 'full' }
+  { path: 'acessos/perfis', redirectTo: '/app/gerenciamento/perfil', pathMatch: 'full' },
+  { path: 'acessos/permissoes', redirectTo: '/app/gerenciamento/menu', pathMatch: 'full' }
 ];

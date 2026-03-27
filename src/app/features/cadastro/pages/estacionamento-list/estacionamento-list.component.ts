@@ -2,7 +2,10 @@ import { ChangeDetectorRef, Component, NgZone, inject, effect } from '@angular/c
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { EstacionamentoService } from '../../services/estacionamento.service';
-import { EstacionamentoToolbarService } from '../../services/estacionamento-toolbar.service';
+import {
+  EstacionamentoSearchField,
+  EstacionamentoToolbarService
+} from '../../services/estacionamento-toolbar.service';
 import { EstacionamentoListItemDTO, TipoPessoa } from '../../models/estacionamento.dto';
 import { formatCnpj } from '../../directives/cnpj-format.directive';
 import { formatCpf } from '../../directives/cpf-format.directive';
@@ -60,14 +63,17 @@ export class EstacionamentoListComponent {
   }
 
   carregar(): void {
-    const term = this.toolbar.searchTerm().trim();
+    const field = this.toolbar.searchField();
+    const term = this.normalizeSearchTerm(this.toolbar.searchTerm(), field);
+    const propriedade = this.resolveSearchProperty(field);
     this.loading = true;
     this.erro = null;
     this.estacionamentoService
       .buscar({
         NumeroPagina: this.numeroPagina,
         TamanhoPagina: this.tamanhoPagina,
-        ...(term ? { Termo: term } : {})
+        ...(term ? { Termo: term } : {}),
+        ...(propriedade ? { Propriedade: propriedade } : {})
       })
       .subscribe({
         next: (paged) => {
@@ -91,6 +97,31 @@ export class EstacionamentoListComponent {
           });
         }
       });
+  }
+
+  private resolveSearchProperty(field: EstacionamentoSearchField): string | undefined {
+    switch (field) {
+      case 'cnpj':
+        return 'Documento';
+      case 'nomeRazaoSocial':
+        return 'NomeRazaoSocial';
+      case 'descricao':
+        return 'Descricao';
+      case 'email':
+        return 'Email';
+      case 'id':
+        return 'Id';
+      default:
+        return undefined;
+    }
+  }
+
+  private normalizeSearchTerm(raw: string, field: EstacionamentoSearchField): string {
+    const base = (raw ?? '').trim();
+    if (!base) return '';
+    if (field === 'cnpj') return base.replace(/\D/g, '');
+    if (field === 'id') return base.replace(/\D/g, '');
+    return base;
   }
 
   buscar(): void {

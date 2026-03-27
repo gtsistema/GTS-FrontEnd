@@ -28,7 +28,15 @@
         @if (listView) {
           <div class="tab-panel">
             <div class="page-header__actions" style="margin-bottom: 12px;">
-              <input type="text" class="search-input input-control" placeholder="Pesquisar" [(ngModel)]="termoBusca" (keyup.enter)="onBuscar()" />
+              <select class="search-input input-control" [(ngModel)]="campoBusca" aria-label="Filtrar busca por">
+                <option value="geral">Busca geral</option>
+                <option value="cnpj">CNPJ</option>
+                <option value="razaoSocial">Razão social</option>
+                <option value="nomeFantasia">Nome fantasia</option>
+                <option value="email">E-mail</option>
+                <option value="id">ID</option>
+              </select>
+              <input type="text" class="search-input input-control" [placeholder]="searchPlaceholder" [(ngModel)]="termoBusca" (keyup.enter)="onBuscar()" />
               <button type="button" class="btn btn-secondary" (click)="onBuscar()">Buscar</button>
               <button type="button" class="btn btn-primary" (click)="novoTransportadora()">Novo</button>
             </div>
@@ -37,6 +45,8 @@
             }
             @if (loadingList) {
               <p class="loading-msg">Carregando...</p>
+            } @else if (!jaBuscou) {
+              <p class="empty-msg">Clique em <strong>Buscar</strong> para carregar as transportadoras.</p>
             } @else {
               <div class="table-wrap">
                 <table class="data-table">
@@ -68,7 +78,7 @@
                   </tbody>
                 </table>
               </div>
-              @if (transportadoraList.length === 0 && !loadingList) {
+              @if (transportadoraList.length === 0) {
                 <p class="empty-msg">Nenhuma transportadora encontrada.</p>
               }
             }
@@ -241,7 +251,7 @@
                   </div>
                   <div class="form-actions-bar__right">
                     <button type="button" class="btn btn-secondary" (click)="voltarLista()">Cancelar</button>
-                    <button type="submit" class="btn btn-primary" [disabled]="salvando">{{ salvando ? 'Salvando...' : 'Salvar' }}</button>
+                    <button type="submit" class="btn btn-primary" [disabled]="salvando">{{ salvando ? 'Salvando...' : 'Salvar tudo' }}</button>
                   </div>
                 </div>
               </form>
@@ -271,7 +281,7 @@
           </div>
 
           @if (transportadoraId == null) {
-            <p class="frota-hint">Salve a transportadora na aba Cadastro para cadastrar frota e importar veículos.</p>
+            <p class="frota-hint">Você já pode cadastrar as placas. Ao salvar a transportadora, a frota pendente será enviada junto.</p>
           }
 
           @if (transportadoraId != null || veiculos.length > 0) {
@@ -282,7 +292,7 @@
                 <div class="card__header">
                   <h2 class="card__title">Frota cadastrada</h2>
                   <p class="card__description">
-                    {{ transportadoraId != null ? 'Veículos vinculados a esta transportadora.' : 'Exemplos de veículos para visualização da frota.' }}
+                    {{ transportadoraId != null ? 'Veículos vinculados a esta transportadora.' : 'Veículos pendentes para salvar junto com a transportadora.' }}
                   </p>
                 </div>
                 <div class="table-wrap">
@@ -345,7 +355,7 @@
             </button>
           </div>
           @if (transportadoraId == null) {
-            <p class="frota-hint">Salve a transportadora na aba Cadastro para adicionar condutores e importar em Excel.</p>
+            <p class="frota-hint">Você já pode adicionar condutores e continuar o preenchimento antes de salvar a transportadora.</p>
           }
           <div class="table-wrap">
             <table class="data-table">
@@ -405,7 +415,7 @@
         <form [formGroup]="veiculoForm" (ngSubmit)="salvarVeiculo()">
           <div class="modal-body modal-body--frota-compact">
             @if (transportadoraId == null) {
-              <p class="modal-frota-hint" role="alert">Salve a transportadora na aba <strong>Cadastro</strong> para poder cadastrar veículos na frota.</p>
+              <p class="modal-frota-hint" role="alert">Este veículo ficará pendente e será salvo junto quando você salvar a transportadora na aba <strong>Cadastro</strong>.</p>
             }
             <div class="form-row">
               <label for="frota-placa">Placa <span class="required">*</span></label>
@@ -474,7 +484,7 @@
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" (click)="fecharModalFrota()">Fechar</button>
-            <button type="submit" class="btn btn-primary" [disabled]="transportadoraId == null || veiculoForm.invalid || salvandoVeiculo">
+            <button type="submit" class="btn btn-primary" [disabled]="veiculoForm.invalid || salvandoVeiculo">
               {{ salvandoVeiculo ? 'Salvando...' : 'Salvar frota' }}
             </button>
           </div>
@@ -499,7 +509,7 @@
         <form [formGroup]="condutorForm" (ngSubmit)="salvarCondutor()">
           <div class="modal-body modal-body--frota-compact">
             @if (transportadoraId == null) {
-              <p class="modal-frota-hint" role="alert">Salve a transportadora na aba <strong>Cadastro</strong> para poder cadastrar condutores.</p>
+              <p class="modal-frota-hint" role="alert">Você pode cadastrar condutores agora. Eles permanecem na tela durante o preenchimento.</p>
             }
             <div class="form-row">
               <label for="cond-nome">Nome completo <span class="required">*</span></label>
@@ -539,7 +549,7 @@
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" (click)="fecharModalCondutor()">Fechar</button>
-            <button type="submit" class="btn btn-primary" [disabled]="condutorForm.invalid || transportadoraId == null">Salvar</button>
+            <button type="submit" class="btn btn-primary" [disabled]="condutorForm.invalid">Salvar</button>
           </div>
         </form>
       </div>

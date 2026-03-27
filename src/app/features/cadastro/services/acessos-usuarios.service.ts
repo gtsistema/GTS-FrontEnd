@@ -8,9 +8,9 @@ const AUTH_USUARIO = `${API_BASE}/auth/Usuario`;
 
 const STUB_ERROR = 'Endpoint não encontrado no backend.';
 
-/** Mensagem exibida ao salvar quando não existe endpoint de criação/edição no backend. */
+/** Mensagem exibida quando a criação falha por dados inválidos ou erro do backend. */
 export const USUARIO_ENDPOINT_NAO_DISPONIVEL =
-  'Backend não possui endpoint para criar usuário ainda.';
+  'Não foi possível criar o usuário com os dados informados.';
 export const USUARIO_EDITAR_ENDPOINT_NAO_DISPONIVEL =
   'Backend não possui endpoint para editar usuário ainda.';
 
@@ -37,10 +37,19 @@ export interface RegisterInput {
   confirmPassword: string;
 }
 
+/** Payload de criação utilizado no formulário legado de usuários. */
+export interface UsuarioCreateInput {
+  nome?: string;
+  email?: string;
+  senha?: string;
+}
+
 /**
  * Service para Usuários (Auth).
  * Endpoints reais: POST Login, POST Register.
- * Não existem no Swagger: Buscar, ObterPorId, Gravar, Alterar, Delete — métodos stub retornam erro.
+ * Mapeamento aplicado:
+ * - `gravar()` -> POST Register (endpoint confirmado)
+ * Stubs remanescentes (sem endpoint no Swagger): Buscar, ObterPorId, Alterar e Delete.
  * @see https://gtsbackend.azurewebsites.net/swagger/v1/swagger.json (tag Usuario)
  */
 @Injectable({
@@ -69,9 +78,19 @@ export class AcessosUsuariosService {
     return throwError(() => new Error(STUB_ERROR));
   }
 
-  /** Stub: endpoint Gravar de usuário (CRUD) não existe no Swagger (apenas Register). */
-  gravar(_dto: unknown): Observable<never> {
-    return throwError(() => new Error(STUB_ERROR));
+  /** Mapeado para POST /Register (cadastro de usuário). */
+  gravar(dto: unknown): Observable<unknown> {
+    const input = dto as UsuarioCreateInput;
+    const userName = String(input?.email ?? '').trim();
+    const senha = String(input?.senha ?? '').trim();
+    if (!userName || !senha) {
+      return throwError(() => new Error('Dados inválidos para cadastro de usuário.'));
+    }
+    return this.register({
+      userName,
+      password: senha,
+      confirmPassword: senha,
+    });
   }
 
   /** Stub: endpoint Alterar de usuário não existe no Swagger. */

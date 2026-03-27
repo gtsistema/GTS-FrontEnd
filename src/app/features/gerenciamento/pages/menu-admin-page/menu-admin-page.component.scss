@@ -6,19 +6,19 @@
 .menu-admin {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-lg, 16px);
 }
 
 .page-description {
   margin: 0;
-  font-size: 0.9375rem;
+  font-size: var(--font-body, 14px);
   color: var(--muted);
   line-height: 1.45;
 }
 
 .menu-admin__status {
   margin: 0;
-  font-size: 0.875rem;
+  font-size: var(--font-body, 14px);
   color: var(--muted);
 }
 
@@ -137,7 +137,7 @@
 
 .menu-card {
   border: var(--border-card, 1px solid var(--border-subtle));
-  border-radius: 12px;
+  border-radius: var(--radius-lg, 12px);
   background: var(--surface-2, #1e2a45);
   overflow: hidden;
   box-shadow: var(--shadow-sm);
@@ -220,7 +220,8 @@
 .badge--toggle {
   border: none;
   font: inherit;
-  cursor: pointer;
+  cursor: default;
+  pointer-events: none;
   flex-shrink: 0;
   transition: background 0.15s ease, color 0.15s ease;
 
@@ -247,6 +248,9 @@
 
 .menu-card__sub-toolbar {
   padding: 10px 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .submenu-drop {
@@ -302,6 +306,19 @@
 .sub-row__perm-label {
   font-size: 0.75rem;
   color: var(--muted);
+}
+
+.sub-row__perm-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.sub-row__perm-values {
+  font-size: 0.75rem;
+  color: var(--text);
+  opacity: 0.9;
 }
 
 .perm-check {
@@ -367,7 +384,7 @@
   width: 100%;
   background: var(--card-bg, #1a2338);
   border: var(--border-card, 1px solid var(--border-subtle));
-  border-radius: 12px;
+  border-radius: var(--radius-lg, 12px);
   padding: 1rem 1.25rem;
   box-shadow: var(--shadow-lg);
 }
@@ -410,6 +427,94 @@
   font-size: 0.875rem;
   color: var(--text);
   cursor: pointer;
+}
+
+.form-section {
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.form-section__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.form-section__title {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
+.form-section__count {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.form-section__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.permission-list-inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.custom-permission {
+  margin-top: 12px;
+}
+
+.custom-permission > label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.custom-permission__row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.custom-permission__row .input-control {
+  flex: 1;
+}
+
+.custom-permission__list {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.perm-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(91, 124, 255, 0.12);
+  color: var(--text);
+  font-size: 0.75rem;
+}
+
+.perm-chip__remove {
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.85rem;
+  line-height: 1;
+  padding: 0;
 }
 
 @media (max-width: 768px) {

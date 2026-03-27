@@ -10,6 +10,7 @@ import { CADASTRO_ROUTES } from './features/cadastro/cadastro.routes';
 import { CadastroLayoutComponent } from './features/cadastro/cadastro-layout.component';
 import { authGuard } from './core/guards/auth.guard';
 import { redirectAuthenticatedToAppGuard } from './core/guards/redirect-authenticated.guard';
+import { routeAccessGuard } from './core/guards/route-access.guard';
 import { MainLayoutComponent } from './core/layout/main-layout.component';
 
 export const routes: Routes = [
@@ -26,6 +27,7 @@ export const routes: Routes = [
 		path: 'app',
 		component: MainLayoutComponent,
 		canActivate: [authGuard],
+		canActivateChild: [routeAccessGuard],
 		children: [
 			// DASHBOARD
 			{

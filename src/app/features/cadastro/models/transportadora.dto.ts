@@ -9,6 +9,7 @@ export interface PagedResultDTO<T> {
 /** Parâmetros para GET /api/Transportadora/Buscar */
 export interface TransportadoraBuscarParams {
   Termo?: string;
+  Propriedade?: string;
   NumeroPagina: number;
   TamanhoPagina: number;
 }

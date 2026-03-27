@@ -9,15 +9,23 @@ export const GERENCIAMENTO_ROUTES: Routes = [
     component: GerenciamentoLayoutComponent,
     children: [
       { path: '', pathMatch: 'full', component: GerenciamentoPageComponent },
-      { path: 'permissoes', redirectTo: 'admin', pathMatch: 'full' },
+      { path: 'permissoes', redirectTo: 'menu', pathMatch: 'full' },
+      { path: 'admin', redirectTo: 'menu', pathMatch: 'full' },
       {
-        path: 'admin',
+        path: 'menu',
         loadComponent: () =>
           import('./pages/menu-admin-page/menu-admin-page.component').then(
             (m) => m.MenuAdminPageComponent
           ),
         canActivate: [permissionGuard],
-        data: { permissions: ['gerenciamento.permissoes'] },
+        data: { permissions: ['menu.visualizar'] },
+      },
+      {
+        path: 'perfil',
+        loadComponent: () =>
+          import('../cadastro/pages/acessos-perfis-page/acessos-perfis-page.component').then(
+            (m) => m.AcessosPerfisPageComponent
+          ),
       },
     ],
   },

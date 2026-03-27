@@ -23,10 +23,23 @@
     } @else {
       <div class="page-header__row page-header__row--2">
         <div class="page-header__actions">
+          <select
+            class="search-filter input-control"
+            [ngModel]="toolbar.searchField()"
+            (ngModelChange)="setSearchField($event)"
+            aria-label="Filtrar busca por"
+          >
+            <option value="geral">Busca geral</option>
+            <option value="cnpj">CNPJ</option>
+            <option value="nomeRazaoSocial">Nome / Razão social</option>
+            <option value="descricao">Descrição</option>
+            <option value="email">E-mail</option>
+            <option value="id">ID</option>
+          </select>
           <input
             type="text"
             class="search-input input-control"
-            placeholder="Pesquise"
+            [placeholder]="searchPlaceholder()"
             [ngModel]="toolbar.searchTerm()"
             (ngModelChange)="toolbar.setSearchTerm($event)"
             (keyup.enter)="onBuscar()"

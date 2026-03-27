@@ -17,6 +17,9 @@ export interface PermissionInput {
   id?: number;
   ordem?: number;
   subModuleId?: number;
+  /** Swagger de Alterar usa `descricao` em permissions. */
+  descricao?: string | null;
+  /** Compatibilidade com respostas antigas do Buscar. */
   acao?: string | null;
 }
 
@@ -24,10 +27,16 @@ export interface PermissionInput {
 export interface SubMenuCreateInput {
   id?: number;
   nome?: string | null;
+  /** Compatibilidade com contratos que usam descricao no submódulo. */
+  descricao?: string | null;
   ordem?: number;
   permissions?: PermissionInput[] | null;
   rota?: string | null;
   ativo?: boolean;
+  /** Compatibilidade com contratos que usam isAtivo no submódulo. */
+  isAtivo?: boolean;
+  /** Compatibilidade com contratos que usam isActive no submódulo. */
+  isActive?: boolean;
 }
 
 export interface MenuCreateInput {
@@ -37,17 +46,16 @@ export interface MenuCreateInput {
   descricao?: string | null;
   ordem?: number;
   ativo?: boolean;
-  icone?: string | null;
   subMenus?: SubMenuCreateInput[] | null;
 }
 
 export interface MenuUpdateInput {
   id?: number;
   nome?: string | null;
+  /** Alguns backends usam/validam descricao também no Alterar. */
   descricao?: string | null;
   ordem?: number;
   ativo?: boolean;
-  icone?: string | null;
   subMenus?: SubMenuCreateInput[] | null;
 }
 

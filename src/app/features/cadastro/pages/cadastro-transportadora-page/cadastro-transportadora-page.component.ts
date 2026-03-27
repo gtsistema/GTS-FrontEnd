@@ -5,7 +5,6 @@ import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } 
 import { debounceTime, distinctUntilChanged, filter, switchMap } from 'rxjs';
 import { TransportadoraService } from '../../services/transportadora.service';
 import { VeiculoService } from '../../services/veiculo.service';
-import { VeiculoModeloService } from '../../services/veiculo-modelo.service';
 import { ViacepService } from '../../services/viacep.service';
 import { CnpjBrasilApiService } from '../../services/cnpj-brasilapi.service';
 import {
@@ -14,18 +13,16 @@ import {
   TransportadoraEnderecoDTO
 } from '../../models/transportadora.dto';
 import { VeiculoDTO, VeiculoListItemDTO } from '../../models/veiculo.dto';
-import { VeiculoModeloListItemDTO } from '../../models/veiculo-modelo.dto';
 import { CnpjFormValue } from '../../models/brasilapi-cnpj.model';
 import { validarCnpj, cnpjTem14Digitos } from '../../utils/cnpj.utils';
 import { CnpjFormatDirective, formatCnpj } from '../../directives/cnpj-format.directive';
 import { CpfFormatDirective, formatCpf } from '../../directives/cpf-format.directive';
 import { TelefoneFormatDirective } from '../../directives/telefone-format.directive';
 import { ToastService } from '../../../../core/api/services/toast.service';
-import { environment } from '../../../../../environments/environment';
 
 export type TransportadoraTab = 'cadastro' | 'frota' | 'condutores';
+type TransportadoraSearchField = 'geral' | 'cnpj' | 'razaoSocial' | 'nomeFantasia' | 'email' | 'id';
 
-/** Condutor (mock até existir endpoint). Estrutura pronta para futura integração. */
 export interface CondutorMock {
   id: number;
   transportadoraId?: number | null;
@@ -39,175 +36,25 @@ export interface CondutorMock {
   ativo: boolean;
 }
 
-interface VeiculoDemoItem extends VeiculoListItemDTO {
-  veiculoModeloId?: number | null;
-  condutorId?: number | null;
-  quantidadeEixos?: string;
-  tipoPeso?: string;
+interface VeiculoPendenteDraft {
+  localId: number;
+  placa: string;
+  condutorId: number | null;
+  veiculoModeloId: number | null;
+  marca: string;
+  modelo: string;
+  marcaModelo: string;
+  cor: string;
+  anoFabricacao: number | null;
+  anoModelo: number | null;
+  tipoVeiculo: string;
+  quantidadeEixos: string;
+  tipoPeso: string;
+  centroCusto: string;
+  ativo: boolean;
 }
 
 const TAMANHO_PAGINA = 50;
-const DEMO_TRANSPORTADORAS: TransportadoraDTO[] = [
-  {
-    id: -1,
-    razaoSocial: 'Transportes Horizonte Logistica LTDA',
-    nomeFantasia: 'Horizonte Log',
-    cnpj: '12345678000190',
-    email: 'contato@horizontelog.com.br',
-    telefone: '(11) 4000-1001',
-    ativo: true,
-    responsavelNome: 'Marcelo Dias',
-    responsavelCelular: '(11) 98888-1001',
-    responsavelEmail: 'marcelo.dias@horizontelog.com.br',
-    responsavelCargo: 'Supervisor Operacional',
-    tipoAcesso: 'Unidade única',
-    endereco: {
-      cep: '01001000',
-      logradouro: 'Rua das Palmeiras',
-      numero: '145',
-      bairro: 'Centro',
-      cidade: 'Sao Paulo',
-      estado: 'SP',
-      complemento: 'Galpao A'
-    }
-  },
-  {
-    id: -2,
-    razaoSocial: 'Via Carga Express Transportes SA',
-    nomeFantasia: 'Via Carga',
-    cnpj: '23456789000101',
-    email: 'operacao@viacarga.com.br',
-    telefone: '(21) 4000-2002',
-    ativo: true,
-    responsavelNome: 'Fernanda Gomes',
-    responsavelCelular: '(21) 97777-2002',
-    responsavelEmail: 'fernanda.gomes@viacarga.com.br',
-    responsavelCargo: 'Coordenadora',
-    tipoAcesso: 'Unidade única',
-    endereco: {
-      cep: '20040002',
-      logradouro: 'Avenida Rio Branco',
-      numero: '300',
-      bairro: 'Centro',
-      cidade: 'Rio de Janeiro',
-      estado: 'RJ',
-      complemento: 'Sala 502'
-    }
-  },
-  {
-    id: -3,
-    razaoSocial: 'Norte Sul Frotas e Servicos LTDA',
-    nomeFantasia: 'Norte Sul Frotas',
-    cnpj: '34567890000112',
-    email: 'suporte@nortesul.com.br',
-    telefone: '(31) 4000-3003',
-    ativo: true,
-    responsavelNome: 'Paulo Henrique',
-    responsavelCelular: '(31) 96666-3003',
-    responsavelEmail: 'paulo.henrique@nortesul.com.br',
-    responsavelCargo: 'Gerente de Frota',
-    tipoAcesso: 'Unidade única',
-    endereco: {
-      cep: '30130010',
-      logradouro: 'Rua da Bahia',
-      numero: '880',
-      bairro: 'Lourdes',
-      cidade: 'Belo Horizonte',
-      estado: 'MG',
-      complemento: 'Andar 3'
-    }
-  }
-];
-
-const DEMO_CONDUTORES: CondutorMock[] = [
-  {
-    id: -1,
-    transportadoraId: -1,
-    nomeCompleto: 'Carlos Eduardo Lima',
-    cpf: '12345678901',
-    celular: '(11) 98888-7001',
-    email: 'carlos.lima@demo.com.br',
-    cnh: '12345678900',
-    categoriaCnh: 'E',
-    vencimentoCnh: '12/08/2027',
-    ativo: true
-  },
-  {
-    id: -2,
-    transportadoraId: -2,
-    nomeCompleto: 'Juliana Ferreira Souza',
-    cpf: '23456789012',
-    celular: '(21) 97777-7002',
-    email: 'juliana.souza@demo.com.br',
-    cnh: '23456789011',
-    categoriaCnh: 'D',
-    vencimentoCnh: '03/11/2026',
-    ativo: true
-  },
-  {
-    id: -3,
-    transportadoraId: -3,
-    nomeCompleto: 'Roberto Alves Santos',
-    cpf: '34567890123',
-    celular: '(31) 96666-7003',
-    email: 'roberto.santos@demo.com.br',
-    cnh: '34567890122',
-    categoriaCnh: 'E',
-    vencimentoCnh: '25/05/2028',
-    ativo: true
-  }
-];
-
-const DEMO_VEICULOS: VeiculoDemoItem[] = [
-  {
-    id: -101,
-    transportadoraId: -1,
-    placa: 'ABC1D23',
-    marcaModelo: 'Volvo FH 540',
-    veiculoModeloId: null,
-    cor: 'Branco',
-    anoFabricacao: 2022,
-    anoModelo: 2023,
-    tipoVeiculo: 'Cavalo mecanico',
-    centroCusto: 'Operacao SP',
-    quantidadeEixos: '6',
-    tipoPeso: 'pesado',
-    condutorId: -1,
-    ativo: true
-  },
-  {
-    id: -102,
-    transportadoraId: -2,
-    placa: 'QWE4R56',
-    marcaModelo: 'Mercedes-Benz Atego 3030',
-    veiculoModeloId: null,
-    cor: 'Prata',
-    anoFabricacao: 2021,
-    anoModelo: 2021,
-    tipoVeiculo: 'Truck',
-    centroCusto: 'Distribuicao RJ',
-    quantidadeEixos: '4',
-    tipoPeso: 'pesado',
-    condutorId: -2,
-    ativo: true
-  },
-  {
-    id: -103,
-    transportadoraId: -3,
-    placa: 'JKL8M90',
-    marcaModelo: 'Fiat Fiorino',
-    veiculoModeloId: null,
-    cor: 'Cinza',
-    anoFabricacao: 2023,
-    anoModelo: 2024,
-    tipoVeiculo: 'Utilitario',
-    centroCusto: 'Coletas MG',
-    quantidadeEixos: '2',
-    tipoPeso: 'leve',
-    condutorId: -3,
-    ativo: true
-  }
-];
 
 @Component({
   selector: 'app-cadastro-transportadora-page',
@@ -226,15 +73,12 @@ const DEMO_VEICULOS: VeiculoDemoItem[] = [
 export class CadastroTransportadoraPageComponent implements OnInit {
   private transportadoraService = inject(TransportadoraService);
   private veiculoService = inject(VeiculoService);
-  private veiculoModeloService = inject(VeiculoModeloService);
   private viacep = inject(ViacepService);
   private cnpjBrasilApi = inject(CnpjBrasilApiService);
   private toast = inject(ToastService);
   private fb = inject(FormBuilder);
   private cdr = inject(ChangeDetectorRef);
   private destroyRef = inject(DestroyRef);
-  private transportadorasDemo: TransportadoraDTO[] = DEMO_TRANSPORTADORAS.map((item) => ({ ...item }));
-  private veiculosDemo: VeiculoDemoItem[] = DEMO_VEICULOS.map((item) => ({ ...item }));
 
   activeTab: TransportadoraTab = 'cadastro';
 
@@ -243,7 +87,9 @@ export class CadastroTransportadoraPageComponent implements OnInit {
   transportadoraList: TransportadoraListItemDTO[] = [];
   loadingList = false;
   erroList: string | null = null;
+  jaBuscou = false;
   termoBusca = '';
+  campoBusca: TransportadoraSearchField = 'geral';
   numeroPagina = 1;
   totalCount = 0;
   transportadoraForm!: FormGroup;
@@ -258,12 +104,12 @@ export class CadastroTransportadoraPageComponent implements OnInit {
   // --- Aba Frota (Veículos) ---
   veiculos: VeiculoListItemDTO[] = [];
   loadingVeiculos = false;
-  modeloOpcoes: VeiculoModeloListItemDTO[] = [];
-  /** Modal Cadastrar frota (abre ao clicar em "Cadastrar frota"). */
   showVeiculoForm = false;
   veiculoForm!: FormGroup;
   veiculoEditId: number | null = null;
   salvandoVeiculo = false;
+  private veiculoDraftSeq = -1;
+  private veiculosPendentes: VeiculoPendenteDraft[] = [];
   /** Opções para quantidade de eixos (modal frota). */
   eixosOpcoes: number[] = [2, 3, 4, 5, 6, 7, 8, 9];
   /** Opções para veículo leve/pesado. */
@@ -275,18 +121,12 @@ export class CadastroTransportadoraPageComponent implements OnInit {
   showImportarFrota = false;
   fileFrota: File | null = null;
 
-  // --- Aba Condutores (mock) ---
+  // --- Aba Condutores (TODO: integrar com endpoint do backend) ---
   condutoresMock: CondutorMock[] = [];
   showCondutorForm = false;
   condutorForm!: FormGroup;
   condutorEditId: number | null = null;
-  /** Modal Importar condutores (Excel). */
   showImportarCondutores = false;
-  /** TODO: integrar quando existir endpoint de Condutor no backend. */
-
-  // --- Aba Importação ---
-  fileClientes: File | null = null;
-  filePlacas: File | null = null;
   fileCondutores: File | null = null;
 
   ngOnInit(): void {
@@ -294,14 +134,6 @@ export class CadastroTransportadoraPageComponent implements OnInit {
     this.setupCnpjBusca();
     this.criarFormVeiculo();
     this.criarFormCondutor();
-    if (!environment.production) {
-      this.condutoresMock = DEMO_CONDUTORES.map((item) => ({ ...item }));
-    }
-    this.carregarLista();
-    this.veiculoModeloService.buscar().subscribe((opcoes) => {
-      this.modeloOpcoes = opcoes;
-      this.cdr.markForCheck();
-    });
   }
 
   setTab(tab: TransportadoraTab): void {
@@ -456,11 +288,15 @@ export class CadastroTransportadoraPageComponent implements OnInit {
 
   /** Listagem sempre via GET /api/Transportadora/Buscar (backend). */
   carregarLista(): void {
+    this.jaBuscou = true;
     this.loadingList = true;
     this.erroList = null;
+    const termo = this.normalizeSearchTerm(this.termoBusca, this.campoBusca);
+    const propriedade = this.resolveSearchProperty(this.campoBusca);
     this.transportadoraService
       .buscar({
-        Termo: this.termoBusca.trim() || undefined,
+        Termo: termo || undefined,
+        Propriedade: propriedade,
         NumeroPagina: this.numeroPagina,
         TamanhoPagina: TAMANHO_PAGINA
       })
@@ -482,6 +318,47 @@ export class CadastroTransportadoraPageComponent implements OnInit {
   onBuscar(): void {
     this.numeroPagina = 1;
     this.carregarLista();
+  }
+
+  get searchPlaceholder(): string {
+    switch (this.campoBusca) {
+      case 'cnpj':
+        return 'Digite o CNPJ';
+      case 'razaoSocial':
+        return 'Digite a razão social';
+      case 'nomeFantasia':
+        return 'Digite o nome fantasia';
+      case 'email':
+        return 'Digite o e-mail';
+      case 'id':
+        return 'Digite o ID';
+      default:
+        return 'Pesquisar';
+    }
+  }
+
+  private resolveSearchProperty(field: TransportadoraSearchField): string | undefined {
+    switch (field) {
+      case 'cnpj':
+        return 'Cnpj';
+      case 'razaoSocial':
+        return 'RazaoSocial';
+      case 'nomeFantasia':
+        return 'NomeFantasia';
+      case 'email':
+        return 'Email';
+      case 'id':
+        return 'Id';
+      default:
+        return undefined;
+    }
+  }
+
+  private normalizeSearchTerm(raw: string, field: TransportadoraSearchField): string {
+    const base = (raw ?? '').trim();
+    if (!base) return '';
+    if (field === 'cnpj' || field === 'id') return base.replace(/\D/g, '');
+    return base;
   }
 
   novoTransportadora(): void {
@@ -515,47 +392,15 @@ export class CadastroTransportadoraPageComponent implements OnInit {
     });
     this.erroForm = null;
     this.cnpjError = null;
+    this.veiculosPendentes = [];
+    this.veiculos = [];
+    this.condutoresMock = [];
   }
 
   editarTransportadora(item: TransportadoraListItemDTO): void {
     this.listView = false;
     this.erroForm = null;
     this.cnpjError = null;
-    if (this.isDemoId(item.id)) {
-      const dto = this.transportadorasDemo.find((transportadora) => transportadora.id === item.id);
-      if (!dto) return;
-      this.transportadoraId = dto.id ?? null;
-      this.transportadoraForm.patchValue({
-        id: dto.id,
-        razaoSocial: dto.razaoSocial,
-        nomeFantasia: dto.nomeFantasia ?? '',
-        cnpj: dto.cnpj,
-        inscricaoEstadual: dto.inscricaoEstadual ?? '',
-        email: dto.email ?? '',
-        telefone: dto.telefone ?? '',
-        ativo: dto.ativo,
-        responsavelNome: dto.responsavelNome ?? '',
-        responsavelCpf: dto.responsavelCpf ?? '',
-        responsavelCelular: dto.responsavelCelular ?? '',
-        responsavelEmail: dto.responsavelEmail ?? '',
-        responsavelCargo: dto.responsavelCargo ?? '',
-        tipoAcesso: dto.tipoAcesso ?? 'Unidade única',
-        observacaoInterna: dto.observacaoInterna ?? '',
-        endereco: dto.endereco
-          ? {
-              cep: dto.endereco.cep ?? '',
-              logradouro: dto.endereco.logradouro ?? '',
-              numero: dto.endereco.numero ?? '',
-              bairro: dto.endereco.bairro ?? '',
-              cidade: dto.endereco.cidade ?? '',
-              estado: dto.endereco.estado ?? '',
-              complemento: dto.endereco.complemento ?? ''
-            }
-          : { cep: '', logradouro: '', numero: '', bairro: '', cidade: '', estado: '', complemento: '' }
-      });
-      this.cdr.markForCheck();
-      return;
-    }
     this.transportadoraService.obterPorId(item.id).subscribe((dto) => {
       if (dto) {
         this.transportadoraId = dto.id ?? null;
@@ -648,10 +493,6 @@ export class CadastroTransportadoraPageComponent implements OnInit {
           } as TransportadoraEnderecoDTO)
         : undefined
     };
-    if (this.isDemoId(dto.id)) {
-      this.salvarTransportadoraDemo(dto);
-      return;
-    }
     this.salvando = true;
     this.erroForm = null;
     const obs = dto.id
@@ -660,9 +501,15 @@ export class CadastroTransportadoraPageComponent implements OnInit {
     obs.subscribe({
       next: (saved) => {
         this.transportadoraId = saved.id ?? null;
+        this.transportadoraForm.patchValue({ id: saved.id ?? null }, { emitEvent: false });
+        this.condutoresMock = this.condutoresMock.map((c) => ({
+          ...c,
+          transportadoraId: c.transportadoraId ?? this.transportadoraId ?? undefined
+        }));
         this.salvando = false;
+        this.publicarVeiculosPendentes();
+        this.carregarVeiculos();
         this.toast.success(dto.id ? 'Transportadora atualizada com sucesso.' : 'Transportadora cadastrada com sucesso.');
-        this.voltarLista();
         this.cdr.markForCheck();
       },
       error: (err: { message?: string }) => {
@@ -677,14 +524,6 @@ export class CadastroTransportadoraPageComponent implements OnInit {
     const id = this.transportadoraForm.get('id')?.value;
     if (!id) return;
     if (!confirm('Confirma a exclusão desta transportadora?')) return;
-    if (this.isDemoId(id)) {
-      this.transportadorasDemo = this.transportadorasDemo.filter((item) => item.id !== id);
-      this.veiculosDemo = this.veiculosDemo.filter((item) => item.transportadoraId !== id);
-      this.transportadoraId = null;
-      this.voltarLista();
-      this.cdr.markForCheck();
-      return;
-    }
     this.transportadoraService.excluir(id).subscribe({
       next: () => {
         this.transportadoraId = null;
@@ -706,15 +545,7 @@ export class CadastroTransportadoraPageComponent implements OnInit {
   // ---------- Aba Frota (Veículos) ----------
   carregarVeiculos(): void {
     if (this.transportadoraId == null) {
-      if (this.usarDadosDemo()) {
-        this.aplicarVeiculosDemoPreview();
-      }
-      return;
-    }
-    if (this.isDemoId(this.transportadoraId)) {
-      this.veiculos = this.veiculosDemo
-        .filter((item) => item.transportadoraId === this.transportadoraId)
-        .map((item) => this.mapVeiculoDemoToListItem(item));
+      this.veiculos = this.mapVeiculosPendentesParaLista();
       this.loadingVeiculos = false;
       this.cdr.markForCheck();
       return;
@@ -728,11 +559,12 @@ export class CadastroTransportadoraPageComponent implements OnInit {
       })
       .subscribe({
         next: (paged) => {
-          this.veiculos = paged.items;
+          this.veiculos = [...paged.items, ...this.mapVeiculosPendentesParaLista()];
           this.loadingVeiculos = false;
           this.cdr.markForCheck();
         },
         error: () => {
+          this.veiculos = this.mapVeiculosPendentesParaLista();
           this.loadingVeiculos = false;
           this.cdr.markForCheck();
         }
@@ -775,7 +607,7 @@ export class CadastroTransportadoraPageComponent implements OnInit {
    */
   onPlacaBlur(): void {
     if (this.veiculoEditId != null) return;
-    if (this.transportadoraId == null || this.isDemoId(this.transportadoraId)) return;
+    if (this.transportadoraId == null) return;
     const placa = (this.veiculoForm.get('placa')?.value ?? '').replace(/\s/g, '').toUpperCase();
     if (placa.length < 7) return;
     this.veiculoService
@@ -860,39 +692,38 @@ export class CadastroTransportadoraPageComponent implements OnInit {
   }
 
   editarVeiculo(v: VeiculoListItemDTO): void {
+    if (v.id <= 0) {
+      const draft = this.veiculosPendentes.find((item) => item.localId === v.id);
+      if (!draft) return;
+      this.veiculoEditId = draft.localId;
+      this.veiculoForm.patchValue({
+        id: draft.localId,
+        placa: draft.placa,
+        condutorId: draft.condutorId,
+        veiculoModeloId: draft.veiculoModeloId,
+        marca: draft.marca,
+        modelo: draft.modelo,
+        marcaModelo: draft.marcaModelo,
+        cor: draft.cor,
+        anoFabricacao: draft.anoFabricacao,
+        anoModelo: draft.anoModelo,
+        tipoVeiculo: draft.tipoVeiculo,
+        quantidadeEixos: draft.quantidadeEixos,
+        tipoPeso: draft.tipoPeso,
+        transportadoraId: this.transportadoraId,
+        centroCusto: draft.centroCusto,
+        ativo: draft.ativo
+      });
+      this.showVeiculoForm = true;
+      this.cdr.markForCheck();
+      return;
+    }
+
     const patchMarcaModelo = (marcaModelo: string | undefined) => {
       const s = (marcaModelo ?? '').trim();
       const idx = s.indexOf(' ');
       return idx >= 0 ? { marca: s.slice(0, idx), modelo: s.slice(idx + 1).trim() } : { marca: s, modelo: '' };
     };
-    if (this.isDemoId(v.id)) {
-      const dto = this.veiculosDemo.find((item) => item.id === v.id);
-      if (!dto) return;
-      const { marca, modelo } = patchMarcaModelo(dto.marcaModelo);
-      this.veiculoEditId = dto.id ?? null;
-      this.veiculoForm.patchValue({
-        id: dto.id,
-        placa: dto.placa,
-        condutorId: dto.condutorId ?? null,
-        veiculoModeloId: dto.veiculoModeloId ?? null,
-        marca,
-        modelo,
-        marcaModelo: dto.marcaModelo,
-        cor: dto.cor,
-        anoFabricacao: dto.anoFabricacao,
-        anoModelo: dto.anoModelo,
-        tipoVeiculo: dto.tipoVeiculo,
-        quantidadeEixos: dto.quantidadeEixos ?? '',
-        tipoPeso: dto.tipoPeso ?? '',
-        transportadoraId: dto.transportadoraId ?? this.transportadoraId,
-        centroCusto: dto.centroCusto,
-        ativo: dto.ativo
-      });
-      this.ensureTransportadoraListForFrota();
-      this.showVeiculoForm = true;
-      this.cdr.markForCheck();
-      return;
-    }
     this.veiculoService.obterPorId(v.id).subscribe((dto) => {
       if (dto) {
         const { marca, modelo } = patchMarcaModelo(dto.marcaModelo);
@@ -927,7 +758,38 @@ export class CadastroTransportadoraPageComponent implements OnInit {
     if (this.veiculoForm.invalid) return;
     const v = this.veiculoForm.value;
     const transportadoraId = this.transportadoraId ?? v.transportadoraId;
-    if (transportadoraId == null) return;
+    if (transportadoraId == null) {
+      const draftId = this.veiculoEditId != null && this.veiculoEditId <= 0 ? this.veiculoEditId : this.veiculoDraftSeq--;
+      const draft: VeiculoPendenteDraft = {
+        localId: draftId,
+        placa: (v.placa ?? '').replace(/\s/g, '').toUpperCase(),
+        condutorId: v.condutorId ?? null,
+        veiculoModeloId: v.veiculoModeloId ?? null,
+        marca: v.marca ?? '',
+        modelo: v.modelo ?? '',
+        marcaModelo: v.marcaModelo ?? '',
+        cor: v.cor ?? '',
+        anoFabricacao: v.anoFabricacao ?? null,
+        anoModelo: v.anoModelo ?? null,
+        tipoVeiculo: v.tipoVeiculo ?? '',
+        quantidadeEixos: v.quantidadeEixos ?? '',
+        tipoPeso: v.tipoPeso ?? '',
+        centroCusto: v.centroCusto ?? '',
+        ativo: v.ativo !== false
+      };
+      const draftIndex = this.veiculosPendentes.findIndex((item) => item.localId === draft.localId);
+      if (draftIndex >= 0) {
+        this.veiculosPendentes[draftIndex] = draft;
+      } else {
+        this.veiculosPendentes.push(draft);
+      }
+      this.veiculoEditId = null;
+      this.showVeiculoForm = false;
+      this.veiculos = this.mapVeiculosPendentesParaLista();
+      this.toast.success('Frota adicionada como pendente. Ela será salva junto quando a transportadora for salva.');
+      this.cdr.markForCheck();
+      return;
+    }
     const marcaModelo = [v.marca, v.modelo].filter(Boolean).join(' ').trim() || undefined;
     const dto: VeiculoDTO = {
       id: v.id,
@@ -942,15 +804,12 @@ export class CadastroTransportadoraPageComponent implements OnInit {
       centroCusto: v.centroCusto,
       ativo: v.ativo
     };
-    if (this.isDemoId(dto.id) || this.isDemoId(transportadoraId)) {
-      this.salvarVeiculoDemo(v, transportadoraId);
-      return;
-    }
     this.salvandoVeiculo = true;
     const obs = dto.id ? this.veiculoService.alterar(dto) : this.veiculoService.gravar(dto);
     obs.subscribe({
       next: () => {
         this.salvandoVeiculo = false;
+        this.veiculoEditId = null;
         this.showVeiculoForm = false;
         this.carregarVeiculos();
         this.cdr.markForCheck();
@@ -964,9 +823,9 @@ export class CadastroTransportadoraPageComponent implements OnInit {
 
   excluirVeiculo(veiculo: VeiculoListItemDTO): void {
     if (!confirm('Excluir este veículo?')) return;
-    if (this.isDemoId(veiculo.id)) {
-      this.veiculosDemo = this.veiculosDemo.filter((item) => item.id !== veiculo.id);
-      this.carregarVeiculos();
+    if (veiculo.id <= 0) {
+      this.veiculosPendentes = this.veiculosPendentes.filter((item) => item.localId !== veiculo.id);
+      this.veiculos = this.mapVeiculosPendentesParaLista();
       this.cdr.markForCheck();
       return;
     }
@@ -1125,125 +984,84 @@ export class CadastroTransportadoraPageComponent implements OnInit {
     return d.length === 11 ? formatCpf(d) : cpf ?? '';
   }
 
-  private usarDadosDemo(): boolean {
-    return !environment.production;
-  }
-
-  private isDemoId(id: number | null | undefined): boolean {
-    return typeof id === 'number' && id < 0;
-  }
-
-  private aplicarTransportadorasDemo(): void {
-    this.transportadoraList = this.transportadorasDemo.map((item) => ({
-      id: item.id ?? 0,
-      razaoSocial: item.razaoSocial,
-      nomeFantasia: item.nomeFantasia,
-      cnpj: item.cnpj,
-      email: item.email,
-      ativo: item.ativo
-    }));
-    this.totalCount = this.transportadoraList.length;
-    this.loadingList = false;
-    this.erroList = null;
-    this.cdr.markForCheck();
-  }
-
-  private aplicarVeiculosDemoPreview(): void {
-    this.veiculos = this.veiculosDemo.map((item) => this.mapVeiculoDemoToListItem(item));
-    this.loadingVeiculos = false;
-    this.cdr.markForCheck();
-  }
-
-  private mapVeiculoDemoToListItem(item: VeiculoDemoItem): VeiculoListItemDTO {
-    const { quantidadeEixos, tipoPeso, condutorId, veiculoModeloId, ...listItem } = item;
-    return { ...listItem };
-  }
-
-  private salvarTransportadoraDemo(dto: TransportadoraDTO): void {
-    const idx = this.transportadorasDemo.findIndex((item) => item.id === dto.id);
-    if (idx >= 0) {
-      this.transportadorasDemo[idx] = {
-        ...this.transportadorasDemo[idx],
-        ...dto
-      };
-    }
-    this.transportadoraId = dto.id ?? null;
-    this.voltarLista();
-    this.cdr.markForCheck();
-  }
-
-  private salvarVeiculoDemo(v: Record<string, unknown>, transportadoraId: number): void {
-    const marcaModeloStr = [v['marca'], v['modelo']].filter(Boolean).join(' ').trim() || String(v['marcaModelo'] ?? '');
-    const novoOuEditado: VeiculoDemoItem = {
-      id: typeof v['id'] === 'number' ? (v['id'] as number) : this.getProximoIdDemoVeiculo(),
-      transportadoraId,
-      placa: String(v['placa'] ?? ''),
-      condutorId: typeof v['condutorId'] === 'number' ? (v['condutorId'] as number) : null,
-      veiculoModeloId: typeof v['veiculoModeloId'] === 'number' ? (v['veiculoModeloId'] as number) : null,
-      marcaModelo: marcaModeloStr,
-      cor: v['cor'] ? String(v['cor']) : undefined,
-      anoFabricacao: typeof v['anoFabricacao'] === 'number' ? (v['anoFabricacao'] as number) : undefined,
-      anoModelo: typeof v['anoModelo'] === 'number' ? (v['anoModelo'] as number) : undefined,
-      tipoVeiculo: v['tipoVeiculo'] ? String(v['tipoVeiculo']) : undefined,
-      centroCusto: v['centroCusto'] ? String(v['centroCusto']) : undefined,
-      quantidadeEixos: v['quantidadeEixos'] ? String(v['quantidadeEixos']) : '',
-      tipoPeso: v['tipoPeso'] ? String(v['tipoPeso']) : '',
-      ativo: Boolean(v['ativo'])
-    };
-
-    const idx = this.veiculosDemo.findIndex((item) => item.id === novoOuEditado.id);
-    if (idx >= 0) {
-      this.veiculosDemo[idx] = novoOuEditado;
-    } else {
-      this.veiculosDemo = [novoOuEditado, ...this.veiculosDemo];
-    }
-
-    this.salvandoVeiculo = false;
-    this.showVeiculoForm = false;
-    this.carregarVeiculos();
-    this.cdr.markForCheck();
-  }
-
-  private getProximoIdDemoVeiculo(): number {
-    return Math.min(0, ...this.veiculosDemo.map((item) => item.id)) - 1;
-  }
-
-  // ---------- Aba Importação ----------
-  onFileClientes(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    this.fileClientes = input.files?.[0] ?? null;
-  }
-  onFilePlacas(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    this.filePlacas = input.files?.[0] ?? null;
-  }
   onFileCondutores(event: Event): void {
     const input = event.target as HTMLInputElement;
     this.fileCondutores = input.files?.[0] ?? null;
   }
 
-  importarClientes(): void {
-    // TODO: chamar endpoint de importação quando disponível
-    alert('Importação de clientes: integrar com backend quando o endpoint estiver disponível.');
-  }
-  importarPlacas(): void {
-    alert('Importação de placas: integrar com backend quando o endpoint estiver disponível.');
-  }
   importarCondutores(): void {
     if (!this.fileCondutores || this.transportadoraId == null) return;
-    // TODO: integrar com backend quando o endpoint estiver disponível.
-    alert('Importação de condutores: integrar com backend quando o endpoint estiver disponível.');
     this.fecharImportarCondutores();
   }
 
-  downloadModeloClientes(): void {
-    // Placeholder: gerar ou baixar modelo Excel
-    window.open('#', '_blank');
-  }
-  downloadModeloPlacas(): void {
-    window.open('#', '_blank');
-  }
   downloadModeloCondutores(): void {
     window.open('#', '_blank');
+  }
+
+  private mapVeiculosPendentesParaLista(): VeiculoListItemDTO[] {
+    return this.veiculosPendentes.map((draft) => {
+      const marcaModelo = [draft.marca, draft.modelo].filter(Boolean).join(' ').trim() || draft.marcaModelo || '—';
+      return {
+        id: draft.localId,
+        placa: draft.placa,
+        marcaModelo,
+        cor: draft.cor || undefined,
+        anoFabricacao: draft.anoFabricacao ?? undefined,
+        anoModelo: draft.anoModelo ?? undefined,
+        tipoVeiculo: draft.tipoVeiculo || undefined,
+        centroCusto: draft.centroCusto || undefined,
+        ativo: draft.ativo,
+        transportadoraId: this.transportadoraId ?? undefined
+      };
+    });
+  }
+
+  private publicarVeiculosPendentes(): void {
+    if (this.transportadoraId == null || this.veiculosPendentes.length === 0) return;
+    const pendentes = [...this.veiculosPendentes];
+    const falhas: VeiculoPendenteDraft[] = [];
+    let sucesso = 0;
+
+    const salvarProximo = (index: number): void => {
+      if (index >= pendentes.length) {
+        this.veiculosPendentes = falhas;
+        if (sucesso > 0) {
+          this.toast.success(`${sucesso} veículo(s) da frota foram salvos junto com a transportadora.`);
+        }
+        if (falhas.length > 0) {
+          this.toast.warning(`Alguns veículos (${falhas.length}) ficaram pendentes. Salve novamente para reenviar.`);
+        }
+        this.carregarVeiculos();
+        return;
+      }
+
+      const item = pendentes[index];
+      const marcaModelo = [item.marca, item.modelo].filter(Boolean).join(' ').trim() || item.marcaModelo || undefined;
+      const dto: VeiculoDTO = {
+        transportadoraId: this.transportadoraId ?? undefined,
+        placa: item.placa,
+        veiculoModeloId: item.veiculoModeloId ?? undefined,
+        marcaModelo,
+        cor: item.cor || undefined,
+        anoFabricacao: item.anoFabricacao ?? undefined,
+        anoModelo: item.anoModelo ?? undefined,
+        tipoVeiculo: item.tipoVeiculo || undefined,
+        centroCusto: item.centroCusto || undefined,
+        ativo: item.ativo
+      };
+
+      this.veiculoService.gravar(dto).subscribe({
+        next: () => {
+          sucesso += 1;
+          salvarProximo(index + 1);
+        },
+        error: () => {
+          falhas.push(item);
+          salvarProximo(index + 1);
+        }
+      });
+    };
+
+    salvarProximo(0);
   }
 }

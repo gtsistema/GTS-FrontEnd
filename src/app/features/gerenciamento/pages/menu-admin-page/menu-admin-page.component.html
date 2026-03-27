@@ -1,6 +1,6 @@
 <div class="menu-admin tab-content">
   <p class="page-description">
-    Gerencie menus, submenus, ordem (arrastar) e permissões por ação em cada submenu. O botão
+    Gerencie menus, submenus, permissões e ordem (arrastar). O botão
     <strong>Salvar</strong> envia apenas a <strong>ordem</strong> dos menus e submenus (API
     OrganizarMenus).
   </p>
@@ -17,14 +17,14 @@
     </div>
   }
 
-  <div class="menu-admin__action-bar" role="toolbar" aria-label="Ações do admin de menus">
-    <div class="menu-admin__action-bar-inner">
-      <div class="menu-admin__action-bar-left">
+  <div class="menu-admin__action-bar dk-action-bar" role="toolbar" aria-label="Ações do admin de menus">
+    <div class="menu-admin__action-bar-inner dk-action-bar">
+      <div class="menu-admin__action-bar-left dk-action-bar__left">
         <button type="button" class="menu-admin__btn menu-admin__btn--solid" (click)="openNovoMenu()">
           Novo menu
         </button>
       </div>
-      <div class="menu-admin__action-bar-right">
+      <div class="menu-admin__action-bar-right dk-action-bar__right">
         <button
           type="button"
           class="menu-admin__btn"
@@ -56,21 +56,20 @@
           <div class="menu-card__titles">
             <span class="menu-card__name">{{ menu.nome }}</span>
           </div>
-          <button
-            type="button"
-            class="badge badge--toggle"
-            [class.badge--off]="!menu.ativo"
-            [attr.aria-pressed]="menu.ativo"
-            [attr.aria-label]="menu.ativo ? 'Menu ativo — clicar para desativar e ocultar da navegação' : 'Menu inativo — clicar para ativar'"
-            (click)="toggleMenuAtivo(menu); $event.stopPropagation()"
-          >
+          <span class="badge badge--toggle" [class.badge--off]="!menu.ativo">
             {{ menu.ativo ? 'Ativo' : 'Inativo' }}
-          </button>
+          </span>
           <div class="menu-card__actions">
             <button type="button" class="btn btn--icon" (click)="openEditMenu(menu)" title="Editar">
               <span class="material-symbols-outlined">edit</span>
             </button>
-            <button type="button" class="btn btn--icon btn--danger" (click)="excluirMenu(menu)" title="Excluir">
+            <button
+              type="button"
+              class="btn btn--icon btn--danger"
+              [disabled]="isExcluindoMenu(menu.id)"
+              (click)="excluirMenu(menu)"
+              title="Excluir"
+            >
               <span class="material-symbols-outlined">delete</span>
             </button>
           </div>
@@ -80,6 +79,9 @@
           <div class="menu-card__body">
             <div class="menu-card__sub-toolbar">
               <button type="button" class="btn btn-primary btn--sm" (click)="openNovoSubmenu(menu.id)">Novo submenu</button>
+              <button type="button" class="btn btn-secondary btn--sm" (click)="openNovaPermissaoNoMenu(menu.id)">
+                Nova permissão
+              </button>
             </div>
             <div
               class="submenu-drop"
@@ -94,62 +96,26 @@
                     <div class="sub-row__line">
                       <strong>{{ sub.nome }}</strong>
                       <code class="sub-row__route">{{ sub.rota }}</code>
-                      <button
-                        type="button"
-                        class="badge badge--toggle"
-                        [class.badge--off]="!sub.ativo"
-                        [attr.aria-pressed]="sub.ativo"
-                        [attr.aria-label]="sub.ativo ? 'Submenu ativo — clicar para desativar e ocultar da navegação' : 'Submenu inativo — clicar para ativar'"
-                        (click)="toggleSubAtivo(menu.id, sub); $event.stopPropagation()"
-                      >
+                      <span class="badge badge--toggle" [class.badge--off]="!sub.ativo">
                         {{ sub.ativo ? 'Ativo' : 'Inativo' }}
-                      </button>
+                      </span>
                     </div>
-                    <div class="sub-row__perm">
+                    <div class="sub-row__perm-list">
                       <span class="sub-row__perm-label">Permissões:</span>
-                      @for (acao of acoes; track acao) {
-                        <label class="perm-check">
-                          <input
-                            type="checkbox"
-                            [checked]="hasPermUi(menu.id, sub, acao)"
-                            [disabled]="salvandoPermKey() !== null"
-                            (change)="onTogglePermDraft(menu.id, sub, acao, $event)"
-                          />
-                          {{ acao }}
-                        </label>
-                      }
-                      <button
-                        type="button"
-                        class="btn btn-secondary btn--xs"
-                        [disabled]="salvandoPermKey() !== null"
-                        (click)="selTodosPermDraft(menu.id, sub)"
-                      >
-                        Selecionar todas
-                      </button>
-                      <button
-                        type="button"
-                        class="btn btn-secondary btn--xs"
-                        [disabled]="salvandoPermKey() !== null"
-                        (click)="limparPermDraft(menu.id, sub)"
-                      >
-                        Limpar
-                      </button>
-                      <button
-                        type="button"
-                        class="btn btn-primary btn--xs"
-                        [disabled]="salvandoPermKey() !== null || !temRascunhoPerm(menu.id, sub)"
-                        [title]="!temRascunhoPerm(menu.id, sub) ? 'Altere as caixas antes de salvar no servidor' : 'Gravar permissões (PUT Alterar)'"
-                        (click)="salvarPermissoesSubmenu(menu.id, sub)"
-                      >
-                        {{ isSalvandoPerm(menu.id, sub) ? 'Salvando…' : 'Salvar' }}
-                      </button>
+                      <span class="sub-row__perm-values">{{ formatPermissoesResumo(sub) }}</span>
                     </div>
                   </div>
                   <div class="sub-row__actions">
                     <button type="button" class="btn btn--icon" (click)="openEditSub(menu.id, sub)" title="Editar submenu">
                       <span class="material-symbols-outlined">edit</span>
                     </button>
-                    <button type="button" class="btn btn--icon btn--danger" (click)="excluirSub(menu.id, sub)" title="Excluir submenu">
+                    <button
+                      type="button"
+                      class="btn btn--icon btn--danger"
+                      [disabled]="isExcluindoSub(sub.id)"
+                      (click)="excluirSub(menu.id, sub)"
+                      title="Excluir submenu"
+                    >
                       <span class="material-symbols-outlined">delete</span>
                     </button>
                   </div>
@@ -164,12 +130,12 @@
 </div>
 
 @if (menuModalOpen()) {
-  <div class="modal-overlay" (click)="!salvandoMenuModal() && menuModalOpen.set(false)">
-    <div class="modal-content modal-content--form" role="dialog" (click)="$event.stopPropagation()">
-      <div class="modal-header">
+  <div class="modal-overlay dk-modal-overlay" (click)="!salvandoMenuModal() && menuModalOpen.set(false)">
+    <div class="modal-content modal-content--form dk-modal-content" role="dialog" (click)="$event.stopPropagation()">
+      <div class="modal-header dk-modal-header">
         <h2>{{ menuEditId() === null ? 'Novo menu' : 'Editar menu' }}</h2>
       </div>
-      <div class="modal-body">
+      <div class="modal-body dk-modal-body">
         <div class="form-group">
           <label for="m-nome">Nome</label>
           <input
@@ -196,7 +162,7 @@
           </label>
         }
       </div>
-      <div class="modal-footer">
+      <div class="modal-footer dk-modal-footer">
         <button
           type="button"
           class="btn btn-secondary"
@@ -219,30 +185,91 @@
 }
 
 @if (subModalOpen()) {
-  <div class="modal-overlay" (click)="subModalOpen.set(false)">
-    <div class="modal-content modal-content--form" role="dialog" (click)="$event.stopPropagation()">
-      <div class="modal-header">
+  <div class="modal-overlay dk-modal-overlay" (click)="!salvandoSubModal() && subModalOpen.set(false)">
+    <div class="modal-content modal-content--form dk-modal-content" role="dialog" (click)="$event.stopPropagation()">
+      <div class="modal-header dk-modal-header">
         <h2>{{ subEditId() === null ? 'Novo submenu' : 'Editar submenu' }}</h2>
       </div>
-      <div class="modal-body">
+      <div class="modal-body dk-modal-body">
         <div class="form-group">
           <label for="s-nome">Nome</label>
-          <input id="s-nome" class="input-control" [(ngModel)]="subFormNome" />
+          <input
+            id="s-nome"
+            class="input-control"
+            [(ngModel)]="subFormNome"
+            (ngModelChange)="onNovoSubmenuNomeChange($event)"
+            [disabled]="salvandoSubModal()"
+          />
         </div>
         <div class="form-group">
           <label for="s-rota">Rota</label>
-          <input id="s-rota" class="input-control" [(ngModel)]="subFormRota" placeholder="/app/dashboard" />
+          <input id="s-rota" class="input-control" [(ngModel)]="subFormRota" placeholder="/app/dashboard" [disabled]="salvandoSubModal()" />
         </div>
         @if (subEditId() !== null) {
           <label class="form-row-check">
-            <input type="checkbox" [(ngModel)]="subFormAtivo" />
+            <input type="checkbox" [(ngModel)]="subFormAtivo" [disabled]="salvandoSubModal()" />
             Ativo
           </label>
         }
+        <div class="form-section form-section--permissions">
+          <div class="form-section__header">
+            <h3 class="form-section__title">Permissões do submenu</h3>
+            <span class="form-section__count">{{ subFormPermissoesSelecionadas.length }} selecionadas</span>
+          </div>
+          <div class="form-section__actions">
+            <button type="button" class="btn btn-secondary btn--xs" (click)="selecionarTodasPermissoesSub()">
+              Selecionar todas
+            </button>
+            <button type="button" class="btn btn-secondary btn--xs" (click)="limparPermissoesSub()">
+              Limpar
+            </button>
+          </div>
+          <div class="permission-list-inline">
+            @for (acao of acoes; track acao) {
+              <label class="perm-check">
+                <input
+                  type="checkbox"
+                  [checked]="isPermissaoSubSelecionada(acao)"
+                  [disabled]="salvandoSubModal()"
+                  (change)="togglePermissaoSub(acao, $any($event.target).checked)"
+                />
+                {{ acao }}
+              </label>
+            }
+          </div>
+          <div class="custom-permission">
+            <label for="s-perm-custom">Nova permissão</label>
+            <div class="custom-permission__row">
+              <input
+                id="s-perm-custom"
+                class="input-control"
+                [(ngModel)]="novaPermissaoCustom"
+                placeholder="ex.: estacionamento.exportar"
+                [disabled]="salvandoSubModal()"
+                (keyup.enter)="adicionarPermissaoCustomizada()"
+              />
+              <button type="button" class="btn btn-secondary btn--xs" (click)="adicionarPermissaoCustomizada()" [disabled]="salvandoSubModal()">
+                Adicionar
+              </button>
+            </div>
+            @if (subFormPermissoesCustomizadas.length > 0) {
+              <div class="custom-permission__list">
+                @for (perm of subFormPermissoesCustomizadas; track perm; let i = $index) {
+                  <span class="perm-chip">
+                    {{ perm }}
+                    <button type="button" class="perm-chip__remove" (click)="removerPermissaoCustomizada(i)" [disabled]="salvandoSubModal()">×</button>
+                  </span>
+                }
+              </div>
+            }
+          </div>
+        </div>
       </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" (click)="subModalOpen.set(false)">Cancelar</button>
-        <button type="button" class="btn btn-primary" (click)="salvarSub()">Salvar</button>
+      <div class="modal-footer dk-modal-footer">
+        <button type="button" class="btn btn-secondary" [disabled]="salvandoSubModal()" (click)="subModalOpen.set(false)">Cancelar</button>
+        <button type="button" class="btn btn-primary" [disabled]="salvandoSubModal()" (click)="salvarSub()">
+          {{ salvandoSubModal() ? 'Salvando…' : 'Salvar' }}
+        </button>
       </div>
     </div>
   </div>

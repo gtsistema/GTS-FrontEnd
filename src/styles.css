@@ -1,3 +1,5 @@
+@import './app/shared/styles/design-kit.css';
+
 /* Global reset: tela inteira */
 html, body {
   height: 100%;
@@ -73,6 +75,10 @@ html.theme-light *::-webkit-scrollbar-thumb:hover {
   --content-padding-mobile: 12px;
   --topbar-height: 48px;
   --touch-target-min: 44px;
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
 
   /* Escala tipográfica única — nenhuma fonte ultrapassa 18px */
   --font-page-title: 18px;
@@ -385,6 +391,14 @@ html:not(.theme-dark):not(.theme-light) body {
   padding: 0;
 }
 
+/* Surface utilitário para blocos principais de conteúdo */
+.ui-panel {
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl, 16px);
+  box-shadow: var(--shadow-sm);
+}
+
 /* Títulos de seção/card: 16px */
 .card__title,
 .section-title,
@@ -399,6 +413,30 @@ html:not(.theme-dark):not(.theme-light) body {
 .table-header {
   font-size: var(--font-subtitle, 14px) !important;
   font-weight: var(--font-weight-section, 600);
+}
+
+.table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+  border-radius: var(--radius-lg, 12px);
+  background: var(--surface);
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: auto;
+}
+
+.data-table th,
+.data-table td {
+  padding: var(--space-sm, 8px) var(--space-md, 12px);
+  border-bottom: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+}
+
+.data-table tbody tr:hover {
+  background: var(--table-row-hover, rgba(255, 255, 255, 0.04));
 }
 
 /* Texto padrão e registros: 14px */
@@ -436,6 +474,15 @@ label {
     max-height: calc(100dvh - 2rem);
     margin: 1rem 0;
   }
+}
+
+.modal-overlay {
+  backdrop-filter: blur(2px);
+}
+
+.modal-content {
+  border-radius: var(--radius-xl, 16px);
+  border: var(--border-card, 1px solid var(--border-subtle));
 }
 
 /* Utilitário: input com altura e contraste padronizados (14px) */

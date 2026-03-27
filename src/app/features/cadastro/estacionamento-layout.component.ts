@@ -3,7 +3,10 @@ import { CommonModule } from '@angular/common';
 import { Router, RouterOutlet, RouterLink, NavigationEnd } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { filter } from 'rxjs';
-import { EstacionamentoToolbarService } from './services/estacionamento-toolbar.service';
+import {
+  EstacionamentoSearchField,
+  EstacionamentoToolbarService
+} from './services/estacionamento-toolbar.service';
 import {
   EstacionamentoFormStepService,
   EstacionamentoFormStep,
@@ -47,6 +50,27 @@ export class EstacionamentoLayoutComponent implements OnInit, OnDestroy {
 
   onBuscar(): void {
     this.toolbar.triggerSearch();
+  }
+
+  setSearchField(value: string): void {
+    this.toolbar.setSearchField(value as EstacionamentoSearchField);
+  }
+
+  searchPlaceholder(): string {
+    switch (this.toolbar.searchField()) {
+      case 'cnpj':
+        return 'Digite o CNPJ';
+      case 'nomeRazaoSocial':
+        return 'Digite o nome / razão social';
+      case 'descricao':
+        return 'Digite a descrição';
+      case 'email':
+        return 'Digite o e-mail';
+      case 'id':
+        return 'Digite o ID';
+      default:
+        return 'Pesquise';
+    }
   }
 
   get currentStep(): EstacionamentoFormStep {

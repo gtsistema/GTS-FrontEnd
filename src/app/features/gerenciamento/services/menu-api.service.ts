@@ -64,6 +64,20 @@ export class MenuApiService {
     return this.http.delete<unknown>(`${AUTH_MENU}/Delete/${id}`).pipe(timeout(60000));
   }
 
+  /** DELETE /api/auth/Menu/DeleteSubMenu/{idSubMenu} */
+  deleteSubMenu(idSubMenu: number): Observable<unknown> {
+    return this.http
+      .delete<unknown>(`${AUTH_MENU}/DeleteSubMenu/${idSubMenu}`)
+      .pipe(timeout(60000));
+  }
+
+  /** DELETE /api/auth/Menu/DeletePermissao/{idPermissao} */
+  deletePermissao(idPermissao: number): Observable<unknown> {
+    return this.http
+      .delete<unknown>(`${AUTH_MENU}/DeletePermissao/${idPermissao}`)
+      .pipe(timeout(60000));
+  }
+
   /**
    * PUT /api/auth/Menu/OrganizarMenus — persiste **apenas** a ordem dos menus e submenus no servidor.
    * Itens com `id` local 0 (ainda não gravados no backend) são ignorados no payload.

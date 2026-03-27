@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, timeout, throwError } from 'rxjs';
+import { Observable, timeout } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 
 const API_BASE = environment.API_BASE_URL;
@@ -24,7 +24,13 @@ export interface PerfilBuscarParams {
 
 /**
  * Service para CRUD de Perfis (Roles).
- * Endpoints reais: GET Buscar, GET ObterPorId/{id}, POST Gravar, PUT Alterar, DELETE Delete/{id}.
+ * Endpoints reais:
+ * GET /api/auth/Perfil
+ * POST /api/auth/Perfil
+ * PUT /api/auth/Perfil
+ * GET /api/auth/Perfil/{id}
+ * DELETE /api/auth/Perfil/{id}
+ * GET /api/auth/Perfil/usuario/{usuarioId}
  * @see https://gtsbackend.azurewebsites.net/swagger/v1/swagger.json (tag Perfil)
  */
 @Injectable({
@@ -33,7 +39,7 @@ export interface PerfilBuscarParams {
 export class AcessosPerfisService {
   constructor(private http: HttpClient) {}
 
-  /** GET /api/auth/Perfil/Buscar */
+  /** GET /api/auth/Perfil */
   buscar(params?: PerfilBuscarParams): Observable<unknown> {
     const query = new URLSearchParams();
     if (params?.NumeroPagina != null) query.set('NumeroPagina', String(params.NumeroPagina));
@@ -41,27 +47,32 @@ export class AcessosPerfisService {
     if (params?.Propriedade != null) query.set('Propriedade', params.Propriedade);
     if (params?.Sort != null) query.set('Sort', params.Sort);
     const qs = query.toString();
-    const url = qs ? `${AUTH_PERFIL}/Buscar?${qs}` : `${AUTH_PERFIL}/Buscar`;
+    const url = qs ? `${AUTH_PERFIL}?${qs}` : `${AUTH_PERFIL}`;
     return this.http.get<unknown>(url).pipe(timeout(15000));
   }
 
-  /** GET /api/auth/Perfil/ObterPorId/{id} (id: uuid) */
+  /** GET /api/auth/Perfil/{id} (id: uuid) */
   obterPorId(id: string): Observable<ApplicationRole> {
-    return this.http.get<ApplicationRole>(`${AUTH_PERFIL}/ObterPorId/${id}`).pipe(timeout(15000));
+    return this.http.get<ApplicationRole>(`${AUTH_PERFIL}/${id}`).pipe(timeout(15000));
   }
 
-  /** POST /api/auth/Perfil/Gravar */
+  /** POST /api/auth/Perfil */
   gravar(dto: ApplicationRole): Observable<unknown> {
-    return this.http.post<unknown>(`${AUTH_PERFIL}/Gravar`, dto).pipe(timeout(15000));
+    return this.http.post<unknown>(`${AUTH_PERFIL}`, dto).pipe(timeout(15000));
   }
 
-  /** PUT /api/auth/Perfil/Alterar */
+  /** PUT /api/auth/Perfil */
   alterar(dto: ApplicationRole): Observable<unknown> {
-    return this.http.put<unknown>(`${AUTH_PERFIL}/Alterar`, dto).pipe(timeout(15000));
+    return this.http.put<unknown>(`${AUTH_PERFIL}`, dto).pipe(timeout(15000));
   }
 
-  /** DELETE /api/auth/Perfil/Delete/{id} (id: uuid) */
+  /** DELETE /api/auth/Perfil/{id} (id: uuid) */
   delete(id: string): Observable<void> {
-    return this.http.delete<void>(`${AUTH_PERFIL}/Delete/${id}`).pipe(timeout(15000));
+    return this.http.delete<void>(`${AUTH_PERFIL}/${id}`).pipe(timeout(15000));
+  }
+
+  /** GET /api/auth/Perfil/usuario/{usuarioId} */
+  buscarPorUsuario(usuarioId: string): Observable<unknown> {
+    return this.http.get<unknown>(`${AUTH_PERFIL}/usuario/${usuarioId}`).pipe(timeout(15000));
   }
 }

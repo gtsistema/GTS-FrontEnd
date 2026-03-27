@@ -26,6 +26,7 @@ export class TransportadoraService {
   buscar(params: TransportadoraBuscarParams): Observable<PagedResultDTO<TransportadoraListItemDTO>> {
     const query = new URLSearchParams();
     if (params.Termo?.trim()) query.set('Termo', params.Termo.trim());
+    if (params.Propriedade?.trim()) query.set('Propriedade', params.Propriedade.trim());
     query.set('NumeroPagina', String(params.NumeroPagina));
     query.set('TamanhoPagina', String(params.TamanhoPagina));
     const url = `${TRANSPORTADORA}/Buscar?${query.toString()}`;

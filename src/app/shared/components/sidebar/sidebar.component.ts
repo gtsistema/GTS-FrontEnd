@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { MenuAdminService } from '../../../features/gerenciamento/services/menu-admin.service';
+import { SessionAccessService } from '../../../core/services/session-access.service';
 
 interface MenuSubItem {
   label: string;
@@ -27,6 +28,7 @@ export class SidebarComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly authService = inject(AuthService);
   private readonly menuAdmin = inject(MenuAdminService);
+  private readonly sessionAccess = inject(SessionAccessService);
 
   /** Controlado pelo MainLayout (hamburger na topbar). */
   collapsed = input<boolean>(false);
@@ -41,7 +43,9 @@ export class SidebarComponent implements OnInit {
   expandedMenuRoute = signal<string | null>(null);
 
   /** Itens vindos do admin de menus (localStorage); reativo ao estado. */
-  menuItems = computed<MenuItem[]>(() => this.menuAdmin.sidebarMenuItems() as MenuItem[]);
+  menuItems = computed<MenuItem[]>(() =>
+    this.sessionAccess.filterSidebarItems(this.menuAdmin.sidebarMenuItems() as MenuItem[])
+  );
 
   ngOnInit(): void {
     this.currentRoute = this.router.url;
@@ -84,7 +88,20 @@ export class SidebarComponent implements OnInit {
   }
 
   isActive(route: string): boolean {
-    return this.currentRoute.startsWith(route);
+    const current = this.normalizeRoute(this.currentRoute);
+    const target = this.normalizeRoute(route);
+    if (!target) return false;
+    if (target === '/app') return current === '/app';
+    return current === target || current.startsWith(`${target}/`);
+  }
+
+  private normalizeRoute(route: string): string {
+    const noHash = route.split('#')[0] ?? '';
+    const noQuery = noHash.split('?')[0] ?? '';
+    const trimmed = noQuery.trim();
+    if (!trimmed) return '';
+    if (trimmed === '/app/') return '/app';
+    return trimmed.endsWith('/') ? trimmed.slice(0, -1) : trimmed;
   }
 
   logout(): void {

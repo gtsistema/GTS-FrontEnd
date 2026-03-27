@@ -48,6 +48,7 @@ export interface FormValue {
   contaDigito?: string;
   tipoConta?: string;
   chavePix?: string;
+  contaBancariaId?: number | null;
   /** Titular da conta (padrão = pessoa responsável). */
   titularRazaoSocial?: string;
   titularCnpj?: string;
@@ -74,6 +75,28 @@ export function buildConta(numero: string | null | undefined, digito: string | n
   const d = String(digito ?? '').trim().replace(/\D/g, '').slice(0, 1);
   if (!n) return '';
   return d ? `${n}-${d}` : n;
+}
+
+function splitNumeroDigito(valor: string): { numero: string; digito: string } {
+  const raw = String(valor ?? '').trim();
+  if (!raw) return { numero: '', digito: '' };
+  if (raw.includes('-')) {
+    const [n, d] = raw.split('-');
+    return {
+      numero: String(n ?? '').replace(/\D/g, ''),
+      digito: String(d ?? '').replace(/\D/g, '').slice(0, 1)
+    };
+  }
+  const digits = raw.replace(/\D/g, '');
+  if (digits.length <= 1) return { numero: digits, digito: '' };
+  return { numero: digits.slice(0, -1), digito: digits.slice(-1) };
+}
+
+function mapTipoContaToBackend(value: string | null | undefined): string {
+  const v = String(value ?? '').trim().toLowerCase();
+  if (v === 'corrente') return 'Corrente';
+  if (v === 'poupanca' || v === 'poupança') return 'Poupanca';
+  return String(value ?? '').trim();
 }
 
 /** Endereço no formato do backend (para preservar ao editar). */
@@ -149,6 +172,38 @@ export function formValueToEstacionamentoPayload(
 
   const tipoCobranca = mapTipoCobranca(value.tipoTaxaMensalidade ?? null);
   const capacidade = value.capacidadeVeiculos != null ? Number(value.capacidadeVeiculos) : 0;
+  const agencia = buildAgencia(value.agenciaNumero, value.agenciaDigito);
+  const conta = buildConta(value.contaNumero, value.contaDigito);
+  const agenciaSplit = splitNumeroDigito(agencia);
+  const contaSplit = splitNumeroDigito(conta);
+  const titularRazaoSocial = String(value.titularRazaoSocial ?? '').trim();
+  const titularCnpj = String(value.titularCnpj ?? '').replace(/\D/g, '');
+  const tipoContaBackend = mapTipoContaToBackend(value.tipoConta);
+  const temDadosBancarios = Boolean(
+    String(value.banco ?? '').trim() ||
+    agencia ||
+    conta ||
+    tipoContaBackend ||
+    String(value.chavePix ?? '').trim() ||
+    titularRazaoSocial ||
+    titularCnpj
+  );
+  const contaBancariaPayload = temDadosBancarios
+    ? [{
+        id: Number(value.contaBancariaId ?? 0) || 0,
+        estacionamentoId: value.id ?? 0,
+        titular: titularRazaoSocial,
+        cpfCnpj: titularCnpj,
+        banco: value.banco ?? '',
+        agencia: agenciaSplit.numero,
+        agenciaDigito: agenciaSplit.digito,
+        conta: contaSplit.numero,
+        contaDigito: contaSplit.digito,
+        tipoConta: tipoContaBackend,
+        ativa: true,
+        chavePix: value.chavePix ?? ''
+      }]
+    : [];
 
   const payload: Record<string, unknown> = {
     id: value.id ?? 0,
@@ -167,12 +222,20 @@ export function formValueToEstacionamentoPayload(
     cobrancaValor: value.tipoTaxaMensalidade === 'mensalidade' ? (value.mensalidadeValor ?? 0) : 0,
     pessoa,
     banco: value.banco ?? '',
-    agencia: buildAgencia(value.agenciaNumero, value.agenciaDigito),
-    conta: buildConta(value.contaNumero, value.contaDigito),
-    tipoConta: value.tipoConta ?? '',
+    agencia,
+    conta,
+    agenciaDigito: agenciaSplit.digito,
+    contaDigito: contaSplit.digito,
+    tipoConta: tipoContaBackend,
     chavePix: value.chavePix ?? '',
-    titularRazaoSocial: value.titularRazaoSocial ?? '',
-    titularCnpj: String(value.titularCnpj ?? '').replace(/\D/g, '')
+    titular: titularRazaoSocial,
+    cpfCnpj: titularCnpj,
+    titularRazaoSocial,
+    titularCnpj,
+    ativa: true,
+    // Backend novo também aceita/espera contaBancaria (lista).
+    contaBancaria: contaBancariaPayload,
+    ContaBancaria: contaBancariaPayload
   };
 
   const fotos = fotosBase64?.filter((f) => typeof f === 'string' && f.length > 0) ?? [];

@@ -25,10 +25,11 @@ const ALIAS_NOME_PARA_ROTA: Record<string, string> = {
   gerenciamento: '/app/gerenciamento',
   transportadora: '/app/cadastro/transportadora',
   estacionamento: '/app/cadastro/estacionamento',
-  /** Submódulo "menu" na API ≈ aba Admin em Gerenciamento */
-  menu: '/app/gerenciamento/admin',
+  /** Submódulo "menu" na API ≈ aba Menu em Gerenciamento */
+  menu: '/app/gerenciamento/menu',
   acessos: '/app/gerenciamento',
-  admin: '/app/gerenciamento/admin',
+  admin: '/app/gerenciamento/menu',
+  perfil: '/app/gerenciamento/perfil',
 };
 
 function tryMatchMenuStructure(nome: string): string | null {

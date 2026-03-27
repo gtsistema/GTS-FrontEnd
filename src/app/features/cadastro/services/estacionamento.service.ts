@@ -56,6 +56,9 @@ export interface EstacionamentoFormValue {
   conta?: string;
   tipoConta?: string;
   chavePix?: string;
+  contaBancariaId?: number | null;
+  titularRazaoSocial?: string;
+  titularCnpj?: string;
   /** Fotos retornadas pela API (base64 ou URL); exibidas no passo Fotos. */
   loadedFotosBase64?: string[];
 }
@@ -297,6 +300,27 @@ export class EstacionamentoService {
   private mapResultToFormValue(r: EstacionamentoObterPorIdResultDTO): EstacionamentoFormValue {
     const p = r.pessoa;
     const telefone = p?.contatos?.find((c) => c.principal)?.numero ?? p?.contatos?.[0]?.numero ?? '';
+    const raw = r as unknown as Record<string, unknown>;
+    const contaBancariaList = (raw['contaBancaria'] ?? raw['ContaBancaria']) as Array<Record<string, unknown>> | undefined;
+    const contaBancaria = Array.isArray(contaBancariaList) && contaBancariaList.length > 0
+      ? contaBancariaList[0]
+      : undefined;
+    const banco = contaBancaria?.['banco'] ?? contaBancaria?.['Banco'] ?? r.banco ?? '';
+    const agenciaNumero = contaBancaria?.['agencia'] ?? contaBancaria?.['Agencia'] ?? r.agencia ?? '';
+    const agenciaDigito = contaBancaria?.['agenciaDigito'] ?? contaBancaria?.['AgenciaDigito'] ?? '';
+    const contaNumero = contaBancaria?.['conta'] ?? contaBancaria?.['Conta'] ?? r.conta ?? '';
+    const contaDigito = contaBancaria?.['contaDigito'] ?? contaBancaria?.['ContaDigito'] ?? '';
+    const titular = contaBancaria?.['titular'] ?? contaBancaria?.['Titular'] ?? '';
+    const cpfCnpj = contaBancaria?.['cpfCnpj'] ?? contaBancaria?.['CpfCnpj'] ?? '';
+    const agencia = [String(agenciaNumero ?? '').trim(), String(agenciaDigito ?? '').trim()].filter(Boolean).join('-');
+    const conta = [String(contaNumero ?? '').trim(), String(contaDigito ?? '').trim()].filter(Boolean).join('-');
+    const tipoContaRaw = String(contaBancaria?.['tipoConta'] ?? contaBancaria?.['TipoConta'] ?? r.tipoConta ?? '').trim();
+    const tipoContaNorm =
+      tipoContaRaw.toLowerCase() === 'corrente'
+        ? 'corrente'
+        : tipoContaRaw.toLowerCase() === 'poupanca' || tipoContaRaw.toLowerCase() === 'poupança'
+          ? 'poupanca'
+          : tipoContaRaw;
     const tipoTaxa = r.tipoCobranca === 1 ? 'taxa' : r.tipoCobranca === 2 ? 'mensalidade' : null;
     return {
       id: r.id,
@@ -324,11 +348,14 @@ export class EstacionamentoService {
       latitude: (r as unknown as Record<string, unknown>)['latitude'] as number | null ?? null,
       longitude: (r as unknown as Record<string, unknown>)['longitude'] as number | null ?? null,
       enderecos: p?.enderecos ?? [],
-      banco: r.banco ?? '',
-      agencia: r.agencia ?? '',
-      conta: r.conta ?? '',
-      tipoConta: r.tipoConta ?? '',
-      chavePix: r.chavePix ?? '',
+      banco: String(banco ?? ''),
+      agencia: String(agencia ?? ''),
+      conta: String(conta ?? ''),
+      tipoConta: String(tipoContaNorm),
+      chavePix: String(contaBancaria?.['chavePix'] ?? contaBancaria?.['ChavePix'] ?? r.chavePix ?? ''),
+      contaBancariaId: Number(contaBancaria?.['id'] ?? contaBancaria?.['Id']) || null,
+      titularRazaoSocial: String(titular ?? ''),
+      titularCnpj: String(cpfCnpj ?? ''),
       loadedFotosBase64: r.fotos ?? []
     };
   }

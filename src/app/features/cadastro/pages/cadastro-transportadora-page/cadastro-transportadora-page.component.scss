@@ -61,8 +61,8 @@
 
 .page-title {
   margin: 0 0 4px 0;
-  font-size: 1.25rem;
-  font-weight: 700;
+  font-size: var(--font-page-title, 18px);
+  font-weight: var(--font-weight-page-title, 700);
   color: var(--text);
 }
 
@@ -279,8 +279,8 @@
 
 .card__title {
   margin: 0 0 var(--space-4) 0;
-  font-size: 1rem;
-  font-weight: 600;
+  font-size: var(--font-section-title, 16px);
+  font-weight: var(--font-weight-section, 600);
   color: var(--text);
 }
 
@@ -363,7 +363,7 @@
   border-bottom-left-radius: 0;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 768px) {
   .form-compact .form-row {
     grid-template-columns: 1fr;
     align-items: stretch;
@@ -519,7 +519,7 @@
   gap: var(--space-10);
 }
 
-@media (max-width: 600px) {
+@media (max-width: 768px) {
   .form-actions-bar {
     flex-direction: column;
     align-items: stretch;
@@ -996,7 +996,7 @@
   }
 }
 
-@media (max-width: 600px) {
+@media (max-width: 768px) {
   .form-grid {
     grid-template-columns: 1fr;
   }

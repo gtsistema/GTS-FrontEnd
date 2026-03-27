@@ -25,6 +25,28 @@
         }
         <div class="top-bar__spacer"></div>
         <div class="top-bar__right">
+          <div class="user-access-panel" title="Usuário e contexto de acesso">
+            <div class="user-access-panel__main">
+              <span class="user-access-panel__name">{{ loggedUsername() }}</span>
+              <span class="user-access-panel__tipo">{{ selectedContextLabel() }}</span>
+            </div>
+            @if (hasMultipleContexts()) {
+              <label class="user-access-panel__switcher">
+                <span class="user-access-panel__switcher-label">Acessar CNPJ</span>
+                <select
+                  class="user-access-panel__select"
+                  [ngModel]="selectedContextKey()"
+                  (ngModelChange)="onAccessContextChange($event)"
+                >
+                  @for (ctx of accessContexts(); track ctx.contextKey) {
+                    <option [ngValue]="ctx.contextKey">
+                      {{ ctx.cnpj ? (ctx.tipoAcesso + ' - ' + ctx.cnpj) : ctx.tipoAcesso }}
+                    </option>
+                  }
+                </select>
+              </label>
+            }
+          </div>
           <button
             type="button"
             class="theme-switcher__btn"

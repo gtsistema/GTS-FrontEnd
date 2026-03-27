@@ -13,12 +13,9 @@ import {
   ApplicationRole,
 } from '../../services/acessos-perfis.service';
 import { ProfilePermissionsStoreService } from '../../services/profile-permissions-store.service';
-import {
-  PERMISSION_MODULES,
-  PERMISSION_CATALOG,
-  getAllPermissionKeys,
-  type PermissionModule,
-} from '../../constants/permission-catalog';
+import { MenuApiService } from '../../../gerenciamento/services/menu-api.service';
+import { mapBuscarResponseToMenuAdmins } from '../../../gerenciamento/services/menu-api.mapper';
+import type { MenuAdmin } from '../../../gerenciamento/models/menu-admin.model';
 
 type ModalKind = 'create' | 'edit' | 'delete' | null;
 
@@ -35,6 +32,7 @@ const AVISO_SEM_ENDPOINT =
 export class AcessosPerfisPageComponent implements OnInit {
   private perfisService = inject(AcessosPerfisService);
   private profilePermissionsStore = inject(ProfilePermissionsStoreService);
+  private menuApi = inject(MenuApiService);
   private cdr = inject(ChangeDetectorRef);
 
   loading = true;
@@ -51,20 +49,21 @@ export class AcessosPerfisPageComponent implements OnInit {
   form = { name: '', normalizedName: '', permissionIds: [] as string[] };
   permissionSearchTerm = signal('');
   /** Módulos com lista de permissões expandida (estilo listagem). */
-  expandedModules = signal<PermissionModule[]>([]);
-
-  readonly PERMISSION_MODULES = PERMISSION_MODULES;
-  readonly PERMISSION_CATALOG = PERMISSION_CATALOG;
+  expandedModules = signal<string[]>([]);
+  private backendPermissionGroups = signal<{ module: string; keys: string[] }[]>([]);
+  private allBackendPermissionKeys = signal<string[]>([]);
 
   /** Permissões filtradas pelo termo de busca (para exibição no modal). */
   filteredPermissionsByModule = computed(() => {
     const term = this.permissionSearchTerm().trim().toLowerCase();
-    const result: { module: PermissionModule; keys: string[] }[] = [];
-    for (const mod of PERMISSION_MODULES) {
-      const keys = (PERMISSION_CATALOG[mod] ?? []).filter((key) =>
-        term ? key.toLowerCase().includes(term) : true
+    const result: { module: string; keys: string[] }[] = [];
+    for (const group of this.backendPermissionGroups()) {
+      const keys = group.keys.filter((key) =>
+        term
+          ? key.toLowerCase().includes(term) || group.module.toLowerCase().includes(term)
+          : true
       );
-      if (keys.length) result.push({ module: mod, keys });
+      if (keys.length) result.push({ module: group.module, keys });
     }
     return result;
   });
@@ -79,7 +78,26 @@ export class AcessosPerfisPageComponent implements OnInit {
   isDelete = computed(() => this.modalKind() === 'delete');
 
   ngOnInit(): void {
+    this.carregarPermissoesDoBackend();
     this.carregar();
+  }
+
+  private carregarPermissoesDoBackend(): void {
+    this.menuApi.buscar().subscribe({
+      next: (body) => {
+        const menus = mapBuscarResponseToMenuAdmins(body);
+        const groups = this.buildPermissionGroupsFromMenus(menus);
+        const keys = groups.flatMap((g) => g.keys);
+        this.backendPermissionGroups.set(groups);
+        this.allBackendPermissionKeys.set(keys);
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.backendPermissionGroups.set([]);
+        this.allBackendPermissionKeys.set([]);
+        this.cdr.markForCheck();
+      },
+    });
   }
 
   carregar(): void {
@@ -132,7 +150,8 @@ export class AcessosPerfisPageComponent implements OnInit {
     if (!key) return;
     const current = this.profilePermissionsStore.getProfilePermissions(key);
     if (current.length >= 3) return;
-    const all = getAllPermissionKeys();
+    const all = this.allBackendPermissionKeys();
+    if (all.length === 0) return;
     const toSet = current.length > 0 ? current : all.slice(0, Math.max(3, all.length));
     if (toSet.length < 3) {
       toSet.push(...all.filter((k) => !toSet.includes(k)).slice(0, 3 - toSet.length));
@@ -175,7 +194,7 @@ export class AcessosPerfisPageComponent implements OnInit {
   }
 
   selecionarTodasPermissoes(): void {
-    this.form.permissionIds = [...getAllPermissionKeys()];
+    this.form.permissionIds = [...this.allBackendPermissionKeys()];
     this.cdr.markForCheck();
   }
 
@@ -185,15 +204,15 @@ export class AcessosPerfisPageComponent implements OnInit {
   }
 
   /** Verifica se todas as permissões do tópico estão selecionadas. */
-  isModuloTotalmenteSelecionado(module: PermissionModule): boolean {
-    const keys = PERMISSION_CATALOG[module] ?? [];
+  isModuloTotalmenteSelecionado(module: string): boolean {
+    const keys = this.getKeysByModule(module);
     if (keys.length === 0) return false;
     return keys.every((k) => this.form.permissionIds.includes(k));
   }
 
   /** Alterna: seleciona todas as permissões do tópico ou desmarca todas. */
-  toggleTodasDoModulo(module: PermissionModule): void {
-    const keys = PERMISSION_CATALOG[module] ?? [];
+  toggleTodasDoModulo(module: string): void {
+    const keys = this.getKeysByModule(module);
     const current = new Set(this.form.permissionIds);
     if (keys.every((k) => current.has(k))) {
       keys.forEach((k) => current.delete(k));
@@ -205,7 +224,7 @@ export class AcessosPerfisPageComponent implements OnInit {
   }
 
   /** Alterna expansão da linha do módulo (listagem estilo estacionamento). */
-  toggleModuleExpanded(module: PermissionModule): void {
+  toggleModuleExpanded(module: string): void {
     const current = this.expandedModules();
     const idx = current.indexOf(module);
     if (idx >= 0) {
@@ -216,14 +235,40 @@ export class AcessosPerfisPageComponent implements OnInit {
     this.cdr.markForCheck();
   }
 
-  isModuleExpanded(module: PermissionModule): boolean {
+  isModuleExpanded(module: string): boolean {
     return this.expandedModules().includes(module);
   }
 
   /** Quantidade de permissões selecionadas no módulo. */
-  getSelectedCountInModule(module: PermissionModule): number {
-    const keys = PERMISSION_CATALOG[module] ?? [];
+  getSelectedCountInModule(module: string): number {
+    const keys = this.getKeysByModule(module);
     return keys.filter((k) => this.form.permissionIds.includes(k)).length;
+  }
+
+  private getKeysByModule(module: string): string[] {
+    return this.backendPermissionGroups().find((g) => g.module === module)?.keys ?? [];
+  }
+
+  private buildPermissionGroupsFromMenus(menus: MenuAdmin[]): { module: string; keys: string[] }[] {
+    const groups: { module: string; keys: string[] }[] = [];
+    for (const menu of menus) {
+      const menuLabel = (menu.nome ?? '').trim();
+      const orderedSubs = [...(menu.subMenus ?? [])].sort((a, b) => a.ordem - b.ordem);
+      for (const sub of orderedSubs) {
+        const subLabel = (sub.nome ?? '').trim();
+        const moduleLabel = menuLabel && subLabel ? `${menuLabel} / ${subLabel}` : subLabel || menuLabel;
+        const keys = Array.from(
+          new Set(
+            (sub.permissions ?? [])
+              .map((p) => (p.acao ?? '').trim())
+              .filter((p) => p.length > 0)
+          )
+        );
+        if (!moduleLabel || keys.length === 0) continue;
+        groups.push({ module: moduleLabel, keys });
+      }
+    }
+    return groups;
   }
 
   getProfilePermissionCount(item: ApplicationRole): number {

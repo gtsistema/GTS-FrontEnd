@@ -175,6 +175,7 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
       contaDigito: [''],
       tipoConta: ['' as 'corrente' | 'poupanca' | ''],
       chavePix: [''],
+      contaBancariaId: [null as number | null],
       titularMesmoResponsavel: [true],
       titularRazaoSocial: [''],
       titularCnpj: ['']
@@ -473,7 +474,10 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
               banco: trim(dto.banco),
               ...this.parseAgenciaContaDoDto(trim(dto.agencia ?? ''), trim(dto.conta ?? '')),
               tipoConta: trim(dto.tipoConta),
-              chavePix: trim(dto.chavePix)
+              chavePix: trim(dto.chavePix),
+              contaBancariaId: dto.contaBancariaId ?? null,
+              titularRazaoSocial: trim(dto.titularRazaoSocial ?? ''),
+              titularCnpj: trim(dto.titularCnpj ?? '')
             });
             // Sincronizar estado dos combos com os dados carregados (exibição ao editar)
             this.bancoFiltro = this.form.get('banco')?.value ?? '';
@@ -494,6 +498,23 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
               ativo: dto.pessoa.ativo ?? true,
               documento: (dto.pessoa.documento ?? '').replace(/\s/g, '')
             });
+            const titularDto = trim(dto.titularRazaoSocial ?? '');
+            const titularCnpjDto = trim(dto.titularCnpj ?? '');
+            const pessoaRazao = trim(dto.pessoa.nomeRazaoSocial ?? '');
+            const pessoaCnpj = String(dto.pessoa.documento ?? '').replace(/\D/g, '');
+            const titularCnpjDigits = titularCnpjDto.replace(/\D/g, '');
+            const titularDiferente = Boolean(
+              titularDto &&
+              ((titularDto.toLowerCase() !== pessoaRazao.toLowerCase()) || (titularCnpjDigits && titularCnpjDigits !== pessoaCnpj))
+            );
+            if (titularDiferente) {
+              this.form.patchValue({ titularMesmoResponsavel: false }, { emitEvent: false });
+              this.atualizarValidadoresTitular(false);
+            } else {
+              this.form.patchValue({ titularMesmoResponsavel: true }, { emitEvent: false });
+              this.syncTitularFromPessoa();
+              this.atualizarValidadoresTitular(true);
+            }
             const doc = this.form.get('pessoa.documento')?.value;
             if (doc != null && String(doc).replace(/\D/g, '').length === 14) {
               this.form.get('pessoa')?.patchValue({ documento: formatCnpj(String(doc)) });

@@ -239,9 +239,9 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Ao sair do campo Placa, busca no backend (futuro) se a placa está vinculada
+   * Ao sair do campo Placa, busca no backend se a placa está vinculada
    * a alguma transportadora cadastrada. Se tiver cadastro, preenche transportadora
-   * e dados do veículo (modelo, ano, eixos, carregado/vazio); se não, mantém em branco.
+   * e dados do veículo (modelo, ano e eixos); se não, mantém em branco.
    */
   buscarTransportadoraPorPlaca(): void {
     const placa = (this.entradaForm.placa || '').trim();
@@ -577,7 +577,52 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
   }
 
   exportarHistorico(): void {
-    // Placeholder: integrar com serviço de exportação (CSV/Excel) quando disponível.
+    const rows = this.historicoFiltrado;
+    const headers = [
+      'Placa',
+      'Motorista',
+      'CPF',
+      'Transportadora',
+      'DataEntrada',
+      'DataSaida',
+      'TempoEstacionado',
+      'StatusFinal',
+      'Valor',
+    ];
+    const csvLines = [
+      headers.join(';'),
+      ...rows.map((m) =>
+        [
+          this.escapeCsv(m.placa),
+          this.escapeCsv(m.motorista),
+          this.escapeCsv(m.cpf),
+          this.escapeCsv(m.transportadora),
+          this.escapeCsv(m.dataEntrada),
+          this.escapeCsv(m.dataSaida),
+          this.escapeCsv(m.tempoEstacionado ?? '—'),
+          this.escapeCsv(m.statusFinal ?? 'Finalizado'),
+          this.escapeCsv(m.valor),
+        ].join(';')
+      ),
+    ];
+    const content = '\uFEFF' + csvLines.join('\n');
+    const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `movimentos-historico-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
+
+  private escapeCsv(value: string): string {
+    const text = String(value ?? '');
+    if (text.includes(';') || text.includes('"') || text.includes('\n')) {
+      return `"${text.replace(/"/g, '""')}"`;
+    }
+    return text;
   }
 
   private formatarDataHora(d: Date): string {

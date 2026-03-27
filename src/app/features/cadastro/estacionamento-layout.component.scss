@@ -11,7 +11,7 @@
 }
 
 .page-header {
-  padding: 0 16px 12px;
+  padding: 0 var(--content-padding, 16px) var(--space-md, 12px);
   border-bottom: 1px solid var(--border-subtle);
   flex-shrink: 0;
 }
@@ -41,8 +41,8 @@
 
 .page-title {
   margin: 0;
-  font-size: 1.25rem;
-  font-weight: 700;
+  font-size: var(--font-page-title, 18px);
+  font-weight: var(--font-weight-page-title, 700);
   color: var(--text);
 }
 
@@ -97,11 +97,15 @@
   min-width: 0;
 }
 
+.search-filter {
+  width: 180px;
+}
+
 .btn {
   height: 40px;
   padding: 0 16px;
-  border-radius: 8px;
-  font-size: 0.9375rem;
+  border-radius: var(--radius-sm, 8px);
+  font-size: var(--font-body, 14px);
   font-weight: 500;
   display: inline-flex;
   align-items: center;
@@ -206,6 +210,10 @@
   }
 
   .search-input {
+    width: 100%;
+  }
+
+  .search-filter {
     width: 100%;
   }
 

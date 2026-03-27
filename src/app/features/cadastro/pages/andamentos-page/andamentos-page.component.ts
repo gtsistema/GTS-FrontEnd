@@ -72,9 +72,9 @@ export class AndamentosPageComponent {
     { rota: '/app/cadastro/estacionamento/novo', tela: 'Form Estacionamento (novo)', descricao: 'Formulário em etapas (stepper) para novo estacionamento.' },
     { rota: '/app/cadastro/estacionamento/editar/:id', tela: 'Form Estacionamento (editar)', descricao: 'Mesmo formulário, modo edição.' },
     { rota: '/app/cadastro/transportadora', tela: 'Cadastro Transportadora', descricao: 'Página de cadastro de transportadora.' },
-    { rota: '/app/configuracoes', tela: 'Configurações (container)', descricao: 'Abas: Usuários | Permissões | Perfil.' },
+    { rota: '/app/configuracoes', tela: 'Configurações (container)', descricao: 'Abas: Usuários.' },
     { rota: '/app/configuracoes/usuarios', tela: 'Usuários', descricao: 'Lista de usuários, busca, modal Novo usuário / Editar.' },
-    { rota: '/app/configuracoes/perfis', tela: 'Perfil', descricao: 'Lista de perfis, modal Criar/Editar/Excluir com permissões.' },
+    { rota: '/app/gerenciamento/perfil', tela: 'Perfil', descricao: 'Lista de perfis, modal Criar/Editar/Excluir com permissões.' },
   ];
 
   readonly ligamentosEstacionamento: Ligamento[] = [
@@ -85,7 +85,7 @@ export class AndamentosPageComponent {
 
   readonly ligamentosAcessos: Ligamento[] = [
     { origem: 'Container Configurações', acao: 'Aba Usuários', destino: '/app/configuracoes/usuarios' },
-    { origem: 'Container Configurações', acao: 'Aba Perfil', destino: '/app/configuracoes/perfis' },
+    { origem: 'Container Gerenciamento', acao: 'Aba Perfil', destino: '/app/gerenciamento/perfil' },
     { origem: 'Modal Novo/Editar usuário', acao: 'Cancelar / após Salvar', destino: 'Fecha modal (permanece em Usuários)' },
   ];
 

@@ -1,9 +1,9 @@
 <div class="page-container">
-  <header class="page-header">
+  <header class="page-header dk-page-header">
     <div class="page-header__row page-header__row--1">
       <div class="page-header__title-wrap">
-        <h1 class="page-title">Movimentos</h1>
-        <p class="page-subtitle">Central de operação (entrada e saída).</p>
+        <h1 class="page-title dk-page-title">Movimentos</h1>
+        <p class="page-subtitle dk-page-subtitle">Central de operação (entrada e saída).</p>
       </div>
       <span class="page-header__badge">Em desenvolvimento</span>
     </div>
@@ -37,7 +37,7 @@
     @switch (activeTab) {
       @case ('operacao') {
         <div class="operacao">
-          <div class="operacao-actions">
+          <div class="operacao-actions dk-action-bar">
             <div class="operacao-actions__entrada">
               <button type="button" class="btn btn-primary" (click)="openEntradaModal()">Entrada</button>
             </div>
@@ -93,8 +93,8 @@
           <section class="card operacao-card operacao-card--full">
             <h2 class="card__title">{{ tituloTabelaEmAndamento }}</h2>
             <div class="card__body">
-              <div class="table-wrap">
-                <table class="data-table">
+              <div class="table-wrap dk-table-wrap">
+                <table class="data-table dk-table">
                   <thead>
                     <tr>
                       <th class="th-sortable" (click)="ordenarPor('placa')" role="button" tabindex="0" (keydown.enter)="ordenarPor('placa')">
@@ -194,7 +194,7 @@
       }
       @case ('historico') {
         <div class="historico">
-          <div class="historico-actions">
+          <div class="historico-actions dk-action-bar">
             <div class="historico-actions__busca">
               <input
                 type="text"
@@ -260,8 +260,8 @@
           <section class="card operacao-card operacao-card--full">
             <h2 class="card__title">Histórico de movimentos</h2>
             <div class="card__body">
-              <div class="table-wrap">
-                <table class="data-table historico-table">
+              <div class="table-wrap dk-table-wrap">
+                <table class="data-table dk-table historico-table">
                   <thead>
                     <tr>
                       <th>Placa</th>
@@ -342,18 +342,18 @@
   </div>
 
   @if (entradaModalOpen) {
-    <div class="modal-overlay" (click)="closeEntradaModal()" role="presentation">
+    <div class="modal-overlay dk-modal-overlay" (click)="closeEntradaModal()" role="presentation">
       <div
-        class="modal-content"
+        class="modal-content dk-modal-content"
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-entrada-title"
         (click)="$event.stopPropagation()"
       >
-        <div class="modal-header">
+        <div class="modal-header dk-modal-header">
           <h2 id="modal-entrada-title">Entrada (Check-in)</h2>
         </div>
-        <div class="modal-body">
+        <div class="modal-body dk-modal-body">
           <div class="form-group">
             <label for="modal-op-placa">Placa</label>
             <input
@@ -425,7 +425,7 @@
             <input id="modal-op-obs" type="text" class="input-control" placeholder="Observação (opcional)" [(ngModel)]="entradaForm.observacao" />
           </div>
         </div>
-        <div class="modal-footer">
+        <div class="modal-footer dk-modal-footer">
           <button type="button" class="btn btn-secondary" (click)="closeEntradaModal()">Fechar</button>
           <button type="button" class="btn btn-primary" (click)="registrarEntrada()" [disabled]="!entradaForm.placa.trim()">
             Registrar entrada
@@ -436,19 +436,19 @@
   }
 
   @if (detalheMovimento) {
-    <div class="modal-overlay" (click)="closeDetalheMovimento()" role="presentation">
+    <div class="modal-overlay dk-modal-overlay" (click)="closeDetalheMovimento()" role="presentation">
       <div
-        class="modal-content modal-content--detalhe"
+        class="modal-content dk-modal-content modal-content--detalhe"
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-detalhe-title"
         (click)="$event.stopPropagation()"
       >
-        <div class="modal-header">
+        <div class="modal-header dk-modal-header">
           <h2 id="modal-detalhe-title">Detalhes do movimento</h2>
           <button type="button" class="modal-close" aria-label="Fechar" (click)="closeDetalheMovimento()">&times;</button>
         </div>
-        <div class="modal-body detalhe-body">
+        <div class="modal-body dk-modal-body detalhe-body">
           <dl class="detalhe-list">
             <div class="detalhe-item">
               <dt>Placa</dt>
@@ -488,7 +488,7 @@
             </div>
           </dl>
         </div>
-        <div class="modal-footer">
+        <div class="modal-footer dk-modal-footer">
           <button type="button" class="btn btn-secondary" (click)="imprimirComprovante(detalheMovimento)">Imprimir</button>
           <button type="button" class="btn btn-secondary" (click)="closeDetalheMovimento()">Fechar</button>
         </div>

@@ -26,10 +26,8 @@ export const CONFIGURACOES_ROUTES: Routes = [
       },
       {
         path: 'perfis',
-        loadComponent: () =>
-          import('../cadastro/pages/acessos-perfis-page/acessos-perfis-page.component').then(
-            (m) => m.AcessosPerfisPageComponent
-          ),
+        redirectTo: '/app/gerenciamento/perfil',
+        pathMatch: 'full',
       },
     ],
   },

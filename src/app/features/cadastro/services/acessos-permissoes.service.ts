@@ -13,8 +13,9 @@ export interface PermissaoItem {
 
 /**
  * Service para Permissões (Claims/Permission).
- * Não existe nenhum endpoint relacionado a Permissões no Swagger.
- * buscar() é stub; quando existir GET, retornar array e a UI agrupa por módulo.
+ * Mapeamento de stubs:
+ * - Nenhum endpoint confirmado no Swagger para permissões no momento.
+ * - Todos os métodos permanecem stub para evitar integração de risco.
  * @see https://gtsbackend.azurewebsites.net/swagger/v1/swagger.json
  */
 @Injectable({
