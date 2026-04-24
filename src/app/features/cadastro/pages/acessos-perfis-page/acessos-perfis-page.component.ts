@@ -11,15 +11,26 @@ import { FormsModule } from '@angular/forms';
 import {
   AcessosPerfisService,
   ApplicationRole,
+  PerfilUpsertInput,
 } from '../../services/acessos-perfis.service';
 import { ProfilePermissionsStoreService } from '../../services/profile-permissions-store.service';
-import { MenuApiService } from '../../../gerenciamento/services/menu-api.service';
-import { mapBuscarResponseToMenuAdmins } from '../../../gerenciamento/services/menu-api.mapper';
 import type { MenuAdmin } from '../../../gerenciamento/models/menu-admin.model';
 import { PermissionCacheService } from '../../../../core/services/permission-cache.service';
 import { SessionAccessService } from '../../../../core/services/session-access.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { ToastService } from '../../../../core/api/services/toast.service';
+import {
+  buildPermissionTreeState,
+  getSelectedMenuCount,
+  getSelectedPermissionCount,
+  getSelectedPermissionKeys,
+  hasAnyMenuSelected,
+  mapTreeToPerfilMenusPayload,
+  toggleMenuSelection,
+  togglePermissaoSelection,
+  toggleSubMenuSelection,
+  type TreeMenuNode,
+} from './perfil-permissoes-tree.util';
 
 type ModalKind = 'create' | 'edit' | 'delete' | null;
 
@@ -36,7 +47,6 @@ const AVISO_SEM_ENDPOINT =
 export class AcessosPerfisPageComponent implements OnInit {
   private perfisService = inject(AcessosPerfisService);
   private profilePermissionsStore = inject(ProfilePermissionsStoreService);
-  private menuApi = inject(MenuApiService);
   private permissionCache = inject(PermissionCacheService);
   private sessionAccess = inject(SessionAccessService);
   private authService = inject(AuthService);
@@ -55,29 +65,15 @@ export class AcessosPerfisPageComponent implements OnInit {
   deleting = signal(false);
 
   form = { name: '', normalizedName: '', permissionIds: [] as string[] };
-  permissionSearchTerm = signal('');
-  /** Módulos com lista de permissões expandida (estilo listagem). */
-  expandedModules = signal<string[]>([]);
-  private backendPermissionGroups = signal<{ module: string; keys: string[] }[]>([]);
-  private allBackendPermissionKeys = signal<string[]>([]);
-
-  /** Permissões filtradas pelo termo de busca (para exibição no modal). */
-  filteredPermissionsByModule = computed(() => {
-    const term = this.permissionSearchTerm().trim().toLowerCase();
-    const result: { module: string; keys: string[] }[] = [];
-    for (const group of this.backendPermissionGroups()) {
-      const keys = group.keys.filter((key) =>
-        term
-          ? key.toLowerCase().includes(term) || group.module.toLowerCase().includes(term)
-          : true
-      );
-      if (keys.length) result.push({ module: group.module, keys });
-    }
-    return result;
-  });
+  private backendMenuCatalog = signal<MenuAdmin[]>([]);
+  permissionTree = signal<TreeMenuNode[]>([]);
 
   get selectedPermissionsCount(): number {
-    return this.form.permissionIds.length;
+    return getSelectedPermissionCount(this.permissionTree());
+  }
+
+  get selectedMenusCount(): number {
+    return getSelectedMenuCount(this.permissionTree());
   }
 
   isModalOpen = computed(() => this.modalKind() !== null);
@@ -86,27 +82,7 @@ export class AcessosPerfisPageComponent implements OnInit {
   isDelete = computed(() => this.modalKind() === 'delete');
 
   ngOnInit(): void {
-    this.carregarPermissoesDoBackend();
     this.carregar();
-  }
-
-  private carregarPermissoesDoBackend(): void {
-    this.menuApi.buscar().subscribe({
-      next: (body) => {
-        const menus = mapBuscarResponseToMenuAdmins(body);
-        const groups = this.buildPermissionGroupsFromMenus(menus);
-        const keys = groups.flatMap((g) => g.keys);
-        this.backendPermissionGroups.set(groups);
-        this.allBackendPermissionKeys.set(keys);
-        this.seedAdminProfilePermissions();
-        this.cdr.markForCheck();
-      },
-      error: () => {
-        this.backendPermissionGroups.set([]);
-        this.allBackendPermissionKeys.set([]);
-        this.cdr.markForCheck();
-      },
-    });
   }
 
   carregar(): void {
@@ -115,10 +91,14 @@ export class AcessosPerfisPageComponent implements OnInit {
     this.cdr.markForCheck();
     this.perfisService.buscar().subscribe({
       next: (body) => {
+        const rawList = this.extractRawProfileList(body);
         this.loading = false;
         this.erro = null;
-        this.itens = this.normalizeList(body);
-        this.seedAdminProfilePermissions();
+        this.itens = rawList.map((item) => this.normalizeRoleItem(item));
+        const menus = this.buildMenuCatalogFromProfiles(rawList);
+        this.backendMenuCatalog.set(menus);
+        this.permissionTree.set(buildPermissionTreeState(menus, null, []));
+        this.syncProfilePermissionsStore();
         this.cdr.markForCheck();
       },
       error: () => {
@@ -134,45 +114,347 @@ export class AcessosPerfisPageComponent implements OnInit {
     this.carregar();
   }
 
-  private normalizeList(body: unknown): ApplicationRole[] {
-    if (Array.isArray(body)) return body as ApplicationRole[];
+  private buildMenuCatalogFromProfiles(items: Record<string, unknown>[]): MenuAdmin[] {
+    const byMenuId = new Map<number, MenuAdmin>();
+
+    for (const item of items) {
+      const menus = this.getArrayProp(item, 'menus', 'Menus');
+      for (const menuItem of menus ?? []) {
+        const mappedMenu = this.mapMenuFromPerfilResponse(menuItem);
+        if (!mappedMenu) continue;
+        const existingMenu = byMenuId.get(mappedMenu.id);
+        if (!existingMenu) {
+          byMenuId.set(mappedMenu.id, mappedMenu);
+          continue;
+        }
+        byMenuId.set(mappedMenu.id, this.mergeMenuNodes(existingMenu, mappedMenu));
+      }
+    }
+
+    return [...byMenuId.values()].sort((a, b) => a.ordem - b.ordem);
+  }
+
+  private mapMenuFromPerfilResponse(value: unknown): MenuAdmin | null {
+    if (!value || typeof value !== 'object') return null;
+    const record = value as Record<string, unknown>;
+    const id = this.readNumber(record, 'menuId', 'moduleId', 'id');
+    if (id == null) return null;
+    const nome =
+      this.readString(record, 'descricao', 'nome', 'name', 'menuDescricao') ?? `Menu ${id}`;
+    const subMenusRaw = this.getArrayProp(
+      record,
+      'subMenus',
+      'submenus',
+      'subModules',
+      'submodulos',
+      'SubMenus'
+    );
+
+    const subMenus = (subMenusRaw ?? [])
+      .map((sub, idx) => this.mapSubMenuFromPerfilResponse(sub, idx))
+      .filter((sub): sub is NonNullable<typeof sub> => sub !== null);
+
+    return {
+      id,
+      nome,
+      ordem: this.readNumber(record, 'ordem') ?? 0,
+      icone: this.readString(record, 'icone') ?? 'menu',
+      ativo: !this.readBoolean(record, 'inativo'),
+      subMenus,
+      existeNoServidor: true,
+    };
+  }
+
+  private mapSubMenuFromPerfilResponse(value: unknown, fallbackOrder: number) {
+    if (!value || typeof value !== 'object') return null;
+    const record = value as Record<string, unknown>;
+    const id = this.readNumber(record, 'subMenuId', 'subModuleId', 'id');
+    if (id == null) return null;
+    const nome = this.readString(record, 'subDescricao', 'descricao', 'nome', 'name') ?? `Submenu ${id}`;
+    const permissionsRaw = this.getArrayProp(
+      record,
+      'permissoes',
+      'permissions',
+      'Permissoes',
+      'Permissions'
+    );
+    const permissions = (permissionsRaw ?? [])
+      .map((perm, idx) => this.mapPermissionFromPerfilResponse(perm, id, idx))
+      .filter((perm): perm is NonNullable<typeof perm> => perm !== null);
+
+    return {
+      id,
+      nome,
+      ordem: this.readNumber(record, 'ordem') ?? fallbackOrder,
+      rota: this.readString(record, 'rota') ?? '',
+      ativo: !this.readBoolean(record, 'inativo'),
+      permissions,
+    };
+  }
+
+  private mapPermissionFromPerfilResponse(value: unknown, subMenuId: number, fallbackOrder: number) {
+    if (!value || typeof value !== 'object') return null;
+    const record = value as Record<string, unknown>;
+    const id = this.readNumber(record, 'permissaoId', 'permissionId', 'id');
+    const acao = this.readString(record, 'acao', 'descricao', 'name');
+    if (id == null || !acao) return null;
+    return {
+      id,
+      ordem: this.readNumber(record, 'ordem') ?? fallbackOrder,
+      subModuleId: subMenuId,
+      acao,
+    };
+  }
+
+  private mergeMenuNodes(current: MenuAdmin, incoming: MenuAdmin): MenuAdmin {
+    const bySubMenuId = new Map<number, (typeof current.subMenus)[number]>();
+    for (const subMenu of current.subMenus ?? []) {
+      bySubMenuId.set(subMenu.id, { ...subMenu, permissions: [...(subMenu.permissions ?? [])] });
+    }
+
+    for (const subMenu of incoming.subMenus ?? []) {
+      const existing = bySubMenuId.get(subMenu.id);
+      if (!existing) {
+        bySubMenuId.set(subMenu.id, { ...subMenu, permissions: [...(subMenu.permissions ?? [])] });
+        continue;
+      }
+      const permissionById = new Map<number, (typeof existing.permissions)[number]>();
+      for (const permission of existing.permissions ?? []) {
+        permissionById.set(permission.id, permission);
+      }
+      for (const permission of subMenu.permissions ?? []) {
+        if (!permissionById.has(permission.id)) {
+          permissionById.set(permission.id, permission);
+        }
+      }
+      bySubMenuId.set(subMenu.id, {
+        ...existing,
+        nome: existing.nome || subMenu.nome,
+        rota: existing.rota || subMenu.rota,
+        ativo: existing.ativo ?? subMenu.ativo,
+        ordem: Math.min(existing.ordem, subMenu.ordem),
+        permissions: [...permissionById.values()].sort((a, b) => a.ordem - b.ordem),
+      });
+    }
+
+    return {
+      ...current,
+      nome: current.nome || incoming.nome,
+      ordem: Math.min(current.ordem, incoming.ordem),
+      subMenus: [...bySubMenuId.values()].sort((a, b) => a.ordem - b.ordem),
+    };
+  }
+
+  private extractRawProfileList(body: unknown): Record<string, unknown>[] {
+    if (Array.isArray(body)) {
+      return body.filter((item): item is Record<string, unknown> => !!item && typeof item === 'object');
+    }
     if (body && typeof body === 'object' && 'result' in body) {
       const r = (body as { result?: unknown }).result;
-      return Array.isArray(r) ? (r as ApplicationRole[]) : [];
+      if (Array.isArray(r)) {
+        return r.filter((item): item is Record<string, unknown> => !!item && typeof item === 'object');
+      }
     }
     if (body && typeof body === 'object' && 'results' in body) {
       const r = (body as { results?: unknown }).results;
-      return Array.isArray(r) ? (r as ApplicationRole[]) : [];
+      if (Array.isArray(r)) {
+        return r.filter((item): item is Record<string, unknown> => !!item && typeof item === 'object');
+      }
     }
     return [];
   }
 
-  /** Perfil Admin: seed com pelo menos 3 permissões para teste na criação de usuário. */
-  private seedAdminProfilePermissions(): void {
-    const admin = this.itens.find(
-      (p) =>
-        (p.name ?? '').toLowerCase().includes('admin') ||
-        (p.normalizedName ?? '').toLowerCase().includes('admin')
+  private normalizeRoleItem(raw: Record<string, unknown>): ApplicationRole {
+    const permissionIds = this.extractPermissionIdsFromRole(raw);
+    const menus = this.getArrayProp(raw, 'menus', 'Menus');
+    return {
+      id: this.readId(raw, 'id', 'perfilId', 'roleId'),
+      perfilId: this.readId(raw, 'perfilId', 'id'),
+      perfil: this.readString(raw, 'perfil'),
+      name: this.readString(raw, 'name', 'nome', 'perfil'),
+      nome: this.readString(raw, 'nome', 'name', 'perfil'),
+      normalizedName: this.readString(raw, 'normalizedName', 'descricao'),
+      concurrencyStamp: this.readString(raw, 'concurrencyStamp'),
+      menus,
+      permissionIds,
+    };
+  }
+
+  private extractPermissionIdsFromRole(raw: Record<string, unknown>): string[] {
+    const fromExplicitList = this.readStringArray(raw['permissionIds'] ?? raw['permissions']);
+    const fromMenus = this.extractPermissionIdsFromMenus(this.getArrayProp(raw, 'menus', 'Menus'));
+    const fromModulos = this.extractPermissionIdsFromModulos(
+      this.getArrayProp(raw, 'modulos', 'Modulos', 'subMenus')
     );
-    if (!admin) return;
-    const key = admin.name ?? admin.id ?? '';
-    if (!key) return;
-    const current = this.profilePermissionsStore.getProfilePermissions(key);
-    if (current.length >= 3) return;
-    const all = this.allBackendPermissionKeys();
-    if (all.length === 0) return;
-    const toSet = current.length > 0 ? current : all.slice(0, Math.max(3, all.length));
-    if (toSet.length < 3) {
-      toSet.push(...all.filter((k) => !toSet.includes(k)).slice(0, 3 - toSet.length));
+    const merged = [...fromExplicitList, ...fromMenus, ...fromModulos];
+    return Array.from(new Set(merged.map((key) => key.trim()).filter((key) => key.length > 0)));
+  }
+
+  private extractPermissionIdsFromMenus(menus: unknown[] | null): string[] {
+    if (!menus) return [];
+    const selected: string[] = [];
+
+    for (const menu of menus) {
+      if (!menu || typeof menu !== 'object') continue;
+      const menuRec = menu as Record<string, unknown>;
+      const subMenus = this.getArrayProp(menuRec, 'subMenus', 'submenus', 'SubMenus');
+
+      for (const sub of subMenus ?? []) {
+        if (!sub || typeof sub !== 'object') continue;
+        const subRec = sub as Record<string, unknown>;
+        const permissions = this.getArrayProp(subRec, 'permissions', 'permissoes', 'Permissoes');
+        for (const perm of permissions ?? []) {
+          if (!perm || typeof perm !== 'object') continue;
+          const permRec = perm as Record<string, unknown>;
+          const isSelected = this.readBoolean(
+            permRec,
+            'permSelecionado',
+            'selecionadoPerm',
+            'selecionado',
+            'selected',
+            'ativo',
+            'subSelecionado'
+          );
+          if (!isSelected) continue;
+          const action = this.resolvePermissionKey(permRec, subRec);
+          if (action) {
+            selected.push(action);
+          }
+        }
+      }
     }
-    this.profilePermissionsStore.setProfilePermissions(key, toSet);
+    return selected;
+  }
+
+  private extractPermissionIdsFromModulos(modulos: unknown[] | null): string[] {
+    if (!modulos) return [];
+    const selected: string[] = [];
+
+    for (const modulo of modulos) {
+      if (!modulo || typeof modulo !== 'object') continue;
+      const moduloRec = modulo as Record<string, unknown>;
+      const subModulos = this.getArrayProp(moduloRec, 'subModulos', 'submodulos', 'SubModulos');
+
+      for (const sub of subModulos ?? []) {
+        if (!sub || typeof sub !== 'object') continue;
+        const subRec = sub as Record<string, unknown>;
+        const perms = this.getArrayProp(subRec, 'permissoes', 'permissions', 'Permissoes');
+        for (const perm of perms ?? []) {
+          if (!perm || typeof perm !== 'object') continue;
+          const permRec = perm as Record<string, unknown>;
+          const isSelected = this.readBoolean(
+            permRec,
+            'selecionado',
+            'permSelecionado',
+            'selecionadoPerm',
+            'selected'
+          );
+          if (!isSelected) continue;
+          const action = this.resolvePermissionKey(permRec, subRec);
+          if (action) {
+            selected.push(action);
+          }
+        }
+      }
+    }
+
+    return selected;
+  }
+
+  private resolvePermissionKey(
+    permission: Record<string, unknown>,
+    subMenu: Record<string, unknown>
+  ): string | null {
+    const fromAction = this.readString(permission, 'acao', 'action', 'descricao', 'name');
+    if (fromAction) return fromAction;
+
+    const permissionId = this.readNumber(permission, 'permissaoId', 'permissionId', 'id');
+    if (permissionId != null) {
+      const fromCatalog = this.getPermissionIdToKeyMap().get(permissionId);
+      if (fromCatalog) return fromCatalog;
+    }
+
+    const subName = this.readString(subMenu, 'subDescricao', 'descricao', 'nome', 'name');
+    if (!subName) return null;
+    const actionLabel = this.readString(permission, 'acao', 'descricao') ?? 'visualizar';
+    return `${subName.toLowerCase()}.${actionLabel.toLowerCase()}`;
+  }
+
+  private syncProfilePermissionsStore(): void {
+    for (const item of this.itens) {
+      const key = this.getProfileStoreKey(item);
+      if (!key) continue;
+      this.profilePermissionsStore.setProfilePermissions(key, [...(item.permissionIds ?? [])]);
+    }
+  }
+
+  private readString(record: Record<string, unknown>, ...keys: string[]): string | null {
+    for (const key of keys) {
+      const value = record[key];
+      if (typeof value === 'string' && value.trim()) {
+        return value.trim();
+      }
+    }
+    return null;
+  }
+
+  private readId(record: Record<string, unknown>, ...keys: string[]): string | undefined {
+    for (const key of keys) {
+      const value = record[key];
+      if (typeof value === 'number' && Number.isFinite(value)) return String(value);
+      if (typeof value === 'string' && value.trim()) return value.trim();
+    }
+    return undefined;
+  }
+
+  private readNumber(record: Record<string, unknown>, ...keys: string[]): number | undefined {
+    for (const key of keys) {
+      const value = record[key];
+      if (typeof value === 'number' && Number.isFinite(value)) return value;
+      if (typeof value === 'string' && value.trim()) {
+        const n = Number(value);
+        if (Number.isFinite(n)) return n;
+      }
+    }
+    return undefined;
+  }
+
+  private toOptionalNumber(value: unknown): number | undefined {
+    if (typeof value === 'number' && Number.isFinite(value)) return value;
+    if (typeof value === 'string' && value.trim()) {
+      const n = Number(value);
+      return Number.isFinite(n) ? n : undefined;
+    }
+    return undefined;
+  }
+
+  private readBoolean(record: Record<string, unknown>, ...keys: string[]): boolean {
+    for (const key of keys) {
+      if (record[key] === true) return true;
+    }
+    return false;
+  }
+
+  private getArrayProp(record: Record<string, unknown>, ...keys: string[]): unknown[] | null {
+    for (const key of keys) {
+      const value = record[key];
+      if (Array.isArray(value)) return value;
+    }
+    return null;
+  }
+
+  private readStringArray(value: unknown): string[] {
+    if (!Array.isArray(value)) return [];
+    return value
+      .map((item) => (typeof item === 'string' ? item.trim() : ''))
+      .filter((item) => item.length > 0);
   }
 
   openNovo(): void {
     this.saveError.set(null);
+    this.editItem.set(null);
     this.form = { name: '', normalizedName: '', permissionIds: [] };
-    this.permissionSearchTerm.set('');
-    this.expandedModules.set([]);
+    this.permissionTree.set(buildPermissionTreeState(this.backendMenuCatalog(), null, []));
     this.modalKind.set('create');
     this.cdr.markForCheck();
   }
@@ -180,136 +462,88 @@ export class AcessosPerfisPageComponent implements OnInit {
   openEditar(item: ApplicationRole): void {
     this.saveError.set(null);
     this.editItem.set(item);
-    const key = item.name ?? item.id ?? '';
-    const isAdminProfile =
-      (item.name ?? '').toLowerCase().includes('admin') ||
-      (item.normalizedName ?? '').toLowerCase().includes('admin');
-    const fromStore = this.profilePermissionsStore.getProfilePermissions(key);
-    const fallbackAdmin = isAdminProfile ? this.allBackendPermissionKeys() : [];
     this.form = {
-      name: item.name ?? '',
+      name: item.name ?? item.nome ?? item.perfil ?? '',
       normalizedName: item.normalizedName ?? '',
-      permissionIds: [...(fromStore.length > 0 ? fromStore : fallbackAdmin)],
+      permissionIds: [...(item.permissionIds ?? [])],
     };
-    this.permissionSearchTerm.set('');
-    this.expandedModules.set([]);
+    this.permissionTree.set(
+      buildPermissionTreeState(this.backendMenuCatalog(), item.menus ?? null, item.permissionIds ?? [])
+    );
     this.modalKind.set('edit');
     this.cdr.markForCheck();
   }
 
-  toggleProfilePermission(key: string): void {
-    const idx = this.form.permissionIds.indexOf(key);
-    if (idx >= 0) {
-      this.form.permissionIds = this.form.permissionIds.filter((k) => k !== key);
-    } else {
-      this.form.permissionIds = [...this.form.permissionIds, key];
-    }
+  onMenuToggle(menuId: number, checked: boolean): void {
+    this.permissionTree.set(toggleMenuSelection(this.permissionTree(), menuId, checked));
     this.cdr.markForCheck();
   }
 
   selecionarTodasPermissoes(): void {
-    this.form.permissionIds = [...this.allBackendPermissionKeys()];
+    this.permissionTree.set(
+      this.permissionTree().map((menu) => ({
+        ...menu,
+        selecionado: true,
+        subMenus: menu.subMenus.map((subMenu) => ({
+          ...subMenu,
+          selecionado: true,
+          permissoes: subMenu.permissoes.map((permissao) => ({ ...permissao, selecionado: true })),
+        })),
+      }))
+    );
     this.cdr.markForCheck();
   }
 
   limparPermissoesSelecionadas(): void {
-    this.form.permissionIds = [];
+    this.permissionTree.set(
+      this.permissionTree().map((menu) => ({
+        ...menu,
+        selecionado: false,
+        subMenus: menu.subMenus.map((subMenu) => ({
+          ...subMenu,
+          selecionado: false,
+          permissoes: subMenu.permissoes.map((permissao) => ({ ...permissao, selecionado: false })),
+        })),
+      }))
+    );
     this.cdr.markForCheck();
   }
 
-  /** Verifica se todas as permissões do tópico estão selecionadas. */
-  isModuloTotalmenteSelecionado(module: string): boolean {
-    const keys = this.getKeysByModule(module);
-    if (keys.length === 0) return false;
-    return keys.every((k) => this.form.permissionIds.includes(k));
-  }
-
-  /** Alterna: seleciona todas as permissões do tópico ou desmarca todas. */
-  toggleTodasDoModulo(module: string): void {
-    const keys = this.getKeysByModule(module);
-    const current = new Set(this.form.permissionIds);
-    if (keys.every((k) => current.has(k))) {
-      keys.forEach((k) => current.delete(k));
-    } else {
-      keys.forEach((k) => current.add(k));
-    }
-    this.form.permissionIds = Array.from(current);
+  onSubMenuToggle(menuId: number, subMenuId: number, checked: boolean): void {
+    this.permissionTree.set(toggleSubMenuSelection(this.permissionTree(), menuId, subMenuId, checked));
     this.cdr.markForCheck();
   }
 
-  /** Alterna expansão da linha do módulo (listagem estilo estacionamento). */
-  toggleModuleExpanded(module: string): void {
-    const current = this.expandedModules();
-    const idx = current.indexOf(module);
-    if (idx >= 0) {
-      this.expandedModules.set(current.filter((m) => m !== module));
-    } else {
-      this.expandedModules.set([...current, module]);
-    }
+  onPermissaoToggle(
+    menuId: number,
+    subMenuId: number,
+    permissaoId: number,
+    checked: boolean
+  ): void {
+    this.permissionTree.set(
+      togglePermissaoSelection(this.permissionTree(), menuId, subMenuId, permissaoId, checked)
+    );
     this.cdr.markForCheck();
-  }
-
-  isModuleExpanded(module: string): boolean {
-    return this.expandedModules().includes(module);
-  }
-
-  /** Quantidade de permissões selecionadas no módulo. */
-  getSelectedCountInModule(module: string): number {
-    const keys = this.getKeysByModule(module);
-    return keys.filter((k) => this.form.permissionIds.includes(k)).length;
-  }
-
-  private getKeysByModule(module: string): string[] {
-    return this.backendPermissionGroups().find((g) => g.module === module)?.keys ?? [];
-  }
-
-  private buildPermissionGroupsFromMenus(menus: MenuAdmin[]): { module: string; keys: string[] }[] {
-    const groups: { module: string; keys: string[] }[] = [];
-    for (const menu of menus) {
-      const menuLabel = (menu.nome ?? '').trim();
-      const orderedSubs = [...(menu.subMenus ?? [])].sort((a, b) => a.ordem - b.ordem);
-      for (const sub of orderedSubs) {
-        const subLabel = (sub.nome ?? '').trim();
-        const moduleLabel = menuLabel && subLabel ? `${menuLabel} / ${subLabel}` : subLabel || menuLabel;
-        const keys = Array.from(
-          new Set(
-            (sub.permissions ?? [])
-              .map((p) => (p.acao ?? '').trim())
-              .filter((p) => p.length > 0)
-          )
-        );
-        if (!moduleLabel || keys.length === 0) continue;
-        groups.push({ module: moduleLabel, keys });
-      }
-    }
-    return groups;
   }
 
   private syncSessionAccessFromBackendCatalog(): void {
-    this.menuApi.buscar().subscribe({
-      next: (body) => {
-        const menus = mapBuscarResponseToMenuAdmins(body);
-        this.sessionAccess.setMenus(
-          menus.map((m) => ({
-            id: m.id,
-            descricao: m.nome,
-            icone: m.icone,
-            ativo: m.ativo,
-            ordem: m.ordem,
-            subMenus: (m.subMenus ?? []).map((s) => ({
-              id: s.id,
-              descricao: s.nome,
-              rota: s.rota,
-              ativo: s.ativo,
-              ordem: s.ordem,
-            })),
-          }))
-        );
-      },
-      error: () => {
-        // Erro já tratado por interceptor.
-      },
-    });
+    const menus = this.backendMenuCatalog();
+    this.sessionAccess.setMenus(
+      menus.map((m) => ({
+        id: m.id,
+        descricao: m.nome,
+        icone: m.icone,
+        ativo: m.ativo,
+        ordem: m.ordem,
+        subMenus: (m.subMenus ?? []).map((s) => ({
+          id: s.id,
+          descricao: s.nome,
+          rota: s.rota,
+          ativo: s.ativo,
+          ordem: s.ordem,
+        })),
+      }))
+    );
   }
 
   private syncPermissionCacheForCurrentUserProfile(editedRoleName: string): void {
@@ -320,15 +554,46 @@ export class AcessosPerfisPageComponent implements OnInit {
     const role = (editedRoleName ?? '').trim().toLowerCase();
     if (!loggedPerfil || !role || loggedPerfil !== role) return;
 
-    const keys = [...this.form.permissionIds];
+    const keys = getSelectedPermissionKeys(this.permissionTree());
     this.permissionCache.setKeys(keys);
     const updated = { ...logged, permissionKeys: keys };
     localStorage.setItem('loggedUser', JSON.stringify(updated));
   }
 
+  private getProfileStoreKey(item: ApplicationRole | null | undefined): string | null {
+    if (!item) return null;
+    const key = item.name ?? item.nome ?? item.perfil ?? item.id?.toString() ?? item.perfilId?.toString();
+    return key?.trim() ? key.trim() : null;
+  }
+
+  private toUpsertPayload(editingItem: ApplicationRole | null): PerfilUpsertInput {
+    const nome = this.form.name.trim() || null;
+    return {
+      id: this.toOptionalNumber(editingItem?.id ?? editingItem?.perfilId),
+      perfilId: this.toOptionalNumber(editingItem?.perfilId),
+      nome,
+      name: nome,
+      menus: mapTreeToPerfilMenusPayload(this.permissionTree()),
+    };
+  }
+
+  private getPermissionIdToKeyMap(): Map<number, string> {
+    const map = new Map<number, string>();
+    for (const menu of this.backendMenuCatalog()) {
+      for (const sub of menu.subMenus ?? []) {
+        for (const permission of sub.permissions ?? []) {
+          const key = (permission.acao ?? '').trim();
+          if (permission.id && key) {
+            map.set(permission.id, key);
+          }
+        }
+      }
+    }
+    return map;
+  }
+
   getProfilePermissionCount(item: ApplicationRole): number {
-    const k = item.name ?? item.id ?? '';
-    return this.profilePermissionsStore.getProfilePermissions(k).length;
+    return item.permissionIds?.length ?? 0;
   }
 
   openExcluir(item: ApplicationRole): void {
@@ -349,19 +614,20 @@ export class AcessosPerfisPageComponent implements OnInit {
     const kind = this.modalKind();
     if (kind === 'delete') return;
     this.saveError.set(null);
+    if (!hasAnyMenuSelected(this.permissionTree())) {
+      this.saveError.set('Selecione pelo menos um menu para salvar o perfil.');
+      this.cdr.markForCheck();
+      return;
+    }
     this.saving.set(true);
     this.cdr.markForCheck();
 
-    const dto: ApplicationRole = {
-      name: this.form.name.trim() || undefined,
-      normalizedName: this.form.normalizedName.trim() || undefined,
-    };
+    const dto: PerfilUpsertInput = this.toUpsertPayload(kind === 'edit' ? this.editItem() : null);
 
     if (kind === 'edit') {
       const item = this.editItem();
       if (item?.id) {
-        dto.id = item.id;
-        dto.concurrencyStamp = item.concurrencyStamp ?? undefined;
+        dto.id = this.toOptionalNumber(item.id);
       }
     }
 
@@ -372,9 +638,10 @@ export class AcessosPerfisPageComponent implements OnInit {
 
     obs.subscribe({
       next: () => {
-        const key = this.editItem()?.name ?? this.editItem()?.id ?? this.form.name;
+        const key = this.getProfileStoreKey(this.editItem()) ?? this.form.name.trim();
+        const selectedPermissionKeys = getSelectedPermissionKeys(this.permissionTree());
         if (key) {
-          this.profilePermissionsStore.setProfilePermissions(key, this.form.permissionIds);
+          this.profilePermissionsStore.setProfilePermissions(key, selectedPermissionKeys);
         }
         const editedRoleName = this.form.name.trim() || this.editItem()?.name || '';
         this.syncPermissionCacheForCurrentUserProfile(editedRoleName);

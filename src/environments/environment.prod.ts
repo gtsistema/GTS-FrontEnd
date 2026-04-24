@@ -5,9 +5,9 @@
 export const environment = {
   production: true,
   /** Base do backend (sem /api no final). */
-  apiUrl: 'https://gtsbackend.azurewebsites.net',
+  apiUrl: 'https://localhost:44317',
   /** Base URL da API (uso em TransportadoraService, ApiService e interceptors). */
-  API_BASE_URL: 'https://gtsbackend.azurewebsites.net/api',
+  API_BASE_URL: 'https://localhost:44317/api',
   emergencyAdmin: {
     enabled: false,
     username: '',

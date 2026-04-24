@@ -71,8 +71,8 @@
           <label class="checkbox-item">
             <input
               type="checkbox"
-              [checked]="form.perfilIds.includes(p.id ?? '')"
-              (change)="togglePerfil(p.id ?? '')"
+              [checked]="form.perfilIds.includes(toPerfilId(p.id))"
+              (change)="togglePerfil(toPerfilId(p.id))"
             />
             <span>{{ p.name ?? p.id ?? '-' }}</span>
           </label>

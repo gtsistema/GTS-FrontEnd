@@ -1,11 +1,10 @@
 /**
- * Desenvolvimento: usar proxy local (`/api`) para evitar CORS no navegador.
- * O `proxy.conf.json` redireciona para o backend local.
+ * Desenvolvimento: usar backend HTTPS local na porta oficial da API.
  */
 export const environment = {
   production: false,
-  apiUrl: 'http://localhost:5000',
-  API_BASE_URL: '/api',
+  apiUrl: 'https://localhost:44317',
+  API_BASE_URL: 'https://localhost:44317/api',
   emergencyAdmin: {
     enabled: true,
     username: 'teste.admin',

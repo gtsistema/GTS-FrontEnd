@@ -56,7 +56,7 @@ export class LoginPageComponent {
       next: (result) => {
         if (result.success) {
           this.toast.success('Login realizado com sucesso.');
-          this.router.navigate(['/app/dashboard']);
+          this.router.navigateByUrl(this.authService.getDefaultAuthorizedRoute());
         } else {
           this.toast.error(result.message);
           this.cdr.detectChanges();

@@ -3,11 +3,11 @@
  * (https://gtsbackend.azurewebsites.net/swagger/v1/swagger.json).
  */
 export const EstacionamentoPaths = {
-  buscar: 'Buscar',
+  buscar: '',
   obterPorId: (id: number) => `ObterPorId/${id}`,
-  gravar: 'Gravar',
-  alterar: 'Alterar',
-  excluir: (id: number) => `Delete/${id}`,
+  gravar: '',
+  alterar: '',
+  excluir: (id: number) => `/${id}`,
   /** GET — lista fotos do estacionamento */
   buscarFotos: (id: number) => `BuscarFotos/buscar-fotos/${id}`,
   /** POST multipart: EstacionamentoId, Fotos[] */

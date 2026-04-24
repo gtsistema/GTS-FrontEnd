@@ -88,56 +88,51 @@
           <div class="form-section form-section--permissions">
             <h3 class="form-section__title">Permissões do Perfil</h3>
             <div class="form-section__toolbar">
-              <input
-                type="text"
-                class="input-control input-control--search"
-                placeholder="Filtrar permissões"
-                [ngModel]="permissionSearchTerm()"
-                (ngModelChange)="permissionSearchTerm.set($event)"
-              />
               <span class="form-section__count">{{ selectedPermissionsCount }} selecionadas</span>
               <div class="form-section__toolbar-actions">
                 <button type="button" class="btn btn-secondary btn--sm" (click)="selecionarTodasPermissoes()">Selecionar todas</button>
                 <button type="button" class="filter-clear-btn" (click)="limparPermissoesSelecionadas()" aria-label="Tirar permissões selecionadas" title="Tirar permissões selecionadas">×</button>
               </div>
             </div>
-            <div class="permission-list">
-              @for (group of filteredPermissionsByModule(); track group.module) {
-                <div class="permission-list__row">
-                  <div class="permission-list__header-wrap">
-                    <button
-                      type="button"
-                      class="permission-list__header"
-                      (click)="toggleModuleExpanded(group.module)"
-                      [attr.aria-expanded]="isModuleExpanded(group.module)"
-                    >
-                      <span class="permission-list__name">{{ group.module }}</span>
-                      <span class="permission-list__badge">{{ getSelectedCountInModule(group.module) }}/{{ group.keys.length }}</span>
-                      <span class="permission-list__chevron" [class.permission-list__chevron--open]="isModuleExpanded(group.module)">▼</span>
-                    </button>
-                    <button
-                      type="button"
-                      class="permission-list__select-topic"
-                      [class.permission-list__select-topic--active]="isModuloTotalmenteSelecionado(group.module)"
-                      (click)="toggleTodasDoModulo(group.module); $event.stopPropagation()"
-                    >
-                      {{ isModuloTotalmenteSelecionado(group.module) ? 'Desmarcar todas' : 'Selecionar todas' }}
-                    </button>
-                  </div>
-                  @if (isModuleExpanded(group.module)) {
-                    <div class="permission-list__body">
-                      @for (key of group.keys; track key) {
-                        <label class="permission-checkbox">
+            <div class="permission-tree">
+              @for (menu of permissionTree(); track menu.menuId) {
+                <div class="permission-tree__menu">
+                  <label class="permission-tree__checkbox permission-tree__checkbox--menu">
+                    <input
+                      type="checkbox"
+                      [checked]="menu.selecionado"
+                      (change)="onMenuToggle(menu.menuId, $any($event.target).checked)"
+                    />
+                    <span>{{ menu.nome }}</span>
+                  </label>
+
+                  <div class="permission-tree__submenu-list">
+                    @for (subMenu of menu.subMenus; track subMenu.subMenuId) {
+                      <div class="permission-tree__submenu">
+                        <label class="permission-tree__checkbox permission-tree__checkbox--submenu">
                           <input
                             type="checkbox"
-                            [checked]="form.permissionIds.includes(key)"
-                            (change)="toggleProfilePermission(key)"
+                            [checked]="subMenu.selecionado"
+                            (change)="onSubMenuToggle(menu.menuId, subMenu.subMenuId, $any($event.target).checked)"
                           />
-                          <span>{{ key }}</span>
+                          <span>{{ subMenu.nome }}</span>
                         </label>
-                      }
-                    </div>
-                  }
+
+                        <div class="permission-tree__permissions">
+                          @for (permissao of subMenu.permissoes; track permissao.permissaoId) {
+                            <label class="permission-tree__checkbox permission-tree__checkbox--permission">
+                              <input
+                                type="checkbox"
+                                [checked]="permissao.selecionado"
+                                (change)="onPermissaoToggle(menu.menuId, subMenu.subMenuId, permissao.permissaoId, $any($event.target).checked)"
+                              />
+                              <span>{{ permissao.nome }}</span>
+                            </label>
+                          }
+                        </div>
+                      </div>
+                    }
+                  </div>
                 </div>
               }
             </div>
@@ -150,7 +145,7 @@
           <button
             type="button"
             class="btn btn-primary"
-            [disabled]="saving() || !form.name.trim()"
+            [disabled]="saving() || !form.name.trim() || selectedMenusCount === 0"
             (click)="salvar()"
           >
             {{ saving() ? 'Salvando...' : 'Salvar' }}

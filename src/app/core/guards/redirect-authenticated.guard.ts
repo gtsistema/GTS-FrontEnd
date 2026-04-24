@@ -4,7 +4,7 @@ import { AuthService } from '../services/auth.service';
 
 /**
  * Guard para a rota raiz (path: '').
- * Se o usuário estiver autenticado, redireciona para /app/dashboard.
+ * Se o usuário estiver autenticado, redireciona para a primeira rota autorizada.
  * Caso contrário, permite a ativação (ex.: exibir login).
  */
 export const redirectAuthenticatedToAppGuard: CanActivateFn = () => {
@@ -12,7 +12,7 @@ export const redirectAuthenticatedToAppGuard: CanActivateFn = () => {
   const router = inject(Router);
 
   if (auth.isLoggedIn()) {
-    return router.createUrlTree(['/app/dashboard']);
+    return router.createUrlTree([auth.getDefaultAuthorizedRoute()]);
   }
 
   return true;

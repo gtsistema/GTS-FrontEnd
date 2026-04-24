@@ -18,6 +18,6 @@ export const acessoConfiguracoeGuard: CanActivateFn = (route, state) => {
   }
 
   // Sem permissão, redirecionar para home
-  router.navigate(['/app/dashboard']);
+  router.navigateByUrl(authService.getDefaultAuthorizedRoute());
   return false;
 };

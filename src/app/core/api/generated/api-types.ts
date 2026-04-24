@@ -4,7 +4,7 @@
  */
 
 export interface paths {
-    "/api/Estacionamento/Buscar": {
+    "/api/Estacionamento": {
         parameters: {
             query?: never;
             header?: never;
@@ -37,15 +37,63 @@ export interface paths {
                 };
             };
         };
-        put?: never;
-        post?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json-patch+json": components["schemas"]["EstacionamentoPutInput"];
+                    "application/json": components["schemas"]["EstacionamentoPutInput"];
+                    "text/json": components["schemas"]["EstacionamentoPutInput"];
+                    "application/*+json": components["schemas"]["EstacionamentoPutInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json-patch+json": components["schemas"]["EstacionamentoPostInput"];
+                    "application/json": components["schemas"]["EstacionamentoPostInput"];
+                    "text/json": components["schemas"]["EstacionamentoPostInput"];
+                    "application/*+json": components["schemas"]["EstacionamentoPostInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/Estacionamento/ObterPorId/{id}": {
+    "/api/Estacionamento/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -72,137 +120,6 @@ export interface paths {
                 };
             };
         };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/Estacionamento/Gravar": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: {
-                content: {
-                    "multipart/form-data": {
-                        /** Format: int32 */
-                        PessoaId?: number;
-                        /** Format: int32 */
-                        CapacidadeVeiculo?: number;
-                        TamanhoTerreno?: string;
-                        ResposanvelLegal?: string;
-                        ResponsavelCpf?: string;
-                        PossuiSeguranca?: boolean;
-                        PossuiBanheiro?: boolean;
-                        TipoCobranca?: components["schemas"]["TipoCobranca"];
-                        /** Format: int32 */
-                        CobrancaPorcentagem?: number;
-                        /** Format: double */
-                        CobrancaValor?: number;
-                        "Pessoa.TipoPessoa"?: components["schemas"]["TipoPessoa"];
-                        "Pessoa.NomeRazaoSocial"?: string;
-                        "Pessoa.NomeFantasia"?: string;
-                        "Pessoa.Documento"?: string;
-                        "Pessoa.Email"?: string;
-                        "Pessoa.Ativo"?: boolean;
-                        "Pessoa.Enderecos"?: components["schemas"]["PessoaEnderecoInput"][];
-                        "Pessoa.Contatos"?: components["schemas"]["PessoaContatoInput"][];
-                        /** Format: int32 */
-                        "Pessoa.Id"?: number;
-                        "Pessoa.Descricao"?: string;
-                        /** Format: date-time */
-                        "Pessoa.DataCriacao"?: string;
-                        /** Format: date-time */
-                        "Pessoa.DataAtualizacao"?: string;
-                        ContaBancaria?: components["schemas"]["ContaBancariaInput"][];
-                        /** Format: int32 */
-                        Id?: number;
-                        Descricao?: string;
-                        /** Format: date-time */
-                        DataCriacao?: string;
-                        /** Format: date-time */
-                        DataAtualizacao?: string;
-                    };
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/Estacionamento/Alterar": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: {
-                content: {
-                    "application/json-patch+json": components["schemas"]["EstacionamentoPutInput"];
-                    "application/json": components["schemas"]["EstacionamentoPutInput"];
-                    "text/json": components["schemas"]["EstacionamentoPutInput"];
-                    "application/*+json": components["schemas"]["EstacionamentoPutInput"];
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/Estacionamento/Delete/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
         put?: never;
         post?: never;
         delete: {
@@ -230,7 +147,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/Estacionamento/BuscarFotos/buscar-fotos/{id}": {
+    "/api/Estacionamento/buscar-fotos/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -265,7 +182,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/Estacionamento/UploadFotos/upload-fotos": {
+    "/api/Estacionamento/upload-fotos": {
         parameters: {
             query?: never;
             header?: never;
@@ -306,7 +223,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/Estacionamento/DeletarFotos/deletar-fotos/{fotoId}": {
+    "/api/Estacionamento/deletar-fotos/{fotoId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -355,14 +272,7 @@ export interface paths {
                 path?: never;
                 cookie?: never;
             };
-            requestBody?: {
-                content: {
-                    "application/json-patch+json": components["schemas"]["MenuFilterInput"];
-                    "application/json": components["schemas"]["MenuFilterInput"];
-                    "text/json": components["schemas"]["MenuFilterInput"];
-                    "application/*+json": components["schemas"]["MenuFilterInput"];
-                };
-            };
+            requestBody?: never;
             responses: {
                 /** @description OK */
                 200: {
@@ -531,7 +441,117 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/Motorista/Buscar": {
+    "/api/auth/Menu/OrganizarMenus": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json-patch+json": components["schemas"]["MenuOrganizacaoInput"];
+                    "application/json": components["schemas"]["MenuOrganizacaoInput"];
+                    "text/json": components["schemas"]["MenuOrganizacaoInput"];
+                    "application/*+json": components["schemas"]["MenuOrganizacaoInput"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/Menu/DeleteSubMenu/{idSubMenu}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    idSubMenu: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/Menu/DeletePermissao/{idPermissao}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    idPermissao: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/Motorista": {
         parameters: {
             query?: never;
             header?: never;
@@ -565,31 +585,21 @@ export interface paths {
                 };
             };
         };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/Motorista/ObterPorId/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
+        put: {
             parameters: {
                 query?: never;
                 header?: never;
-                path: {
-                    id: number;
-                };
+                path?: never;
                 cookie?: never;
             };
-            requestBody?: never;
+            requestBody?: {
+                content: {
+                    "application/json-patch+json": components["schemas"]["MotoristaPutInput"];
+                    "application/json": components["schemas"]["MotoristaPutInput"];
+                    "text/json": components["schemas"]["MotoristaPutInput"];
+                    "application/*+json": components["schemas"]["MotoristaPutInput"];
+                };
+            };
             responses: {
                 /** @description OK */
                 200: {
@@ -600,23 +610,6 @@ export interface paths {
                 };
             };
         };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/Motorista/Gravar": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
         post: {
             parameters: {
                 query?: never;
@@ -648,29 +641,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/Motorista/Alterar": {
+    "/api/Motorista/{id}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
-        put: {
+        get: {
             parameters: {
                 query?: never;
                 header?: never;
-                path?: never;
+                path: {
+                    id: number;
+                };
                 cookie?: never;
             };
-            requestBody?: {
-                content: {
-                    "application/json-patch+json": components["schemas"]["MotoristaPutInput"];
-                    "application/json": components["schemas"]["MotoristaPutInput"];
-                    "text/json": components["schemas"]["MotoristaPutInput"];
-                    "application/*+json": components["schemas"]["MotoristaPutInput"];
-                };
-            };
+            requestBody?: never;
             responses: {
                 /** @description OK */
                 200: {
@@ -681,21 +668,6 @@ export interface paths {
                 };
             };
         };
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/Motorista/Delete/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
         put?: never;
         post?: never;
         delete: {
@@ -723,7 +695,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/auth/Perfil/Buscar": {
+    "/api/auth/Perfil": {
         parameters: {
             query?: never;
             header?: never;
@@ -748,31 +720,21 @@ export interface paths {
                 };
             };
         };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/auth/Perfil/ObterPorId/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
+        put: {
             parameters: {
                 query?: never;
                 header?: never;
-                path: {
-                    id: number;
-                };
+                path?: never;
                 cookie?: never;
             };
-            requestBody?: never;
+            requestBody?: {
+                content: {
+                    "application/json-patch+json": components["schemas"]["PerfilUpdateInput"];
+                    "application/json": components["schemas"]["PerfilUpdateInput"];
+                    "text/json": components["schemas"]["PerfilUpdateInput"];
+                    "application/*+json": components["schemas"]["PerfilUpdateInput"];
+                };
+            };
             responses: {
                 /** @description OK */
                 200: {
@@ -783,23 +745,6 @@ export interface paths {
                 };
             };
         };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/auth/Perfil/Gravar": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
         post: {
             parameters: {
                 query?: never;
@@ -831,29 +776,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/auth/Perfil/Alterar": {
+    "/api/auth/Perfil/{id}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
-        put: {
+        get: {
             parameters: {
                 query?: never;
                 header?: never;
-                path?: never;
+                path: {
+                    id: number;
+                };
                 cookie?: never;
             };
-            requestBody?: {
-                content: {
-                    "application/json-patch+json": components["schemas"]["ApplicationRole"];
-                    "application/json": components["schemas"]["ApplicationRole"];
-                    "text/json": components["schemas"]["ApplicationRole"];
-                    "application/*+json": components["schemas"]["ApplicationRole"];
-                };
-            };
+            requestBody?: never;
             responses: {
                 /** @description OK */
                 200: {
@@ -864,21 +803,6 @@ export interface paths {
                 };
             };
         };
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/auth/Perfil/Delete/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
         put?: never;
         post?: never;
         delete: {
@@ -906,7 +830,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/auth/Perfil/Buscar/usuario/{usuarioId}": {
+    "/api/auth/Perfil/usuario/{usuarioId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -941,7 +865,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/Transportadora/Buscar": {
+    "/api/Transportadora": {
         parameters: {
             query?: never;
             header?: never;
@@ -977,31 +901,21 @@ export interface paths {
                 };
             };
         };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/Transportadora/ObterPorId/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
+        put: {
             parameters: {
                 query?: never;
                 header?: never;
-                path: {
-                    id: number;
-                };
+                path?: never;
                 cookie?: never;
             };
-            requestBody?: never;
+            requestBody?: {
+                content: {
+                    "application/json-patch+json": components["schemas"]["TransportadoraPutInput"];
+                    "application/json": components["schemas"]["TransportadoraPutInput"];
+                    "text/json": components["schemas"]["TransportadoraPutInput"];
+                    "application/*+json": components["schemas"]["TransportadoraPutInput"];
+                };
+            };
             responses: {
                 /** @description OK */
                 200: {
@@ -1012,23 +926,6 @@ export interface paths {
                 };
             };
         };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/Transportadora/Gravar": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
         post: {
             parameters: {
                 query?: never;
@@ -1060,29 +957,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/Transportadora/Alterar": {
+    "/api/Transportadora/{id}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
-        put: {
+        get: {
             parameters: {
                 query?: never;
                 header?: never;
-                path?: never;
+                path: {
+                    id: number;
+                };
                 cookie?: never;
             };
-            requestBody?: {
-                content: {
-                    "application/json-patch+json": components["schemas"]["TransportadoraPutInput"];
-                    "application/json": components["schemas"]["TransportadoraPutInput"];
-                    "text/json": components["schemas"]["TransportadoraPutInput"];
-                    "application/*+json": components["schemas"]["TransportadoraPutInput"];
-                };
-            };
+            requestBody?: never;
             responses: {
                 /** @description OK */
                 200: {
@@ -1093,21 +984,6 @@ export interface paths {
                 };
             };
         };
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/Transportadora/Delete/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
         put?: never;
         post?: never;
         delete: {
@@ -1215,7 +1091,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/Veiculo/Buscar": {
+    "/api/Veiculo": {
         parameters: {
             query?: never;
             header?: never;
@@ -1249,31 +1125,21 @@ export interface paths {
                 };
             };
         };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/Veiculo/ObterPorId/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
+        put: {
             parameters: {
                 query?: never;
                 header?: never;
-                path: {
-                    id: number;
-                };
+                path?: never;
                 cookie?: never;
             };
-            requestBody?: never;
+            requestBody?: {
+                content: {
+                    "application/json-patch+json": components["schemas"]["VeiculoPutInput"];
+                    "application/json": components["schemas"]["VeiculoPutInput"];
+                    "text/json": components["schemas"]["VeiculoPutInput"];
+                    "application/*+json": components["schemas"]["VeiculoPutInput"];
+                };
+            };
             responses: {
                 /** @description OK */
                 200: {
@@ -1284,23 +1150,6 @@ export interface paths {
                 };
             };
         };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/Veiculo/Gravar": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
         post: {
             parameters: {
                 query?: never;
@@ -1332,29 +1181,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/Veiculo/Alterar": {
+    "/api/Veiculo/{id}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
-        put: {
+        get: {
             parameters: {
                 query?: never;
                 header?: never;
-                path?: never;
+                path: {
+                    id: number;
+                };
                 cookie?: never;
             };
-            requestBody?: {
-                content: {
-                    "application/json-patch+json": components["schemas"]["VeiculoPutInput"];
-                    "application/json": components["schemas"]["VeiculoPutInput"];
-                    "text/json": components["schemas"]["VeiculoPutInput"];
-                    "application/*+json": components["schemas"]["VeiculoPutInput"];
-                };
-            };
+            requestBody?: never;
             responses: {
                 /** @description OK */
                 200: {
@@ -1365,21 +1208,6 @@ export interface paths {
                 };
             };
         };
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/Veiculo/Delete/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
         put?: never;
         post?: never;
         delete: {
@@ -1407,7 +1235,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/VeiculoModelo/Buscar": {
+    "/api/VeiculoModelo": {
         parameters: {
             query?: never;
             header?: never;
@@ -1440,31 +1268,21 @@ export interface paths {
                 };
             };
         };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/VeiculoModelo/ObterPorId/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: {
+        put: {
             parameters: {
                 query?: never;
                 header?: never;
-                path: {
-                    id: number;
-                };
+                path?: never;
                 cookie?: never;
             };
-            requestBody?: never;
+            requestBody?: {
+                content: {
+                    "application/json-patch+json": components["schemas"]["VeiculoModeloPutInput"];
+                    "application/json": components["schemas"]["VeiculoModeloPutInput"];
+                    "text/json": components["schemas"]["VeiculoModeloPutInput"];
+                    "application/*+json": components["schemas"]["VeiculoModeloPutInput"];
+                };
+            };
             responses: {
                 /** @description OK */
                 200: {
@@ -1475,23 +1293,6 @@ export interface paths {
                 };
             };
         };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/VeiculoModelo/Gravar": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
         post: {
             parameters: {
                 query?: never;
@@ -1523,29 +1324,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/VeiculoModelo/Alterar": {
+    "/api/VeiculoModelo/{id}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
-        put: {
+        get: {
             parameters: {
                 query?: never;
                 header?: never;
-                path?: never;
+                path: {
+                    id: number;
+                };
                 cookie?: never;
             };
-            requestBody?: {
-                content: {
-                    "application/json-patch+json": components["schemas"]["VeiculoModeloPutInput"];
-                    "application/json": components["schemas"]["VeiculoModeloPutInput"];
-                    "text/json": components["schemas"]["VeiculoModeloPutInput"];
-                    "application/*+json": components["schemas"]["VeiculoModeloPutInput"];
-                };
-            };
+            requestBody?: never;
             responses: {
                 /** @description OK */
                 200: {
@@ -1556,21 +1351,6 @@ export interface paths {
                 };
             };
         };
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/VeiculoModelo/Delete/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
         put?: never;
         post?: never;
         delete: {
@@ -1608,6 +1388,7 @@ export interface components {
             name?: string | null;
             normalizedName?: string | null;
             concurrencyStamp?: string | null;
+            rolePermissions?: components["schemas"]["RolePermission"][] | null;
         };
         ContaBancariaInput: {
             /** Format: int32 */
@@ -1630,11 +1411,30 @@ export interface components {
             readonly ativa?: boolean;
             readonly chavePix?: string | null;
         };
-        CrudPermissaoInput: {
-            visualizar?: boolean;
-            criar?: boolean;
-            alterar?: boolean;
-            excluir?: boolean;
+        EstacionamentoPostInput: {
+            /** Format: int32 */
+            id?: number;
+            descricao?: string | null;
+            /** Format: date-time */
+            dataCriacao?: string;
+            /** Format: date-time */
+            dataAtualizacao?: string | null;
+            /** Format: int32 */
+            pessoaId?: number;
+            /** Format: int32 */
+            capacidadeVeiculo?: number | null;
+            tamanhoTerreno?: string | null;
+            resposanvelLegal?: string | null;
+            responsavelCpf?: string | null;
+            possuiSeguranca?: boolean | null;
+            possuiBanheiro?: boolean | null;
+            tipoCobranca?: components["schemas"]["TipoCobranca"];
+            /** Format: int32 */
+            cobrancaPorcentagem?: number | null;
+            /** Format: double */
+            cobrancaValor?: number | null;
+            pessoa?: components["schemas"]["PessoaInput"];
+            contaBancaria?: components["schemas"]["ContaBancariaInput"][] | null;
         };
         EstacionamentoPutInput: {
             /** Format: int32 */
@@ -1672,20 +1472,18 @@ export interface components {
             /** Format: int32 */
             ordem?: number;
             ativo?: boolean;
+            rota?: string | null;
             subMenus?: components["schemas"]["SubMenuCreateInput"][] | null;
         };
-        MenuFilterInput: {
-            descricao?: string | null;
-            /** Format: date-time */
-            dataInicial?: string | null;
-            /** Format: date-time */
-            dataFinal?: string | null;
+        MenuOrdemInput: {
             /** Format: int32 */
-            numeroPagina?: number;
+            id?: number;
             /** Format: int32 */
-            tamanhoPagina?: number;
-            propriedade?: string | null;
-            sort?: string | null;
+            ordem?: number;
+            subMenus?: components["schemas"]["SubMenuOrdemInput"][] | null;
+        };
+        MenuOrganizacaoInput: {
+            menus?: components["schemas"]["MenuOrdemInput"][] | null;
         };
         MenuUpdateInput: {
             /** Format: int32 */
@@ -1694,11 +1492,25 @@ export interface components {
             /** Format: int32 */
             ordem?: number;
             ativo?: boolean;
+            rota?: string | null;
             subMenus?: components["schemas"]["SubMenuCreateInput"][] | null;
         };
+        Module: {
+            /** Format: int32 */
+            id?: number;
+            descricao?: string | null;
+            /** Format: int32 */
+            ordem?: number;
+            ativo?: boolean;
+            rota?: string | null;
+            selecionado?: boolean;
+            subModules?: components["schemas"]["SubModule"][] | null;
+        };
         ModuloInput: {
-            modulo?: string | null;
-            subModulos?: components["schemas"]["SubModuloInput"][] | null;
+            /** Format: int32 */
+            menuId?: number;
+            selecionado?: boolean;
+            subMenus?: components["schemas"]["SubModuloInput"][] | null;
         };
         MotoristaPostInput: {
             /** Format: int32 */
@@ -1731,9 +1543,32 @@ export interface components {
             pessoa?: components["schemas"]["PessoaInput"];
         };
         PerfilCreateInput: {
-            id?: string | null;
+            /** Format: int32 */
+            id?: number;
             nome?: string | null;
-            modulos?: components["schemas"]["ModuloInput"][] | null;
+            menus?: components["schemas"]["ModuloInput"][] | null;
+        };
+        PerfilUpdateInput: {
+            /** Format: int32 */
+            id?: number;
+            nome?: string | null;
+            menus?: components["schemas"]["ModuloInput"][] | null;
+        };
+        PermissaoInput: {
+            /** Format: int32 */
+            permissaoId?: number;
+            selecionado?: boolean;
+        };
+        Permission: {
+            /** Format: int32 */
+            ordem?: number;
+            /** Format: int32 */
+            id?: number;
+            /** Format: int32 */
+            subModuleId?: number;
+            acao?: string | null;
+            selecionadoPerm?: boolean;
+            subModule?: components["schemas"]["SubModule"];
         };
         PermissionInput: {
             /** Format: int32 */
@@ -1799,17 +1634,57 @@ export interface components {
             pessoa?: components["schemas"]["PessoaUsuarioImput"];
             perfil?: components["schemas"]["ApplicationRole"];
         };
+        RolePermission: {
+            /** Format: int32 */
+            id?: number;
+            /** Format: int32 */
+            roleId?: number;
+            /** Format: int32 */
+            permissionId?: number | null;
+            /** Format: int32 */
+            subModuleId?: number | null;
+            /** Format: int32 */
+            moduleId?: number | null;
+            role?: components["schemas"]["ApplicationRole"];
+            permission?: components["schemas"]["Permission"];
+            subModule?: components["schemas"]["SubModule"];
+            module?: components["schemas"]["Module"];
+        };
         SubMenuCreateInput: {
             /** Format: int32 */
             id?: number;
             nome?: string | null;
             /** Format: int32 */
             ordem?: number;
+            ativo?: boolean;
+            rota?: string | null;
             permissions?: components["schemas"]["PermissionInput"][] | null;
         };
+        SubMenuOrdemInput: {
+            /** Format: int32 */
+            id?: number;
+            /** Format: int32 */
+            ordem?: number;
+        };
+        SubModule: {
+            /** Format: int32 */
+            id?: number;
+            descricao?: string | null;
+            /** Format: int32 */
+            ordem?: number;
+            /** Format: int32 */
+            moduleId?: number;
+            rota?: string | null;
+            ativo?: boolean;
+            selecionadoSub?: boolean;
+            module?: components["schemas"]["Module"];
+            permissions?: components["schemas"]["Permission"][] | null;
+        };
         SubModuloInput: {
-            nome?: string | null;
-            permissoes?: components["schemas"]["CrudPermissaoInput"];
+            /** Format: int32 */
+            subMenuId?: number;
+            selecionado?: boolean;
+            permissoes?: components["schemas"]["PermissaoInput"][] | null;
         };
         /**
          * Format: int32

@@ -143,6 +143,12 @@ export class UsuarioFormComponent implements OnInit {
     this.cdr.markForCheck();
   }
 
+  toPerfilId(value: string | number | null | undefined): string {
+    if (typeof value === 'number' && Number.isFinite(value)) return String(value);
+    if (typeof value === 'string') return value;
+    return '';
+  }
+
   togglePermissao(permId: string): void {
     const idx = this.form.permissaoIds.indexOf(permId);
     if (idx >= 0) {

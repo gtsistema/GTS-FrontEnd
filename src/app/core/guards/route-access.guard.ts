@@ -10,6 +10,6 @@ export const routeAccessGuard: CanActivateChildFn = (_route, state) => {
     return true;
   }
 
-  const fallback = sessionAccess.allowedRoutes().find((route) => route !== '/app') ?? '/app/dashboard';
+  const fallback = sessionAccess.getDefaultRoute() ?? '/';
   return router.parseUrl(fallback);
 };

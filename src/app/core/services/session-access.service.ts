@@ -8,6 +8,7 @@ export interface SessionSubMenuAccess {
   descricao?: string | null;
   rota?: string | null;
   ativo?: boolean | null;
+  selecionado?: boolean | null;
   ordem?: number | null;
 }
 
@@ -15,7 +16,9 @@ export interface SessionMenuAccess {
   id?: number;
   descricao?: string | null;
   icone?: string | null;
+  rota?: string | null;
   ativo?: boolean | null;
+  selecionado?: boolean | null;
   ordem?: number | null;
   subMenus?: SessionSubMenuAccess[] | null;
 }
@@ -51,12 +54,20 @@ export class SessionAccessService {
     if (!this.hasSessionMenus()) {
       return true;
     }
+    const allowed = this.allowedRoutes();
+    if (allowed.length === 0) {
+      return false;
+    }
     const current = normalizeRoute(url);
     if (current === '/app' || current === '') {
       return true;
     }
-    const allowed = this.allowedRoutes();
     return allowed.some((route) => isRouteMatch(current, route));
+  }
+
+  getDefaultRoute(): string | null {
+    const allowed = this.allowedRoutes();
+    return allowed[0] ?? null;
   }
 
   filterSidebarItems<T extends { route: string; children?: { route: string }[] }>(items: T[]): T[] {
@@ -100,12 +111,12 @@ export class SessionAccessService {
     const routeSet = new Set<string>();
 
     for (const menu of menus) {
-      if (menu.ativo === false) continue;
+      if (menu.ativo === false || menu.selecionado === false) continue;
       const subMenus = Array.isArray(menu.subMenus) ? menu.subMenus : [];
-      const activeSubs = subMenus.filter((s) => s.ativo !== false);
+      const activeSubs = subMenus.filter((s) => s.ativo !== false && s.selecionado !== false);
 
       if (activeSubs.length === 0) {
-        const route = resolveAppRouteFromNome(safeText(menu.descricao), null);
+        const route = resolveAppRouteFromNome(safeText(menu.descricao), menu.rota ?? null);
         addRouteWithAncestors(routeSet, route);
         continue;
       }
@@ -124,12 +135,25 @@ function normalizeMenus(menus: SessionMenuAccess[]): SessionMenuAccess[] {
   return menus.map((menu) => ({
     ...menu,
     descricao: safeText(menu.descricao),
+    rota: normalizeOptionalRoute(menu.rota),
+    selecionado: normalizeBoolean(menu.selecionado),
     subMenus: (menu.subMenus ?? []).map((sub) => ({
       ...sub,
       descricao: safeText(sub.descricao),
-      rota: typeof sub.rota === 'string' ? sub.rota.trim() : null,
+      rota: normalizeOptionalRoute(sub.rota),
+      selecionado: normalizeBoolean(sub.selecionado),
     })),
   }));
+}
+
+function normalizeOptionalRoute(route: string | null | undefined): string | null {
+  if (typeof route !== 'string') return null;
+  const value = route.trim();
+  return value || null;
+}
+
+function normalizeBoolean(value: boolean | null | undefined): boolean | null {
+  return typeof value === 'boolean' ? value : null;
 }
 
 function addRouteWithAncestors(set: Set<string>, route: string): void {

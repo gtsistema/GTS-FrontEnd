@@ -25,11 +25,18 @@ const ALIAS_NOME_PARA_ROTA: Record<string, string> = {
   gerenciamento: '/app/gerenciamento',
   transportadora: '/app/cadastro/transportadora',
   estacionamento: '/app/cadastro/estacionamento',
+  motorista: '/app/cadastro/motorista',
   /** Submódulo "menu" na API ≈ aba Menu em Gerenciamento */
   menu: '/app/gerenciamento/menu',
   acessos: '/app/gerenciamento',
   admin: '/app/gerenciamento/menu',
   perfil: '/app/gerenciamento/perfil',
+};
+
+const ALIAS_PATH_PARA_ROTA: Record<string, string> = {
+  '/app/movimento': '/app/movimentos',
+  '/app/relatorio': '/app/relatorios',
+  '/app/gerenciamento': '/app/gerenciamento',
 };
 
 function tryMatchMenuStructure(nome: string): string | null {
@@ -49,10 +56,16 @@ function normalizeApiRota(raw: string | null | undefined): string | null {
   if (raw == null) return null;
   const t = String(raw).trim();
   if (!t || t === '/app') return null;
-  if (t.startsWith('/app/')) return t;
+  if (t.startsWith('/app/')) {
+    return ALIAS_PATH_PARA_ROTA[t] ?? t;
+  }
   if (t === '/app') return null;
-  if (t.startsWith('/')) return t.startsWith('/app') ? t : `/app${t}`;
-  return `/app/${t.replace(/^\//, '')}`;
+  if (t.startsWith('/')) {
+    const route = t.startsWith('/app') ? t : `/app${t}`;
+    return ALIAS_PATH_PARA_ROTA[route] ?? route;
+  }
+  const route = `/app/${t.replace(/^\//, '')}`;
+  return ALIAS_PATH_PARA_ROTA[route] ?? route;
 }
 
 /**

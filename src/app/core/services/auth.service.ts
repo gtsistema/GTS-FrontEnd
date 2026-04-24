@@ -191,7 +191,16 @@ export class AuthService {
 
     const permissionKeys = extractJwtPermissionKeys(payload);
     this.permissionCache.setKeys(permissionKeys);
-    this.sessionAccess.setMenus(extractMenusFromLoginBody(res));
+    const jwtRole = resolveJwtRole(payload);
+    this.sessionAccess.setMenus(extractMenusFromLoginBody(res, jwtRole));
+    if (this.sessionAccess.hasSessionMenus() && !this.sessionAccess.getDefaultRoute()) {
+      this.permissionCache.clear();
+      this.sessionAccess.clear();
+      return {
+        success: false,
+        message: 'Usuário sem acesso às telas habilitadas para este sistema.'
+      };
+    }
 
     const loggedUser = buildLoggedUserFromJwtClaims(username, payload, permissionKeys);
 
@@ -245,6 +254,16 @@ export class AuthService {
    */
   hasSeenWelcome(): boolean {
     return sessionStorage.getItem('welcomeSeen') === 'true';
+  }
+
+  /**
+   * Rota padrão da sessão logada com base no menu autorizado recebido no login.
+   */
+  getDefaultAuthorizedRoute(): string {
+    const sessionRoute = this.sessionAccess.getDefaultRoute();
+    if (sessionRoute) return sessionRoute;
+    if (this.sessionAccess.hasSessionMenus()) return '/';
+    return '/app/dashboard';
   }
 
   /**
@@ -364,13 +383,18 @@ function resolveJwtRole(payload: Record<string, unknown>): string | null {
   return null;
 }
 
-function extractMenusFromLoginBody(res: LoginResponse): SessionMenuAccess[] {
+function extractMenusFromLoginBody(res: LoginResponse, jwtRole?: string | null): SessionMenuAccess[] {
   const root = res as Record<string, unknown>;
 
-  const candidates: unknown[] = [root['menus']];
-  const nestedKeys = ['result', 'Result', 'data', 'Data'];
+  const candidates: unknown[] = [root['menus'], root['Menus']];
+  const nestedKeys = ['result', 'Result', 'data', 'Data', 'usuario', 'Usuario'];
   for (const key of nestedKeys) {
     const value = root[key];
+    const profileMenus = tryExtractProfileMenus(value, jwtRole);
+    if (profileMenus) {
+      candidates.unshift(profileMenus);
+    }
+    if (Array.isArray(value)) continue;
     if (value && typeof value === 'object' && !Array.isArray(value)) {
       candidates.push((value as Record<string, unknown>)['menus']);
       candidates.push((value as Record<string, unknown>)['Menus']);
@@ -382,12 +406,23 @@ function extractMenusFromLoginBody(res: LoginResponse): SessionMenuAccess[] {
     return candidate
       .filter((item): item is Record<string, unknown> => !!item && typeof item === 'object')
       .map((menu) => ({
-        id: toNumber(menu['id']),
-        descricao: toStringValue(menu['descricao']) ?? toStringValue(menu['nome']),
+        id: toNumber(menu['id'] ?? menu['menuId'] ?? menu['moduleId']),
+        descricao:
+          toStringValue(menu['descricao']) ??
+          toStringValue(menu['nome']) ??
+          toStringValue(menu['menuDescricao']),
         icone: toStringValue(menu['icone']),
-        ativo: toBoolean(menu['ativo']),
-        ordem: toNumber(menu['ordem']),
-        subMenus: mapSubMenus(menu['subMenus'] ?? menu['submodules'] ?? menu['subModules']),
+        rota: toStringValue(menu['rota']) ?? toStringValue(menu['route']),
+        ativo: toBoolean(menu['ativo'] ?? menu['isActive']),
+        selecionado: toBoolean(menu['selecionado'] ?? menu['selected']),
+        ordem: toNumber(menu['ordem'] ?? menu['menuOrdem']),
+        subMenus: mapSubMenus(
+          menu['subMenus'] ??
+            menu['submenus'] ??
+            menu['submodules'] ??
+            menu['subModules'] ??
+            menu['subMenusDto']
+        ),
       }));
   }
 
@@ -399,12 +434,42 @@ function mapSubMenus(value: unknown): SessionMenuAccess['subMenus'] {
   return value
     .filter((item): item is Record<string, unknown> => !!item && typeof item === 'object')
     .map((sub) => ({
-      id: toNumber(sub['id']),
-      descricao: toStringValue(sub['descricao']) ?? toStringValue(sub['nome']),
-      rota: toStringValue(sub['rota']),
-      ativo: toBoolean(sub['ativo']),
-      ordem: toNumber(sub['ordem']),
+      id: toNumber(sub['id'] ?? sub['subMenuId'] ?? sub['menuId']),
+      descricao:
+        toStringValue(sub['descricao']) ??
+        toStringValue(sub['nome']) ??
+        toStringValue(sub['subDescricao']) ??
+        toStringValue(sub['subNome']),
+      rota: toStringValue(sub['rota']) ?? toStringValue(sub['subRota']),
+      ativo: toBoolean(sub['ativo'] ?? sub['subAtivo']),
+      selecionado: toBoolean(sub['selecionado'] ?? sub['subSelecionado']),
+      ordem: toNumber(sub['ordem'] ?? sub['subOrdem']),
     }));
+}
+
+function tryExtractProfileMenus(value: unknown, jwtRole?: string | null): unknown[] | null {
+  if (!Array.isArray(value)) return null;
+  const profiles = value.filter((item): item is Record<string, unknown> => !!item && typeof item === 'object');
+  if (profiles.length === 0) return null;
+
+  const normalizedRole = normalizeLooseText(jwtRole);
+  if (normalizedRole) {
+    for (const profile of profiles) {
+      const perfil = normalizeLooseText(toStringValue(profile['perfil']) ?? toStringValue(profile['role']));
+      const menus = profile['menus'] ?? profile['Menus'];
+      if (perfil && perfil === normalizedRole && Array.isArray(menus)) {
+        return menus;
+      }
+    }
+  }
+
+  for (const profile of profiles) {
+    const menus = profile['menus'] ?? profile['Menus'];
+    if (Array.isArray(menus)) {
+      return menus;
+    }
+  }
+  return null;
 }
 
 function toStringValue(v: unknown): string | null {
@@ -420,4 +485,13 @@ function toNumber(v: unknown): number | undefined {
   if (typeof v === 'number' && Number.isFinite(v)) return v;
   const n = Number(v);
   return Number.isFinite(n) ? n : undefined;
+}
+
+function normalizeLooseText(v: string | null | undefined): string {
+  if (!v) return '';
+  return v
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
 }
