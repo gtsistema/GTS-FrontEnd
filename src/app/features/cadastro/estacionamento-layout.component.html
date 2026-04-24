@@ -1,0 +1,59 @@
+<div class="page-container">
+  <header class="page-header">
+    <div class="page-header__row page-header__row--1">
+      <h1 class="page-title">Cadastro Estacionamento</h1>
+    </div>
+    @if (showStepper()) {
+      <div class="page-header__row page-header__row--2">
+        <nav class="tabs" role="tablist" aria-label="Etapas do cadastro">
+          @for (step of [1, 2, 3]; track step) {
+            <button
+              type="button"
+              class="tab"
+              role="tab"
+              [class.tab--active]="currentStep === step"
+              [attr.aria-selected]="currentStep === step"
+              (click)="goToStep(step)"
+            >
+              {{ getStepLabel(step) }}
+            </button>
+          }
+        </nav>
+      </div>
+    } @else {
+      <div class="page-header__row page-header__row--2">
+        <div class="page-header__actions">
+          <select
+            class="search-filter input-control"
+            [ngModel]="toolbar.searchField()"
+            (ngModelChange)="setSearchField($event)"
+            aria-label="Filtrar busca por"
+          >
+            <option value="geral">Busca geral</option>
+            <option value="cnpj">CNPJ</option>
+            <option value="nomeRazaoSocial">Nome / Razão social</option>
+            <option value="descricao">Descrição</option>
+            <option value="email">E-mail</option>
+            <option value="id">ID</option>
+          </select>
+          <input
+            type="text"
+            class="search-input input-control"
+            [placeholder]="searchPlaceholder()"
+            [ngModel]="toolbar.searchTerm()"
+            (ngModelChange)="toolbar.setSearchTerm($event)"
+            (keyup.enter)="onBuscar()"
+          />
+          <button type="button" class="btn btn-secondary" (click)="onBuscar()">Buscar</button>
+          <a class="btn btn-primary" routerLink="/app/cadastro/estacionamento/novo">Novo</a>
+        </div>
+      </div>
+    }
+  </header>
+
+  <div class="page-content">
+    <div class="tab-panel">
+      <router-outlet></router-outlet>
+    </div>
+  </div>
+</div>

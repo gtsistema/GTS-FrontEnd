@@ -1,0 +1,14 @@
+@if (visible && message) {
+  <div
+    class="toast"
+    [ngClass]="levelClass"
+    role="alert"
+    (click)="close()"
+  >
+    <span class="toast__icon material-symbols-outlined" aria-hidden="true">{{ icon }}</span>
+    <span class="toast__message">{{ message.message }}</span>
+    <button type="button" class="toast__close" (click)="close(); $event.stopPropagation()" aria-label="Fechar">
+      <span class="material-symbols-outlined">close</span>
+    </button>
+  </div>
+}

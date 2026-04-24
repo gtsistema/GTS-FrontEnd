@@ -1,0 +1,182 @@
+<div class="tab-content">
+  <div class="tab-content__actions">
+    <button type="button" class="btn btn-primary" (click)="openNovo()">
+      Novo perfil
+    </button>
+  </div>
+
+  @if (loading) {
+    <p class="loading-msg">Carregando...</p>
+  } @else if (erro) {
+    <p class="error-msg error-msg--discreto">{{ erro }}</p>
+    <button type="button" class="btn btn-secondary" (click)="retry()">
+      Tentar novamente
+    </button>
+  } @else {
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>Descrição</th>
+            <th>Qtde permissões</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (item of itens; track item.id ?? item.name) {
+            <tr>
+              <td>{{ item.name ?? '-' }}</td>
+              <td>{{ item.normalizedName ?? '-' }}</td>
+              <td>{{ getProfilePermissionCount(item) }}</td>
+              <td class="acoes-cell">
+                <button type="button" class="btn btn-primary btn--sm" (click)="openEditar(item)">
+                  Editar
+                </button>
+                <button type="button" class="btn btn-danger btn--sm" (click)="openExcluir(item)">
+                  Excluir
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    @if (itens.length === 0) {
+      <p class="empty-msg">Nenhum perfil cadastrado.</p>
+    }
+  }
+</div>
+
+@if (isModalOpen()) {
+  <div class="modal-overlay" (click)="closeModal()">
+    <div
+      class="modal-content"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-title"
+      (click)="$event.stopPropagation()"
+    >
+      @if (isCreate() || isEdit()) {
+        <div class="modal-header">
+          <h2 id="modal-title">{{ isCreate() ? 'Novo perfil' : 'Editar perfil' }}</h2>
+        </div>
+        <div class="modal-body">
+          @if (saveError()) {
+            <p class="modal-save-error">{{ saveError() }}</p>
+          }
+          <div class="form-group">
+            <label for="perfil-name">Nome</label>
+            <input
+              id="perfil-name"
+              type="text"
+              class="input-control"
+              [(ngModel)]="form.name"
+              placeholder="Nome do perfil"
+            />
+          </div>
+          <div class="form-group">
+            <label for="perfil-desc">Descrição</label>
+            <input
+              id="perfil-desc"
+              type="text"
+              class="input-control"
+              [(ngModel)]="form.normalizedName"
+              placeholder="Descrição (opcional)"
+            />
+          </div>
+          <div class="form-section form-section--permissions">
+            <h3 class="form-section__title">Permissões do Perfil</h3>
+            <div class="form-section__toolbar">
+              <span class="form-section__count">{{ selectedPermissionsCount }} selecionadas</span>
+              <div class="form-section__toolbar-actions">
+                <button type="button" class="btn btn-secondary btn--sm" (click)="selecionarTodasPermissoes()">Selecionar todas</button>
+                <button type="button" class="filter-clear-btn" (click)="limparPermissoesSelecionadas()" aria-label="Tirar permissões selecionadas" title="Tirar permissões selecionadas">×</button>
+              </div>
+            </div>
+            <div class="permission-tree">
+              @for (menu of permissionTree(); track menu.menuId) {
+                <div class="permission-tree__menu">
+                  <label class="permission-tree__checkbox permission-tree__checkbox--menu">
+                    <input
+                      type="checkbox"
+                      [checked]="menu.selecionado"
+                      (change)="onMenuToggle(menu.menuId, $any($event.target).checked)"
+                    />
+                    <span>{{ menu.nome }}</span>
+                  </label>
+
+                  <div class="permission-tree__submenu-list">
+                    @for (subMenu of menu.subMenus; track subMenu.subMenuId) {
+                      <div class="permission-tree__submenu">
+                        <label class="permission-tree__checkbox permission-tree__checkbox--submenu">
+                          <input
+                            type="checkbox"
+                            [checked]="subMenu.selecionado"
+                            (change)="onSubMenuToggle(menu.menuId, subMenu.subMenuId, $any($event.target).checked)"
+                          />
+                          <span>{{ subMenu.nome }}</span>
+                        </label>
+
+                        <div class="permission-tree__permissions">
+                          @for (permissao of subMenu.permissoes; track permissao.permissaoId) {
+                            <label class="permission-tree__checkbox permission-tree__checkbox--permission">
+                              <input
+                                type="checkbox"
+                                [checked]="permissao.selecionado"
+                                (change)="onPermissaoToggle(menu.menuId, subMenu.subMenuId, permissao.permissaoId, $any($event.target).checked)"
+                              />
+                              <span>{{ permissao.nome }}</span>
+                            </label>
+                          }
+                        </div>
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="closeModal()">
+            Cancelar
+          </button>
+          <button
+            type="button"
+            class="btn btn-primary"
+            [disabled]="saving() || !form.name.trim() || selectedMenusCount === 0"
+            (click)="salvar()"
+          >
+            {{ saving() ? 'Salvando...' : 'Salvar' }}
+          </button>
+        </div>
+      }
+
+      @if (isDelete()) {
+        <div class="modal-header">
+          <h2 id="modal-title">Excluir perfil</h2>
+        </div>
+        <div class="modal-body">
+          <p class="modal-confirm-msg">
+            Deseja realmente excluir o perfil <strong>{{ deleteItemName }}</strong>?
+            Esta ação não pode ser desfeita.
+          </p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="closeModal()">
+            Cancelar
+          </button>
+          <button
+            type="button"
+            class="btn btn-danger"
+            [disabled]="deleting()"
+            (click)="confirmarExclusao()"
+          >
+            {{ deleting() ? 'Excluindo...' : 'Excluir' }}
+          </button>
+        </div>
+      }
+    </div>
+  </div>
+}

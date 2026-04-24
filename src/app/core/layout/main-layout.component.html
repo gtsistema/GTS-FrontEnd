@@ -1,0 +1,74 @@
+<div class="layout" [class.sidebar-collapsed]="sidebarCollapsed" [class.layout--mobile]="isMobile()">
+  @if (isMobile() && mobileMenuOpen()) {
+    <div class="sidebar-overlay" (click)="closeMobileMenu()" aria-hidden="true"></div>
+  }
+  <app-sidebar
+    [collapsed]="sidebarCollapsed"
+    [mobileOpen]="mobileMenuOpen()"
+    [isMobile]="isMobile()"
+    (collapsedChange)="onSidebarCollapsed($event)"
+    (closeMobile)="closeMobileMenu()"
+  ></app-sidebar>
+
+  <div class="layout-right">
+    <header class="top-bar">
+      <div class="top-bar__inner">
+        @if (isMobile() && !mobileMenuOpen()) {
+          <button
+            type="button"
+            class="top-bar__menu-btn"
+            (click)="toggleMobileMenu()"
+            aria-label="Abrir menu"
+          >
+            <span class="material-symbols-outlined">menu</span>
+          </button>
+        }
+        <div class="top-bar__spacer"></div>
+        <div class="top-bar__right">
+          <div class="user-access-panel" title="Usuário e contexto de acesso">
+            <div class="user-access-panel__main">
+              <span class="user-access-panel__name">{{ loggedUsername() }}</span>
+              <span class="user-access-panel__tipo">{{ selectedContextLabel() }}</span>
+            </div>
+            @if (hasMultipleContexts()) {
+              <label class="user-access-panel__switcher">
+                <span class="user-access-panel__switcher-label">Acessar CNPJ</span>
+                <select
+                  class="user-access-panel__select"
+                  [ngModel]="selectedContextKey()"
+                  (ngModelChange)="onAccessContextChange($event)"
+                >
+                  @for (ctx of accessContexts(); track ctx.contextKey) {
+                    <option [ngValue]="ctx.contextKey">
+                      {{ ctx.cnpj ? (ctx.tipoAcesso + ' - ' + ctx.cnpj) : ctx.tipoAcesso }}
+                    </option>
+                  }
+                </select>
+              </label>
+            }
+          </div>
+          <button
+            type="button"
+            class="theme-switcher__btn"
+            (click)="toggleTheme()"
+            [attr.aria-pressed]="currentMode() === 'light'"
+            [attr.aria-label]="currentMode() === 'dark' ? 'Mudar para tema claro' : 'Mudar para tema escuro'"
+          >
+            @if (currentMode() === 'dark') {
+              <span class="material-symbols-outlined theme-switcher__icon">dark_mode</span>
+              <span class="theme-switcher__label">Claro</span>
+            } @else {
+              <span class="material-symbols-outlined theme-switcher__icon">light_mode</span>
+              <span class="theme-switcher__label">Escuro</span>
+            }
+          </button>
+        </div>
+      </div>
+    </header>
+    <main class="main-content">
+      <div class="content-container" [class.content-container--full-width]="isFullWidthContent()">
+        <router-outlet></router-outlet>
+      </div>
+    </main>
+  </div>
+</div>

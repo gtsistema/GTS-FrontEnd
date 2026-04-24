@@ -1,0 +1,120 @@
+<div class="form-page">
+  @if (saveError) {
+    <p class="save-error">{{ saveError }}</p>
+  }
+
+  <section class="form-section">
+    <h2 class="section-title">Dados do usuário</h2>
+    <div class="form-grid">
+      <div class="form-group">
+        <label for="usuario-nome">Nome</label>
+        <input
+          id="usuario-nome"
+          type="text"
+          class="input-control"
+          [(ngModel)]="form.nome"
+          placeholder="Nome"
+        />
+      </div>
+      <div class="form-group">
+        <label for="usuario-email">Email / Login</label>
+        <input
+          id="usuario-email"
+          type="email"
+          class="input-control"
+          [(ngModel)]="form.email"
+          placeholder="Email ou login"
+        />
+      </div>
+      <div class="form-group">
+        <label for="usuario-senha">Senha {{ isEdit ? '(deixe em branco para não alterar)' : '' }}</label>
+        <input
+          id="usuario-senha"
+          type="password"
+          class="input-control"
+          [(ngModel)]="form.senha"
+          [placeholder]="isEdit ? 'Nova senha (opcional)' : 'Senha'"
+        />
+      </div>
+      <div class="form-group form-group--row">
+        <input
+          id="usuario-ativo"
+          type="checkbox"
+          [(ngModel)]="form.ativo"
+        />
+        <label for="usuario-ativo">Ativo</label>
+      </div>
+      <div class="form-group">
+        <label for="usuario-tipo">Tipo</label>
+        <select id="usuario-tipo" class="input-control" [(ngModel)]="form.tipo">
+          <option value="">Selecione</option>
+          <option value="Admin">Admin</option>
+          <option value="Estacionamento">Estacionamento</option>
+          <option value="Transportadora">Transportadora</option>
+        </select>
+      </div>
+    </div>
+  </section>
+
+  <section class="form-section">
+    <h2 class="section-title">Perfis</h2>
+    <p class="section-desc">Selecione os perfis (roles) que este usuário terá.</p>
+    @if (loadingPerfis) {
+      <p class="muted">Carregando perfis...</p>
+    } @else if (perfisErro) {
+      <p class="error-msg">{{ perfisErro }}</p>
+    } @else if (perfisList.length === 0) {
+      <p class="muted">Nenhum perfil cadastrado.</p>
+    } @else {
+      <div class="checkbox-list">
+        @for (p of perfisList; track p.id ?? p.name) {
+          <label class="checkbox-item">
+            <input
+              type="checkbox"
+              [checked]="form.perfilIds.includes(toPerfilId(p.id))"
+              (change)="togglePerfil(toPerfilId(p.id))"
+            />
+            <span>{{ p.name ?? p.id ?? '-' }}</span>
+          </label>
+        }
+      </div>
+    }
+  </section>
+
+  <section class="form-section">
+    <h2 class="section-title">Permissões</h2>
+    <p class="section-desc">Selecione as permissões (claims) que este usuário terá.</p>
+    @if (loadingPermissoes) {
+      <p class="muted">Carregando permissões...</p>
+    } @else if (permissoesErro) {
+      <p class="error-msg">{{ permissoesErro }}</p>
+    } @else if (permissoesList.length === 0) {
+      <p class="muted">Nenhuma permissão disponível no backend.</p>
+    } @else {
+      <div class="checkbox-list">
+        @for (perm of permissoesList; track perm.id) {
+          <label class="checkbox-item">
+            <input
+              type="checkbox"
+              [checked]="form.permissaoIds.includes(perm.id)"
+              (change)="togglePermissao(perm.id)"
+            />
+            <span>{{ perm.nome || perm.id }}</span>
+          </label>
+        }
+      </div>
+    }
+  </section>
+
+  <div class="form-actions">
+    <a class="btn btn-secondary" routerLink="/app/configuracoes/usuarios">Cancelar</a>
+    <button
+      type="button"
+      class="btn btn-primary"
+      [disabled]="saving"
+      (click)="salvar()"
+    >
+      {{ saving ? 'Salvando...' : 'Salvar' }}
+    </button>
+  </div>
+</div>

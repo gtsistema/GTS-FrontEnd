@@ -1,0 +1,273 @@
+<div class="tab-content">
+  <div class="tab-content__actions">
+    <button type="button" class="btn btn-primary" (click)="openNovo()">
+      Novo usuário
+    </button>
+  </div>
+
+  @if (loading) {
+    <p class="loading-msg">Carregando...</p>
+  } @else if (erro) {
+    <p class="error-msg">{{ erro }}</p>
+    <button type="button" class="btn btn-secondary" (click)="retry()">
+      Tentar novamente
+    </button>
+  } @else {
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>Email</th>
+            <th>Perfil</th>
+            <th>Ativo</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (item of itens; track item.id ?? $index) {
+            <tr>
+              <td>{{ item.nome ?? '-' }}</td>
+              <td>{{ item.emailOuLogin ?? '-' }}</td>
+              <td>{{ item.perfil ?? '-' }}</td>
+              <td>{{ item.ativo ? 'Sim' : 'Não' }}</td>
+              <td class="acoes-cell">
+                <button type="button" class="btn btn-primary btn--sm" (click)="openEditar(item)">
+                  Editar
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    @if (itens.length === 0) {
+      <p class="empty-msg">Nenhum usuário encontrado.</p>
+    }
+  }
+</div>
+
+@if (modalOpen()) {
+  <div class="modal-overlay" (click)="closeModal()">
+    <div
+      class="modal-content"
+      role="dialog"
+      aria-modal="true"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="modal-header">
+        <h2 id="modal-title">{{ isEdit() ? 'Editar usuário' : 'Novo usuário' }}</h2>
+      </div>
+      <div class="modal-body">
+        @if (saveError()) {
+          <p class="modal-save-error">{{ saveError() }}</p>
+        }
+        <div class="form-grid form-grid--basic">
+          <div class="form-group">
+            <label for="u-nome">Nome</label>
+            <input
+              id="u-nome"
+              type="text"
+              class="input-control"
+              [(ngModel)]="form.nome"
+              placeholder="Nome"
+            />
+          </div>
+          <div class="form-group">
+            <label for="u-email">Email</label>
+            <input
+              id="u-email"
+              type="email"
+              class="input-control"
+              [(ngModel)]="form.email"
+              placeholder="Email / Login"
+            />
+          </div>
+          <div class="form-group">
+            <label for="u-cpfcnpj">CPF ou CNPJ</label>
+            <input
+              id="u-cpfcnpj"
+              type="text"
+              class="input-control"
+              [(ngModel)]="form.cpfCnpj"
+              placeholder="CPF ou CNPJ"
+              maxlength="18"
+            />
+          </div>
+          @if (!isEdit()) {
+            <div class="form-group">
+              <label for="u-senha">Senha</label>
+              <input
+                id="u-senha"
+                type="password"
+                class="input-control"
+                [(ngModel)]="form.senha"
+                placeholder="Senha"
+              />
+            </div>
+          }
+          <div class="form-group form-group--row">
+            <input
+              id="u-ativo"
+              type="checkbox"
+              [(ngModel)]="form.ativo"
+            />
+            <label for="u-ativo">Ativo</label>
+          </div>
+          <div class="form-group">
+            <label for="u-perfil">Perfil</label>
+            <select
+              id="u-perfil"
+              class="input-control"
+              [(ngModel)]="form.perfilId"
+              (ngModelChange)="onPerfilChange()"
+            >
+              <option value="">Selecione</option>
+              @for (p of perfisList; track p.id ?? p.name) {
+                <option [value]="p.id ?? p.name">{{ p.name ?? p.id }}</option>
+              }
+            </select>
+          </div>
+        </div>
+
+        @if (showEstacionamentoField) {
+          <div class="form-group estacionamento-combo-wrap">
+            <label for="u-estacionamento" class="estacionamento-combo__label">Estacionamento</label>
+            <div class="estacionamento-combo">
+              <div class="estacionamento-combo__input-wrap">
+                <input
+                  id="u-estacionamento"
+                  type="text"
+                  class="input-control estacionamento-combo__input"
+                  [value]="estacionamentoDisplay"
+                  (focus)="onEstacionamentoFocus()"
+                  (input)="onEstacionamentoInput($event)"
+                  (blur)="onEstacionamentoBlur()"
+                  placeholder="Digite para filtrar ou selecione"
+                  autocomplete="off"
+                />
+                @if (form.estacionamentoId != null && form.estacionamentoId !== 0 && !estacionamentoDropdownOpen()) {
+                  <button type="button" class="estacionamento-combo__clear" (click)="clearEstacionamento(); $event.preventDefault()" aria-label="Limpar">×</button>
+                }
+                <button
+                  type="button"
+                  class="estacionamento-combo__trigger"
+                  (mousedown)="toggleEstacionamentoDropdown($event)"
+                  [attr.aria-expanded]="estacionamentoDropdownOpen()"
+                  aria-label="Abrir lista de estacionamentos"
+                >
+                  @if (estacionamentoLoading()) {
+                    <span class="estacionamento-combo__spinner">...</span>
+                  } @else {
+                    <span class="material-symbols-outlined estacionamento-combo__chevron">expand_more</span>
+                  }
+                </button>
+              </div>
+              @if (estacionamentoDropdownOpen()) {
+                <ul class="estacionamento-combo__list" role="listbox">
+                  @for (opt of estacionamentoFiltrados; track opt.id) {
+                    <li
+                      role="option"
+                      class="estacionamento-combo__item"
+                      (mousedown)="selectEstacionamento(opt); $event.preventDefault()"
+                    >
+                      {{ opt.label }}
+                    </li>
+                  }
+                  @if (estacionamentoFiltrados.length === 0 && !estacionamentoLoading()) {
+                    <li class="estacionamento-combo__item estacionamento-combo__item--empty">Nenhum estacionamento encontrado</li>
+                  }
+                </ul>
+              }
+            </div>
+          </div>
+        }
+
+        @if (showTransportadoraField) {
+          <div class="form-group form-group--autocomplete">
+            <label for="u-transportadora">Transportadora</label>
+            <div class="autocomplete-wrap">
+              <input
+                id="u-transportadora"
+                type="text"
+                class="input-control"
+                [(ngModel)]="transportadoraSearchTerm"
+                (ngModelChange)="onTransportadoraInput()"
+                placeholder="Buscar por Razão Social ou CNPJ"
+              />
+              @if (form.transportadoraId != null && form.transportadoraId !== 0) {
+                <button type="button" class="autocomplete-clear" (click)="clearTransportadora()" aria-label="Limpar">×</button>
+              }
+              @if (transportadoraLoading()) {
+                <span class="autocomplete-loading">Carregando...</span>
+              }
+              @if (transportadoraDropdownOpen() && !transportadoraLoading()) {
+                <ul class="autocomplete-dropdown">
+                  @if (transportadoraOptions().length === 0) {
+                    <li class="autocomplete-empty">Nenhum resultado</li>
+                  } @else {
+                    @for (opt of transportadoraOptions(); track opt.id) {
+                      <li>
+                        <button type="button" (click)="selectTransportadora(opt)">{{ opt.label }}</button>
+                      </li>
+                    }
+                  }
+                </ul>
+              }
+            </div>
+          </div>
+        }
+
+        @if (form.perfilId) {
+          <div class="form-section form-section--permissions">
+            <label class="form-section__row">
+              <input
+                type="checkbox"
+                [(ngModel)]="form.useDefaultPermissions"
+                (ngModelChange)="onUseDefaultPermissionsChange()"
+              />
+              <span>Usar permissões padrão do perfil</span>
+            </label>
+            <h3 class="form-section__title">Permissões do usuário</h3>
+            <p class="form-section__desc">
+              Limitadas ao perfil selecionado. Marque para usar todas; desmarque para remover algumas.
+            </p>
+            <div class="permission-groups">
+              @for (group of profilePermissionsByModule; track group.module) {
+                <div class="permission-group">
+                  <span class="permission-group__label">{{ group.module }}</span>
+                  <div class="permission-group__list">
+                    @for (key of group.keys; track key) {
+                      <label class="permission-checkbox">
+                        <input
+                          type="checkbox"
+                          [checked]="isUserPermissionChecked(key)"
+                          [disabled]="form.useDefaultPermissions"
+                          (change)="toggleUserPermission(key)"
+                        />
+                        <span>{{ key }}</span>
+                      </label>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        }
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="closeModal()">
+          Cancelar
+        </button>
+        <button
+          type="button"
+          class="btn btn-primary"
+          [disabled]="saving()"
+          (click)="salvar()"
+        >
+          {{ saving() ? 'Salvando...' : 'Salvar' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}

@@ -1,0 +1,604 @@
+<div class="page-container">
+  <header class="page-header">
+    <div class="page-header__row page-header__row--1">
+      <div class="page-header__title-wrap">
+        <h1 class="page-title">Cadastro Transportadora</h1>
+        <p class="page-subtitle">Cadastro e gestão da transportadora, frota e condutores</p>
+      </div>
+      @if (activeTab === 'cadastro' && !listView) {
+        <div class="page-header__actions">
+          <button type="button" class="btn btn-secondary" (click)="voltarLista()">Voltar</button>
+        </div>
+      }
+    </div>
+    <div class="page-header__row page-header__row--2">
+      <nav class="tabs" role="tablist" aria-label="Abas Cadastro Transportadora">
+        <button type="button" class="tab" role="tab" [class.tab--active]="activeTab === 'cadastro'" [attr.aria-selected]="activeTab === 'cadastro'" (click)="setTab('cadastro')">Cadastro</button>
+        @if (!listView) {
+          <button type="button" class="tab" role="tab" [class.tab--active]="activeTab === 'frota'" [attr.aria-selected]="activeTab === 'frota'" (click)="setTab('frota')">Frota</button>
+          <button type="button" class="tab" role="tab" [class.tab--active]="activeTab === 'condutores'" [attr.aria-selected]="activeTab === 'condutores'" (click)="setTab('condutores')">Condutores</button>
+        }
+      </nav>
+    </div>
+  </header>
+
+  <div class="page-content">
+    @switch (activeTab) {
+      @case ('cadastro') {
+        @if (listView) {
+          <div class="tab-panel">
+            <div class="page-header__actions" style="margin-bottom: 12px;">
+              <select class="search-input input-control" [(ngModel)]="campoBusca" aria-label="Filtrar busca por">
+                <option value="geral">Busca geral</option>
+                <option value="cnpj">CNPJ</option>
+                <option value="razaoSocial">Razão social</option>
+                <option value="nomeFantasia">Nome fantasia</option>
+                <option value="email">E-mail</option>
+                <option value="id">ID</option>
+              </select>
+              <input type="text" class="search-input input-control" [placeholder]="searchPlaceholder" [(ngModel)]="termoBusca" (keyup.enter)="onBuscar()" />
+              <button type="button" class="btn btn-secondary" (click)="onBuscar()">Buscar</button>
+              <button type="button" class="btn btn-primary" (click)="novoTransportadora()">Novo</button>
+            </div>
+            @if (erroList) {
+              <p class="error-msg">{{ erroList }}</p>
+            }
+            @if (loadingList) {
+              <p class="loading-msg">Carregando...</p>
+            } @else if (!jaBuscou) {
+              <p class="empty-msg">Clique em <strong>Buscar</strong> para carregar as transportadoras.</p>
+            } @else {
+              <div class="table-wrap">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Id</th>
+                      <th>Razão Social</th>
+                      <th>Nome Fantasia</th>
+                      <th>CNPJ</th>
+                      <th>E-mail</th>
+                      <th>Ativo</th>
+                      <th>Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (item of transportadoraList; track item.id) {
+                      <tr>
+                        <td>{{ item.id }}</td>
+                        <td>{{ item.razaoSocial }}</td>
+                        <td>{{ item.nomeFantasia }}</td>
+                        <td>{{ formatCnpjList(item.cnpj) }}</td>
+                        <td>{{ item.email }}</td>
+                        <td>{{ item.ativo ? 'Sim' : 'Não' }}</td>
+                        <td>
+                          <button type="button" class="btn btn-primary btn--sm" (click)="editarTransportadora(item)">Editar</button>
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+              @if (transportadoraList.length === 0) {
+                <p class="empty-msg">Nenhuma transportadora encontrada.</p>
+              }
+            }
+          </div>
+        } @else {
+          <div class="tab-panel tab-panel--form">
+            <div class="container container--form">
+              @if (erroForm) {
+                <p class="error-banner">{{ erroForm }}</p>
+              }
+              <form [formGroup]="transportadoraForm" (ngSubmit)="salvarTransportadora()" class="form form-compact">
+                <input type="hidden" formControlName="id" />
+
+                <div class="layout-grid">
+                  <section class="card card--span-5">
+                    <div class="card__header">
+                      <h2 class="card__title">Dados da transportadora</h2>
+                      <p class="card__description">Campos obrigatórios marcados com *</p>
+                    </div>
+                    <div class="form-compact__body">
+                      <div class="form-row">
+                        <label for="cnpj">CNPJ <span class="required">*</span></label>
+                        <div class="form-row__input">
+                          <input
+                            id="cnpj"
+                            class="field__input"
+                            type="text"
+                            formControlName="cnpj"
+                            placeholder="00.000.000/0001-00"
+                            maxlength="18"
+                            appCnpjFormat
+                            (blur)="onCnpjBlur()"
+                          />
+                          @if (cnpjLoading) {
+                            <span class="field__hint cnpj-loading">Buscando dados do CNPJ...</span>
+                          }
+                          @if (cnpjError) {
+                            <span class="field__error">{{ cnpjError }}</span>
+                          }
+                          @if (transportadoraForm.get('cnpj')?.invalid && transportadoraForm.get('cnpj')?.touched && !cnpjError) {
+                            <span class="field__error">CNPJ obrigatório.</span>
+                          }
+                        </div>
+                      </div>
+                      <div class="form-row">
+                        <label for="razaoSocial">Razão Social <span class="required">*</span></label>
+                        <div class="form-row__input">
+                          <input id="razaoSocial" class="field__input" type="text" formControlName="razaoSocial" placeholder="Razão Social" />
+                          @if (transportadoraForm.get('razaoSocial')?.invalid && transportadoraForm.get('razaoSocial')?.touched) {
+                            <span class="field__error">Obrigatório. Mín. 2 caracteres.</span>
+                          }
+                        </div>
+                      </div>
+                      <div class="form-row">
+                        <label for="nomeFantasia">Nome Fantasia</label>
+                        <input id="nomeFantasia" class="field__input" type="text" formControlName="nomeFantasia" placeholder="Nome Fantasia" />
+                      </div>
+                      <div class="form-row">
+                        <label for="inscricaoEstadual">Inscrição Estadual</label>
+                        <input id="inscricaoEstadual" class="field__input" type="text" formControlName="inscricaoEstadual" placeholder="Opcional" />
+                      </div>
+                      <div class="form-row">
+                        <label for="email">E-mail</label>
+                        <input id="email" class="field__input" type="email" formControlName="email" placeholder="email@exemplo.com" />
+                      </div>
+                      <div class="form-row">
+                        <label for="telefone">Telefone</label>
+                        <input id="telefone" class="field__input" type="text" formControlName="telefone" placeholder="(00) 0000-0000" appTelefoneFormat />
+                      </div>
+                      <div class="form-row form-row--checkbox">
+                        <label>Status</label>
+                        <label class="field__label--checkbox">
+                          <input type="checkbox" formControlName="ativo" />
+                          Ativo
+                        </label>
+                      </div>
+                    </div>
+                  </section>
+
+                  <section class="card card--span-7">
+                    <div class="card__header">
+                      <h2 class="card__title">Responsável principal</h2>
+                    </div>
+                    <div class="form-compact__body">
+                      <div class="form-row">
+                        <label for="responsavelNome">Nome completo</label>
+                        <input id="responsavelNome" class="field__input" type="text" formControlName="responsavelNome" placeholder="Nome do responsável" />
+                      </div>
+                      <div class="form-row">
+                        <label for="responsavelCpf">CPF</label>
+                        <input id="responsavelCpf" class="field__input" type="text" formControlName="responsavelCpf" placeholder="000.000.000-00" maxlength="14" appCpfFormat />
+                      </div>
+                      <div class="form-row">
+                        <label for="responsavelCelular">Celular</label>
+                        <input id="responsavelCelular" class="field__input" type="text" formControlName="responsavelCelular" placeholder="(00) 00000-0000" appTelefoneFormat />
+                      </div>
+                      <div class="form-row">
+                        <label for="responsavelEmail">E-mail</label>
+                        <input id="responsavelEmail" class="field__input" type="email" formControlName="responsavelEmail" placeholder="email@exemplo.com" />
+                      </div>
+                      <div class="form-row">
+                        <label for="responsavelCargo">Cargo / Função</label>
+                        <input id="responsavelCargo" class="field__input" type="text" formControlName="responsavelCargo" placeholder="Ex.: Gerente" />
+                      </div>
+                    </div>
+                  </section>
+
+                  <section class="card card--span-5">
+                    <div class="card__header">
+                      <h2 class="card__title">Acessos</h2>
+                      <p class="card__description card__description--small">Acesso criado pelo admin. Tipo: Unidade única.</p>
+                    </div>
+                    <div class="form-compact__body">
+                      <div class="form-row">
+                        <label for="tipoAcesso">Tipo de acesso</label>
+                        <input id="tipoAcesso" class="field__input field__input--readonly" type="text" formControlName="tipoAcesso" placeholder="Unidade única" readonly />
+                      </div>
+                      <div class="form-row">
+                        <label for="observacaoInterna">Observação interna</label>
+                        <input id="observacaoInterna" class="field__input" type="text" formControlName="observacaoInterna" placeholder="Opcional" />
+                      </div>
+                    </div>
+                  </section>
+
+                  <section class="card card--span-7" formGroupName="endereco">
+                    <div class="card__header">
+                      <h2 class="card__title">Endereço</h2>
+                    </div>
+                    <div class="form-compact__body">
+                      <div class="form-row form-row--cep">
+                        <label for="cep">CEP</label>
+                        <div class="field__group field__group--cep">
+                          <input id="cep" class="field__input" type="text" formControlName="cep" placeholder="00000-000" maxlength="9" (blur)="buscarCep()" />
+                          <button type="button" class="btn btn-secondary btn--cep" (click)="buscarCep()">Buscar</button>
+                        </div>
+                      </div>
+                      <div class="form-row">
+                        <label for="logradouro">Logradouro</label>
+                        <input id="logradouro" class="field__input" type="text" formControlName="logradouro" placeholder="Rua, Av." />
+                      </div>
+                      <div class="form-row">
+                        <label for="numero">Número</label>
+                        <input id="numero" class="field__input" type="text" formControlName="numero" placeholder="Nº" />
+                      </div>
+                      <div class="form-row">
+                        <label for="complemento">Complemento</label>
+                        <input id="complemento" class="field__input" type="text" formControlName="complemento" placeholder="Opcional" />
+                      </div>
+                      <div class="form-row">
+                        <label for="bairro">Bairro</label>
+                        <input id="bairro" class="field__input" type="text" formControlName="bairro" placeholder="Bairro" />
+                      </div>
+                      <div class="form-row">
+                        <label for="cidade">Cidade</label>
+                        <input id="cidade" class="field__input" type="text" formControlName="cidade" placeholder="Cidade" />
+                      </div>
+                      <div class="form-row">
+                        <label for="estado">Estado</label>
+                        <input id="estado" class="field__input" type="text" formControlName="estado" placeholder="UF" maxlength="2" />
+                      </div>
+                    </div>
+                  </section>
+                </div>
+
+                <div class="form-actions-bar">
+                  <div class="form-actions-bar__left">
+                    @if (transportadoraForm.get('id')?.value) {
+                      <button type="button" class="btn btn-danger btn--outline" (click)="excluirTransportadora()">Excluir</button>
+                    }
+                  </div>
+                  <div class="form-actions-bar__right">
+                    <button type="button" class="btn btn-secondary" (click)="voltarLista()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" [disabled]="salvando">{{ salvando ? 'Salvando...' : 'Salvar tudo' }}</button>
+                  </div>
+                </div>
+              </form>
+            </div>
+          </div>
+        }
+      }
+
+      @case ('frota') {
+        <div class="tab-panel frota-panel">
+          <div class="frota-actions">
+            <button
+              type="button"
+              class="btn btn-primary"
+              (click)="abrirNovoVeiculo()"
+            >
+              Cadastrar frota
+            </button>
+            <button
+              type="button"
+              class="btn btn-secondary"
+              [disabled]="transportadoraId == null"
+              (click)="abrirImportarFrota()"
+            >
+              Importar frota
+            </button>
+          </div>
+
+          @if (transportadoraId == null) {
+            <p class="frota-hint">Você já pode cadastrar as placas. Ao salvar a transportadora, a frota pendente será enviada junto.</p>
+          }
+
+          @if (transportadoraId != null || veiculos.length > 0) {
+            @if (loadingVeiculos) {
+              <p class="loading-msg">Carregando frota...</p>
+            } @else {
+              <section class="card frota-list-card">
+                <div class="card__header">
+                  <h2 class="card__title">Frota cadastrada</h2>
+                  <p class="card__description">
+                    {{ transportadoraId != null ? 'Veículos vinculados a esta transportadora.' : 'Veículos pendentes para salvar junto com a transportadora.' }}
+                  </p>
+                </div>
+                <div class="table-wrap">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>Placa</th>
+                        <th>Marca / Modelo</th>
+                        <th>Cor</th>
+                        <th>Ano</th>
+                        <th>Tipo</th>
+                        <th>Centro custo</th>
+                        <th>Status</th>
+                        <th>Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (v of veiculos; track v.id) {
+                        <tr>
+                          <td>{{ v.placa }}</td>
+                          <td>{{ v.marcaModelo }}</td>
+                          <td>{{ v.cor ?? '—' }}</td>
+                          <td>{{ v.anoFabricacao ?? v.anoModelo ?? '—' }}</td>
+                          <td>{{ v.tipoVeiculo ?? '—' }}</td>
+                          <td>{{ v.centroCusto ?? '—' }}</td>
+                          <td>{{ v.ativo ? 'Ativo' : 'Inativo' }}</td>
+                          <td>
+                            <button type="button" class="btn btn-primary btn--sm" (click)="editarVeiculo(v)">Editar</button>
+                            <button type="button" class="btn btn-secondary btn--sm" (click)="excluirVeiculo(v)">Excluir</button>
+                          </td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+                @if (veiculos.length === 0) {
+                  <div class="frota-empty">
+                    <p class="frota-empty__text">Nenhum veículo na frota.</p>
+                    <p class="frota-empty__hint">Use <strong>Cadastrar frota</strong> ou <strong>Importar frota</strong> para começar.</p>
+                  </div>
+                }
+              </section>
+            }
+          }
+        </div>
+      }
+
+      @case ('condutores') {
+        <div class="tab-panel">
+          <!-- TODO: integrar com endpoint de Condutor quando disponível no backend. Estrutura pronta com mock. -->
+          <div class="page-header__actions" style="margin-bottom: 12px;">
+            <button type="button" class="btn btn-primary" (click)="abrirNovoCondutor()">Adicionar condutor</button>
+            <button
+              type="button"
+              class="btn btn-secondary"
+              [disabled]="transportadoraId == null"
+              (click)="abrirImportarCondutores()"
+            >
+              Importar Condutores
+            </button>
+          </div>
+          @if (transportadoraId == null) {
+            <p class="frota-hint">Você já pode adicionar condutores e continuar o preenchimento antes de salvar a transportadora.</p>
+          }
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>CPF</th>
+                  <th>Celular</th>
+                  <th>E-mail</th>
+                  <th>CNH</th>
+                  <th>Categoria</th>
+                  <th>Venc. CNH</th>
+                  <th>Status</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (c of condutoresMock; track c.id) {
+                  <tr>
+                    <td>{{ c.nomeCompleto }}</td>
+                    <td>{{ formatCpfCondutor(c.cpf) }}</td>
+                    <td>{{ c.celular || '—' }}</td>
+                    <td>{{ c.email || '—' }}</td>
+                    <td>{{ c.cnh || '—' }}</td>
+                    <td>{{ c.categoriaCnh || '—' }}</td>
+                    <td>{{ c.vencimentoCnh || '—' }}</td>
+                    <td>{{ c.ativo ? 'Ativo' : 'Inativo' }}</td>
+                    <td>
+                      <button type="button" class="btn btn-primary btn--sm" (click)="editarCondutor(c)">Editar</button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          @if (condutoresMock.length === 0) {
+            <p class="empty-msg">Nenhum condutor cadastrado. (Dados mockados — integração com backend quando endpoint estiver disponível.)</p>
+          }
+        </div>
+      }
+    }
+  </div>
+
+  @if (showVeiculoForm) {
+    <div class="modal-overlay modal-overlay--frota" (click)="fecharModalFrota()" role="presentation">
+      <div
+        class="modal-content modal-content--frota"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-frota-title"
+        (click)="$event.stopPropagation()"
+      >
+        <div class="modal-header">
+          <h2 id="modal-frota-title">{{ veiculoEditId ? 'Editar veículo' : 'Cadastrar frota' }}</h2>
+          <button type="button" class="modal-close" aria-label="Fechar" (click)="fecharModalFrota()">&times;</button>
+        </div>
+        <form [formGroup]="veiculoForm" (ngSubmit)="salvarVeiculo()">
+          <div class="modal-body modal-body--frota-compact">
+            @if (transportadoraId == null) {
+              <p class="modal-frota-hint" role="alert">Este veículo ficará pendente e será salvo junto quando você salvar a transportadora na aba <strong>Cadastro</strong>.</p>
+            }
+            <div class="form-row">
+              <label for="frota-placa">Placa <span class="required">*</span></label>
+              <input
+                id="frota-placa"
+                type="text"
+                class="input-control"
+                placeholder="Ex.: ABC1D23"
+                maxlength="7"
+                formControlName="placa"
+                (input)="formatarPlacaFrota($any($event.target).value)"
+                (blur)="onPlacaBlur()"
+              />
+            </div>
+            <div class="form-row">
+              <label for="frota-condutor">Condutor</label>
+              <select id="frota-condutor" class="input-control input-control--select" formControlName="condutorId">
+                <option [ngValue]="null">Selecione</option>
+                @for (c of condutoresMock; track c.id) {
+                  <option [ngValue]="c.id">{{ c.nomeCompleto }}</option>
+                }
+              </select>
+            </div>
+            <div class="form-row">
+              <label for="frota-marca">Marca</label>
+              <input id="frota-marca" type="text" class="input-control" formControlName="marca" placeholder="Ex.: Volvo" />
+            </div>
+            <div class="form-row">
+              <label for="frota-modelo">Modelo</label>
+              <input id="frota-modelo" type="text" class="input-control" formControlName="modelo" placeholder="Ex.: FH 540" />
+            </div>
+            <div class="form-row">
+              <label for="frota-cor">Cor do veículo</label>
+              <input id="frota-cor" type="text" class="input-control" formControlName="cor" placeholder="Opcional" />
+            </div>
+            <div class="form-row">
+              <label for="frota-ano-fab">Ano Fabricação</label>
+              <input id="frota-ano-fab" type="number" class="input-control" formControlName="anoFabricacao" placeholder="Ex.: 2022" min="1900" max="2100" />
+            </div>
+            <div class="form-row">
+              <label for="frota-ano-mod">Ano Modelo</label>
+              <input id="frota-ano-mod" type="number" class="input-control" formControlName="anoModelo" placeholder="Ex.: 2023" min="1900" max="2100" />
+            </div>
+            <div class="form-row">
+              <label for="frota-tipo">Tipo de veículo</label>
+              <input id="frota-tipo" type="text" class="input-control" formControlName="tipoVeiculo" placeholder="Ex.: Cavalo mecânico" />
+            </div>
+            <div class="form-row">
+              <label for="frota-eixos">Quantidade eixos</label>
+              <select id="frota-eixos" class="input-control input-control--select" formControlName="quantidadeEixos">
+                <option value="">Selecione</option>
+                @for (n of eixosOpcoes; track n) {
+                  <option [value]="n">{{ n }} eixo{{ n > 1 ? 's' : '' }}</option>
+                }
+              </select>
+            </div>
+            <div class="form-row">
+              <label for="frota-peso">Veículo Leve/Pesado</label>
+              <select id="frota-peso" class="input-control input-control--select" formControlName="tipoPeso">
+                <option value="">Selecione</option>
+                @for (o of tipoPesoOpcoes; track o.value) {
+                  <option [value]="o.value">{{ o.label }}</option>
+                }
+              </select>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" (click)="fecharModalFrota()">Fechar</button>
+            <button type="submit" class="btn btn-primary" [disabled]="veiculoForm.invalid || salvandoVeiculo">
+              {{ salvandoVeiculo ? 'Salvando...' : 'Salvar frota' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  @if (showCondutorForm) {
+    <div class="modal-overlay modal-overlay--frota" (click)="fecharModalCondutor()" role="presentation">
+      <div
+        class="modal-content modal-content--frota"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-condutor-title"
+        (click)="$event.stopPropagation()"
+      >
+        <div class="modal-header">
+          <h2 id="modal-condutor-title">{{ condutorEditId ? 'Editar condutor' : 'Novo condutor' }}</h2>
+          <button type="button" class="modal-close" aria-label="Fechar" (click)="fecharModalCondutor()">&times;</button>
+        </div>
+        <form [formGroup]="condutorForm" (ngSubmit)="salvarCondutor()">
+          <div class="modal-body modal-body--frota-compact">
+            @if (transportadoraId == null) {
+              <p class="modal-frota-hint" role="alert">Você pode cadastrar condutores agora. Eles permanecem na tela durante o preenchimento.</p>
+            }
+            <div class="form-row">
+              <label for="cond-nome">Nome completo <span class="required">*</span></label>
+              <input id="cond-nome" type="text" class="input-control" formControlName="nomeCompleto" placeholder="Nome completo" />
+            </div>
+            <div class="form-row">
+              <label for="cond-cpf">CPF <span class="required">*</span></label>
+              <input id="cond-cpf" type="text" class="input-control" formControlName="cpf" placeholder="000.000.000-00" appCpfFormat />
+            </div>
+            <div class="form-row">
+              <label for="cond-celular">Celular</label>
+              <input id="cond-celular" type="text" class="input-control" formControlName="celular" placeholder="(00) 00000-0000" appTelefoneFormat />
+            </div>
+            <div class="form-row">
+              <label for="cond-email">E-mail</label>
+              <input id="cond-email" type="email" class="input-control" formControlName="email" placeholder="E-mail" />
+            </div>
+            <div class="form-row">
+              <label for="cond-cnh">CNH</label>
+              <input id="cond-cnh" type="text" class="input-control" formControlName="cnh" placeholder="Número da CNH" />
+            </div>
+            <div class="form-row">
+              <label for="cond-categoria">Categoria CNH</label>
+              <input id="cond-categoria" type="text" class="input-control" formControlName="categoriaCnh" placeholder="Ex.: B, E" />
+            </div>
+            <div class="form-row">
+              <label for="cond-venc">Vencimento CNH</label>
+              <input id="cond-venc" type="text" class="input-control" formControlName="vencimentoCnh" placeholder="DD/MM/AAAA" />
+            </div>
+            <div class="form-row form-row--checkbox">
+              <label>Status</label>
+              <label class="field__label--checkbox-inline">
+                <input type="checkbox" formControlName="ativo" />
+                Ativo
+              </label>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" (click)="fecharModalCondutor()">Fechar</button>
+            <button type="submit" class="btn btn-primary" [disabled]="condutorForm.invalid">Salvar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  @if (showImportarFrota) {
+    <div class="modal-overlay" (click)="fecharImportarFrota()" role="dialog" aria-modal="true" aria-labelledby="importar-frota-title">
+      <div class="modal modal--importar-frota" (click)="$event.stopPropagation()">
+        <div class="modal__header">
+          <h2 id="importar-frota-title" class="modal__title">Importar frota</h2>
+          <button type="button" class="modal__close" (click)="fecharImportarFrota()" aria-label="Fechar">&times;</button>
+        </div>
+        <div class="modal__body">
+          <p class="modal__description">Selecione um arquivo Excel (.xlsx ou .csv) com as colunas: <strong>Placa</strong>, <strong>Marca/Modelo</strong>, Cor, Ano Fab/Mod, Tipo de veículo, Centro de custo, Status. A primeira linha deve conter o cabeçalho.</p>
+          <div class="importacao-actions">
+            <input type="file" #fileFrotaInput accept=".xlsx,.xls,.csv" (change)="onFileFrotaChange($event)" style="display: none;" />
+            <button type="button" class="btn btn-secondary" (click)="fileFrotaInput.click()">Selecionar arquivo</button>
+            <button type="button" class="btn btn-primary" (click)="importarFrota()" [disabled]="!fileFrota">Importar</button>
+            <button type="button" class="btn btn-secondary" (click)="downloadModeloFrota()">Baixar modelo</button>
+          </div>
+          @if (fileFrota) {
+            <p class="file-name">Arquivo: {{ fileFrota.name }}</p>
+          }
+        </div>
+      </div>
+    </div>
+  }
+
+  @if (showImportarCondutores) {
+    <div class="modal-overlay" (click)="fecharImportarCondutores()" role="dialog" aria-modal="true" aria-labelledby="importar-condutores-title">
+      <div class="modal modal--importar-frota" (click)="$event.stopPropagation()">
+        <div class="modal__header">
+          <h2 id="importar-condutores-title" class="modal__title">Importar condutores</h2>
+          <button type="button" class="modal__close" (click)="fecharImportarCondutores()" aria-label="Fechar">&times;</button>
+        </div>
+        <div class="modal__body">
+          <p class="modal__description">Selecione um arquivo Excel (.xlsx ou .csv) com as colunas: <strong>Nome</strong>, <strong>CPF</strong>, Celular, E-mail, CNH, Categoria CNH, Venc. CNH, Ativo. A primeira linha deve conter o cabeçalho.</p>
+          <div class="importacao-actions">
+            <input type="file" #fileCondutoresInput accept=".xlsx,.xls,.csv" (change)="onFileCondutores($event)" style="display: none;" />
+            <button type="button" class="btn btn-secondary" (click)="fileCondutoresInput.click()">Selecionar arquivo</button>
+            <button type="button" class="btn btn-primary" (click)="importarCondutores()" [disabled]="!fileCondutores">Importar</button>
+            <button type="button" class="btn btn-secondary" (click)="downloadModeloCondutores()">Baixar modelo</button>
+          </div>
+          @if (fileCondutores) {
+            <p class="file-name">Arquivo: {{ fileCondutores.name }}</p>
+          }
+        </div>
+      </div>
+    </div>
+  }
+</div>

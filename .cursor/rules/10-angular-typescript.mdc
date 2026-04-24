@@ -1,0 +1,15 @@
+---
+description: Padroes Angular e TypeScript para manutencao e escala
+globs: **/*.ts
+alwaysApply: false
+---
+
+# Angular e TypeScript
+
+- Componentes com responsabilidade clara e sem acoplamento desnecessario.
+- Funcoes longas devem ser quebradas em metodos privados menores.
+- Tipar payloads e respostas de API com interfaces explicitas.
+- Evitar estado duplicado entre componente e service.
+- Tratar erros com mensagem clara para usuario e para diagnostico tecnico.
+- Preservar padrao de nomenclatura e organizacao ja adotado no modulo.
+- Antes de criar novo service/helper, verificar se ja existe equivalente.

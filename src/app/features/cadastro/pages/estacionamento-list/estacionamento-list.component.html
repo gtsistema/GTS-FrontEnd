@@ -1,0 +1,86 @@
+<div class="page-content">
+    @if (erro) {
+      <p class="error-msg">{{ erro }}</p>
+      <button type="button" class="btn btn-secondary" (click)="carregar()">Tentar novamente</button>
+    }
+    @if (loading) {
+      <p class="loading-msg">Carregando...</p>
+    } @else {
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Id</th>
+              <th>Descrição</th>
+              <th>Tipo</th>
+              <th>Nome / Razão Social</th>
+              <th>Documento</th>
+              <th>E-mail</th>
+              <th>Ativo</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of itens; track item.id) {
+              <tr>
+                <td>{{ item.id }}</td>
+                <td>{{ item.descricao }}</td>
+                <td>{{ tipoPessoaLabel(item.tipoPessoa) }}</td>
+                <td>{{ item.nomeRazaoSocial }}</td>
+                <td>{{ formatDocumento(item) }}</td>
+                <td>{{ item.email }}</td>
+                <td>{{ item.ativo ? 'Sim' : 'Não' }}</td>
+                <td class="acoes-cell">
+                  <a
+                    class="btn btn-primary btn--sm"
+                    [routerLink]="['/app/cadastro/estacionamento/editar', item.id]"
+                  >
+                    Editar
+                  </a>
+                  <button
+                    type="button"
+                    class="btn btn-danger btn--outline btn--sm"
+                    [disabled]="excluindoId === item.id"
+                    (click)="excluir(item)"
+                  >
+                    {{ excluindoId === item.id ? 'Excluindo…' : 'Excluir' }}
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      @if (itens.length === 0 && !loading && toolbar.trigger() > 0) {
+        <p class="empty-msg">Nenhum registro encontrado.</p>
+      }
+      @if (toolbar.trigger() === 0 && !loading && !erro) {
+        <p class="empty-msg empty-msg--hint">Clique em «Buscar» para consultar o backend.</p>
+      }
+      @if (totalPaginas > 1 && itens.length > 0) {
+        <nav class="paginacao" aria-label="Paginação">
+          <span class="paginacao__info">
+            Página {{ numeroPagina }} de {{ totalPaginas }} ({{ totalCount }} registro(s))
+          </span>
+          <div class="paginacao__btns">
+            <button
+              type="button"
+              class="btn btn-secondary btn--sm"
+              [disabled]="numeroPagina <= 1"
+              (click)="irParaPagina(numeroPagina - 1)"
+            >
+              Anterior
+            </button>
+            <button
+              type="button"
+              class="btn btn-secondary btn--sm"
+              [disabled]="numeroPagina >= totalPaginas"
+              (click)="irParaPagina(numeroPagina + 1)"
+            >
+              Próxima
+            </button>
+          </div>
+        </nav>
+      }
+    }
+  </div>

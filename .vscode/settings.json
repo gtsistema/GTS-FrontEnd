@@ -1,0 +1,25 @@
+{
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.codeActionsOnSave": {
+    "source.fixAll": "always"
+  },
+  "editor.tabSize": 2,
+  "editor.detectIndentation": false,
+  "editor.wordWrap": "on",
+  "editor.minimap.enabled": false,
+  "files.autoSave": "onFocusChange",
+  "typescript.updateImportsOnFileMove.enabled": "always",
+  "typescript.preferences.importModuleSpecifier": "relative",
+  "javascript.updateImportsOnFileMove.enabled": "always",
+  "angular.enable-strict-mode-prompt": false,
+  "playwright.reuseBrowser": true,
+  "search.exclude": {
+    "**/dist": true,
+    "**/.angular": true,
+    "**/node_modules": true
+  },
+  "files.exclude": {
+    "**/.angular": true
+  }
+}

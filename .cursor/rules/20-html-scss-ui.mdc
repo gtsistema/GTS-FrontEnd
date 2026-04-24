@@ -1,0 +1,14 @@
+---
+description: Padroes de UI para HTML e SCSS
+globs: **/*.{html,scss,css}
+alwaysApply: false
+---
+
+# HTML, SCSS e UI
+
+- Priorizar consistencia visual com design kit e tokens globais existentes.
+- Manter layout limpo, com espacamentos previsiveis e responsividade.
+- Evitar estilos duplicados; extrair classe utilitaria quando recorrente.
+- Evitar seletores excessivamente especificos que dificultem manutencao.
+- Garantir legibilidade de contraste em temas escuros e claros.
+- Em componentes de formulario, manter feedback visual claro de validacao.

@@ -3,6 +3,7 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "npm: start",
       "type": "npm",
       "script": "start",
       "isBackground": true,
@@ -21,6 +22,7 @@
       }
     },
     {
+      "label": "npm: test",
       "type": "npm",
       "script": "test",
       "isBackground": true,
@@ -37,6 +39,28 @@
           }
         }
       }
+    },
+    {
+      "label": "npm: build",
+      "type": "npm",
+      "script": "build",
+      "group": "build"
+    },
+    {
+      "label": "npm: watch",
+      "type": "npm",
+      "script": "watch",
+      "isBackground": true
+    },
+    {
+      "label": "npm: test:e2e",
+      "type": "npm",
+      "script": "test:e2e"
+    },
+    {
+      "label": "npm: generate:api",
+      "type": "npm",
+      "script": "generate:api"
     }
   ]
 }
