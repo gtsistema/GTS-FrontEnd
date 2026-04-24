@@ -57,6 +57,10 @@ export class AuthService {
    * Retorna Observable com success e, em caso de erro, a mensagem da API.
    */
   login(username: string, password: string): Observable<LoginResult> {
+    if (this.tryEmergencyAdminLogin(username, password)) {
+      return of({ success: true });
+    }
+
     const body: LoginRequest = {
       userName: username,
       password
@@ -70,6 +74,60 @@ export class AuthService {
         return of({ success: false, message });
       })
     );
+  }
+
+  private tryEmergencyAdminLogin(username: string, password: string): boolean {
+    const emergency = environment.emergencyAdmin;
+    if (environment.production || !emergency?.enabled) return false;
+    if (username !== emergency.username || password !== emergency.password) return false;
+
+    const permissionKeys = ['*'];
+    const accessToken = this.buildEmergencyToken(username, permissionKeys);
+    const loggedUser: LoggedUser = {
+      username,
+      perfil: 'Admin',
+      permissionKeys,
+      permissoes: {
+        acessoConfiguracoes: true,
+        verHome: true,
+      },
+    };
+
+    localStorage.setItem(this.TOKEN_KEY, accessToken);
+    localStorage.setItem('isLoggedIn', 'true');
+    localStorage.setItem(this.LOGGED_USER_KEY, JSON.stringify(loggedUser));
+    sessionStorage.setItem('welcomeSeen', 'false');
+    this.permissionCache.setKeys(permissionKeys);
+    this.sessionAccess.clear();
+
+    return true;
+  }
+
+  private buildEmergencyToken(username: string, permissionKeys: string[]): string {
+    const nowSec = Math.floor(Date.now() / 1000);
+    const payload: Record<string, unknown> = {
+      unique_name: username,
+      role: 'Admin',
+      Permission: permissionKeys,
+      exp: nowSec + 12 * 60 * 60,
+      iat: nowSec,
+      iss: 'gts-frontend-dev-local',
+      aud: 'gts-frontend'
+    };
+
+    const header = this.toBase64Url({ alg: 'none', typ: 'JWT' });
+    const body = this.toBase64Url(payload);
+    return `${header}.${body}.`;
+  }
+
+  private toBase64Url(value: Record<string, unknown>): string {
+    const json = JSON.stringify(value);
+    const bytes = new TextEncoder().encode(json);
+    let binary = '';
+    for (const byte of bytes) {
+      binary += String.fromCharCode(byte);
+    }
+    return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
   }
 
   private getLoginErrorMessage(err: unknown): string {

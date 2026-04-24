@@ -491,30 +491,35 @@
 
 .custom-permission__list {
   margin-top: 8px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+  gap: 8px;
 }
 
-.perm-chip {
+.perm-check--custom {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: rgba(91, 124, 255, 0.12);
+  gap: 8px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  background: rgba(255, 255, 255, 0.03);
   color: var(--text);
   font-size: 0.75rem;
 }
 
-.perm-chip__remove {
-  border: none;
+.perm-check__remove {
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
   background: transparent;
-  color: var(--muted);
+  color: var(--text-muted, #98a2b3);
   cursor: pointer;
-  font-size: 0.85rem;
-  line-height: 1;
-  padding: 0;
+  font-size: 0.72rem;
+  line-height: 1.1;
+  padding: 2px 6px;
+}
+
+.perm-check__remove:hover:not(:disabled) {
+  color: var(--danger, #dc3545);
+  border-color: rgba(220, 53, 69, 0.45);
 }
 
 @media (max-width: 768px) {

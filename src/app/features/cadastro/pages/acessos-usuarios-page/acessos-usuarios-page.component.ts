@@ -8,8 +8,8 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject, Subscription } from 'rxjs';
-import { debounceTime, distinctUntilChanged, switchMap, filter } from 'rxjs/operators';
+import { Subject, Subscription, of } from 'rxjs';
+import { debounceTime, distinctUntilChanged, switchMap, map } from 'rxjs/operators';
 import { AcessosUsuariosService, UsuarioListItem } from '../../services/acessos-usuarios.service';
 import { AcessosUsuariosToolbarService } from '../../services/acessos-usuarios-toolbar.service';
 import { AcessosPerfisService, ApplicationRole } from '../../services/acessos-perfis.service';
@@ -17,7 +17,7 @@ import { ProfilePermissionsStoreService } from '../../services/profile-permissio
 import { EstacionamentoLookupService, LookupOption as EstacionamentoOption } from '../../services/estacionamento-lookup.service';
 import { TransportadoraLookupService, LookupOption as TransportadoraOption } from '../../services/transportadora-lookup.service';
 import { ToastService } from '../../../../core/api/services/toast.service';
-import { PERMISSION_MODULES, PERMISSION_CATALOG, getAllPermissionKeys, type PermissionModule } from '../../constants/permission-catalog';
+import { PERMISSION_MODULES, PERMISSION_CATALOG, type PermissionModule } from '../../constants/permission-catalog';
 
 const PERFIL_KEY_ADMIN = 'ADMIN';
 const PERFIL_KEY_ESTACIONAMENTO = 'ESTACIONAMENTO';
@@ -110,6 +110,7 @@ export class AcessosUsuariosPageComponent implements OnDestroy {
   transportadoraLoading = signal(false);
   transportadoraDropdownOpen = signal(false);
   private transportadoraSearch$ = new Subject<string>();
+  private listaSub?: Subscription;
 
   readonly PERMISSION_MODULES = PERMISSION_MODULES;
   readonly PERMISSION_CATALOG = PERMISSION_CATALOG;
@@ -121,8 +122,7 @@ export class AcessosUsuariosPageComponent implements OnDestroy {
     const role = this.perfisList.find((r) => (r.id ?? r.name) === id);
     const key = String(role?.name ?? role?.id ?? id);
     const fromStore = this.profileStore.getProfilePermissions(key);
-    if (fromStore.length > 0) return fromStore;
-    return getAllPermissionKeys();
+    return fromStore;
   }
 
   get profilePermissionsByModule(): { module: PermissionModule; keys: string[] }[] {
@@ -160,10 +160,11 @@ export class AcessosUsuariosPageComponent implements OnDestroy {
 
   ngOnDestroy(): void {
     this.subs.unsubscribe();
+    this.listaSub?.unsubscribe();
   }
 
   private carregarListaEstacionamentos(): void {
-    if (this.estacionamentoListLoaded()) return;
+    if (this.estacionamentoListLoaded() || this.estacionamentoLoading()) return;
     this.estacionamentoLoading.set(true);
     this.cdr.markForCheck();
     this.estacionamentoLookup.list().subscribe({
@@ -218,9 +219,16 @@ export class AcessosUsuariosPageComponent implements OnDestroy {
     this.subs.add(
       this.transportadoraSearch$.pipe(
         debounceTime(300),
+        map((term) => term.trim()),
         distinctUntilChanged(),
-        filter((term) => term.trim().length > 0),
         switchMap((term) => {
+          if (!term) {
+            this.transportadoraLoading.set(false);
+            this.transportadoraOptions.set([]);
+            this.transportadoraDropdownOpen.set(false);
+            this.cdr.markForCheck();
+            return of([]);
+          }
           this.transportadoraLoading.set(true);
           this.cdr.markForCheck();
           return this.transportadoraLookup.search(term);
@@ -229,7 +237,7 @@ export class AcessosUsuariosPageComponent implements OnDestroy {
         next: (opts) => {
           this.transportadoraLoading.set(false);
           this.transportadoraOptions.set(opts);
-          this.transportadoraDropdownOpen.set(true);
+          this.transportadoraDropdownOpen.set(opts.length > 0);
           this.cdr.markForCheck();
         },
         error: () => {
@@ -243,11 +251,12 @@ export class AcessosUsuariosPageComponent implements OnDestroy {
   }
 
   carregarLista(): void {
+    this.listaSub?.unsubscribe();
     this.loading = true;
     this.erro = null;
     this.cdr.markForCheck();
     const termo = this.toolbar.searchTerm().trim();
-    this.usuariosService.buscar(termo || undefined).subscribe({
+    this.listaSub = this.usuariosService.buscar(termo || undefined).subscribe({
       next: (body) => {
         this.loading = false;
         this.erro = null;
@@ -351,7 +360,6 @@ export class AcessosUsuariosPageComponent implements OnDestroy {
       next: (body) => {
         this.loadingPerfis = false;
         this.perfisList = this.normalizePerfis(body);
-        this.seedProfilePermissionsIfEmpty();
         this.cdr.markForCheck();
       },
       error: () => {
@@ -360,18 +368,6 @@ export class AcessosUsuariosPageComponent implements OnDestroy {
         this.cdr.markForCheck();
       },
     });
-  }
-
-  /** Preenche o store com permissões padrão para cada perfil que ainda não tem (para a seção sempre aparecer). */
-  private seedProfilePermissionsIfEmpty(): void {
-    const allKeys = getAllPermissionKeys();
-    for (const role of this.perfisList) {
-      const key = String(role?.name ?? role?.id ?? '');
-      if (!key) continue;
-      if (this.profileStore.getProfilePermissions(key).length === 0) {
-        this.profileStore.setProfilePermissions(key, [...allKeys]);
-      }
-    }
   }
 
   private normalizePerfis(body: unknown): ApplicationRole[] {
@@ -498,6 +494,7 @@ export class AcessosUsuariosPageComponent implements OnDestroy {
       this.cdr.markForCheck();
       return;
     }
+    const selectedPerfil = this.perfisList.find((p) => (p.id ?? p.name) === this.form.perfilId);
     const payload = {
       nome: this.form.nome.trim(),
       email: this.form.email.trim(),
@@ -505,6 +502,7 @@ export class AcessosUsuariosPageComponent implements OnDestroy {
       senha: this.form.senha || undefined,
       ativo: this.form.ativo,
       perfilId: this.form.perfilId || undefined,
+      perfilNome: selectedPerfil?.name ?? selectedPerfil?.normalizedName ?? undefined,
       estacionamentoId: this.showEstacionamentoField ? this.form.estacionamentoId ?? undefined : undefined,
       transportadoraId: this.showTransportadoraField ? this.form.transportadoraId ?? undefined : undefined,
       userPermissionIds: this.form.userPermissionIds,
@@ -517,11 +515,7 @@ export class AcessosUsuariosPageComponent implements OnDestroy {
     }
 
     this.saving.set(true);
-    this.usuariosService.register({
-      userName: payload.email,
-      password: payload.senha ?? '',
-      confirmPassword: payload.senha ?? '',
-    }).subscribe({
+    this.usuariosService.gravar(payload).subscribe({
       next: () => {
         this.saving.set(false);
         this.toast.success('Usuário cadastrado no backend com sucesso.');

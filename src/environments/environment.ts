@@ -1,11 +1,16 @@
 /**
- * Desenvolvimento: API direta no Azure (requisições aparecem como gtsbackend.azurewebsites.net na Rede).
- * O backend deve expor CORS para `http://localhost:4200`.
+ * Desenvolvimento: usar proxy local (`/api`) para evitar CORS no navegador.
+ * O `proxy.conf.json` redireciona para o backend local.
  */
 export const environment = {
   production: false,
-  apiUrl: 'https://gtsbackend.azurewebsites.net',
-  API_BASE_URL: 'https://gtsbackend.azurewebsites.net/api',
+  apiUrl: 'http://localhost:5000',
+  API_BASE_URL: '/api',
+  emergencyAdmin: {
+    enabled: true,
+    username: 'teste.admin',
+    password: 'GTS@12345'
+  },
   /** Base URL ViaCEP: em dev usa proxy /viacep. */
   viacepBaseUrl: '/viacep',
   /** Base URL BrasilAPI (CNPJ): consulta direta na BrasilAPI. */

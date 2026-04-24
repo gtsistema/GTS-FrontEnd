@@ -1,0 +1,15 @@
+---
+description: Regras para integracao frontend-backend
+globs: **/*.{service.ts,mapper.ts,types.ts,model.ts}
+alwaysApply: false
+---
+
+# Integracao com backend
+
+- Seguir endpoints e verbos exatamente conforme backend.
+- Validar nomes de campos (snake/camel/pascal) conforme contrato real.
+- Evitar inventar campos em payload sem evidencia no backend.
+- Quando houver divergencia de contrato, explicitar no codigo e no retorno ao usuario.
+- Preservar compatibilidade com respostas variantes somente quando necessario.
+- Remover stubs/fallbacks quando endpoint oficial estiver disponivel.
+- Em alteracao de contrato, atualizar tipos e mapeadores no mesmo ajuste.

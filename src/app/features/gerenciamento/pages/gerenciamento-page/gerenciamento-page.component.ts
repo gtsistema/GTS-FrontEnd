@@ -8,8 +8,8 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject, Subscription } from 'rxjs';
-import { debounceTime, distinctUntilChanged, filter, switchMap } from 'rxjs/operators';
+import { Subject, Subscription, of } from 'rxjs';
+import { debounceTime, distinctUntilChanged, switchMap, map } from 'rxjs/operators';
 import { GerenciamentoService } from '../../services/gerenciamento.service';
 import { GerenciamentoFiltros, UsuarioGerenciamentoItem, UsuarioGerenciamentoForm, TipoVinculo } from '../../models/gerenciamento.types';
 import { AcessosPerfisService, ApplicationRole } from '../../../cadastro/services/acessos-perfis.service';
@@ -78,6 +78,7 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
   empresaDropdownOpen = signal(false);
   private empresaSearch$ = new Subject<string>();
   private subs = new Subscription();
+  private buscaSub?: Subscription;
 
   permissionSearchTerm = signal('');
   expandedPermissionModules = signal<PermissionModule[]>([]);
@@ -88,8 +89,7 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
     const role = this.perfisList.find((r) => (r.id ?? r.name) === id);
     const key = String(role?.name ?? role?.id ?? id);
     const fromStore = this.profileStore.getProfilePermissions(key);
-    if (fromStore.length > 0) return fromStore;
-    return getAllPermissionKeys();
+    return fromStore;
   }
 
   get profilePermissionsByModule(): { module: PermissionModule; keys: string[] }[] {
@@ -182,6 +182,7 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.subs.unsubscribe();
+    this.buscaSub?.unsubscribe();
   }
 
   private getEmptyForm(): UsuarioGerenciamentoForm {
@@ -206,9 +207,23 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
     this.subs.add(
       this.empresaSearch$.pipe(
         debounceTime(300),
+        map((term) => term.trim()),
         distinctUntilChanged(),
-        filter(() => this.form.tipoVinculo === 'Estacionamento' || this.form.tipoVinculo === 'Transportadora'),
         switchMap((term) => {
+          if (this.form.tipoVinculo !== 'Estacionamento' && this.form.tipoVinculo !== 'Transportadora') {
+            this.empresaLoading.set(false);
+            this.empresaOptions.set([]);
+            this.empresaDropdownOpen.set(false);
+            this.cdr.markForCheck();
+            return of([]);
+          }
+          if (!term) {
+            this.empresaLoading.set(false);
+            this.empresaOptions.set([]);
+            this.empresaDropdownOpen.set(false);
+            this.cdr.markForCheck();
+            return of([]);
+          }
           this.empresaLoading.set(true);
           this.cdr.markForCheck();
           if (this.form.tipoVinculo === 'Estacionamento') {
@@ -220,7 +235,7 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
         next: (opts) => {
           this.empresaLoading.set(false);
           this.empresaOptions.set(opts.map((o) => ({ id: o.id, label: o.label, cnpj: o.cnpj })));
-          this.empresaDropdownOpen.set(true);
+          this.empresaDropdownOpen.set(opts.length > 0);
           this.cdr.markForCheck();
         },
         error: () => {
@@ -237,29 +252,18 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
     this.gerenciamentoService.getPerfis().subscribe({
       next: (list) => {
         this.perfisList = list;
-        this.seedProfilePermissionsIfEmpty();
         this.cdr.markForCheck();
       }
     });
   }
 
-  private seedProfilePermissionsIfEmpty(): void {
-    const allKeys = getAllPermissionKeys();
-    for (const role of this.perfisList) {
-      const key = String(role?.name ?? role?.id ?? '');
-      if (!key) continue;
-      if (this.profileStore.getProfilePermissions(key).length === 0) {
-        this.profileStore.setProfilePermissions(key, [...allKeys]);
-      }
-    }
-  }
-
   buscar(): void {
+    this.buscaSub?.unsubscribe();
     this.buscaRealizada = true;
     this.loading = true;
     this.erro = null;
     this.cdr.markForCheck();
-    this.gerenciamentoService.buscar(this.filtros).subscribe({
+    this.buscaSub = this.gerenciamentoService.buscar(this.filtros).subscribe({
       next: (list) => {
         this.loading = false;
         this.erro = null;
@@ -376,6 +380,7 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
     if (this.form.tipoVinculo !== 'Estacionamento' && this.form.tipoVinculo !== 'Transportadora') {
       return;
     }
+    if (this.empresaLoading()) return;
     this.empresaLoading.set(true);
     this.cdr.markForCheck();
     const request =
@@ -548,6 +553,7 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
     }
     this.saving.set(true);
     this.cdr.markForCheck();
+    const selectedPerfil = this.perfisList.find((p) => (p.id ?? p.name) === this.form.perfilId);
     const payload = {
       nome: this.form.nome.trim(),
       email: this.form.email.trim(),
@@ -555,6 +561,7 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
       senha: this.form.senha || undefined,
       ativo: this.form.ativo,
       perfilId: this.form.perfilId || undefined,
+      perfilNome: selectedPerfil?.name ?? selectedPerfil?.normalizedName ?? undefined,
       estacionamentoId: this.form.tipoVinculo === 'Estacionamento' ? this.form.empresaVinculadaId ?? undefined : undefined,
       transportadoraId: this.form.tipoVinculo === 'Transportadora' ? this.form.empresaVinculadaId ?? undefined : undefined,
       userPermissionIds: this.form.userPermissionIds,

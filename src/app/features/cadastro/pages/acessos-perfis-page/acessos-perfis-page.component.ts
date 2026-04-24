@@ -16,6 +16,10 @@ import { ProfilePermissionsStoreService } from '../../services/profile-permissio
 import { MenuApiService } from '../../../gerenciamento/services/menu-api.service';
 import { mapBuscarResponseToMenuAdmins } from '../../../gerenciamento/services/menu-api.mapper';
 import type { MenuAdmin } from '../../../gerenciamento/models/menu-admin.model';
+import { PermissionCacheService } from '../../../../core/services/permission-cache.service';
+import { SessionAccessService } from '../../../../core/services/session-access.service';
+import { AuthService } from '../../../../core/services/auth.service';
+import { ToastService } from '../../../../core/api/services/toast.service';
 
 type ModalKind = 'create' | 'edit' | 'delete' | null;
 
@@ -33,6 +37,10 @@ export class AcessosPerfisPageComponent implements OnInit {
   private perfisService = inject(AcessosPerfisService);
   private profilePermissionsStore = inject(ProfilePermissionsStoreService);
   private menuApi = inject(MenuApiService);
+  private permissionCache = inject(PermissionCacheService);
+  private sessionAccess = inject(SessionAccessService);
+  private authService = inject(AuthService);
+  private toast = inject(ToastService);
   private cdr = inject(ChangeDetectorRef);
 
   loading = true;
@@ -90,6 +98,7 @@ export class AcessosPerfisPageComponent implements OnInit {
         const keys = groups.flatMap((g) => g.keys);
         this.backendPermissionGroups.set(groups);
         this.allBackendPermissionKeys.set(keys);
+        this.seedAdminProfilePermissions();
         this.cdr.markForCheck();
       },
       error: () => {
@@ -172,10 +181,15 @@ export class AcessosPerfisPageComponent implements OnInit {
     this.saveError.set(null);
     this.editItem.set(item);
     const key = item.name ?? item.id ?? '';
+    const isAdminProfile =
+      (item.name ?? '').toLowerCase().includes('admin') ||
+      (item.normalizedName ?? '').toLowerCase().includes('admin');
+    const fromStore = this.profilePermissionsStore.getProfilePermissions(key);
+    const fallbackAdmin = isAdminProfile ? this.allBackendPermissionKeys() : [];
     this.form = {
       name: item.name ?? '',
       normalizedName: item.normalizedName ?? '',
-      permissionIds: [...this.profilePermissionsStore.getProfilePermissions(key)],
+      permissionIds: [...(fromStore.length > 0 ? fromStore : fallbackAdmin)],
     };
     this.permissionSearchTerm.set('');
     this.expandedModules.set([]);
@@ -271,6 +285,47 @@ export class AcessosPerfisPageComponent implements OnInit {
     return groups;
   }
 
+  private syncSessionAccessFromBackendCatalog(): void {
+    this.menuApi.buscar().subscribe({
+      next: (body) => {
+        const menus = mapBuscarResponseToMenuAdmins(body);
+        this.sessionAccess.setMenus(
+          menus.map((m) => ({
+            id: m.id,
+            descricao: m.nome,
+            icone: m.icone,
+            ativo: m.ativo,
+            ordem: m.ordem,
+            subMenus: (m.subMenus ?? []).map((s) => ({
+              id: s.id,
+              descricao: s.nome,
+              rota: s.rota,
+              ativo: s.ativo,
+              ordem: s.ordem,
+            })),
+          }))
+        );
+      },
+      error: () => {
+        // Erro já tratado por interceptor.
+      },
+    });
+  }
+
+  private syncPermissionCacheForCurrentUserProfile(editedRoleName: string): void {
+    const logged = this.authService.getLoggedUser();
+    if (!logged) return;
+
+    const loggedPerfil = (logged.perfil ?? '').trim().toLowerCase();
+    const role = (editedRoleName ?? '').trim().toLowerCase();
+    if (!loggedPerfil || !role || loggedPerfil !== role) return;
+
+    const keys = [...this.form.permissionIds];
+    this.permissionCache.setKeys(keys);
+    const updated = { ...logged, permissionKeys: keys };
+    localStorage.setItem('loggedUser', JSON.stringify(updated));
+  }
+
   getProfilePermissionCount(item: ApplicationRole): number {
     const k = item.name ?? item.id ?? '';
     return this.profilePermissionsStore.getProfilePermissions(k).length;
@@ -321,6 +376,10 @@ export class AcessosPerfisPageComponent implements OnInit {
         if (key) {
           this.profilePermissionsStore.setProfilePermissions(key, this.form.permissionIds);
         }
+        const editedRoleName = this.form.name.trim() || this.editItem()?.name || '';
+        this.syncPermissionCacheForCurrentUserProfile(editedRoleName);
+        this.syncSessionAccessFromBackendCatalog();
+        this.toast.warning('Permissões atualizadas. Faça novo login para aplicar 100% das regras do token.');
         this.saving.set(false);
         this.closeModal();
         this.carregar();

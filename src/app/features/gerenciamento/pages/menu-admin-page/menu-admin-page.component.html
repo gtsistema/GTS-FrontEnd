@@ -203,7 +203,14 @@
         </div>
         <div class="form-group">
           <label for="s-rota">Rota</label>
-          <input id="s-rota" class="input-control" [(ngModel)]="subFormRota" placeholder="/app/dashboard" [disabled]="salvandoSubModal()" />
+          <input
+            id="s-rota"
+            class="input-control"
+            [(ngModel)]="subFormRota"
+            (ngModelChange)="onSubmenuRotaChange($event)"
+            placeholder="/app/dashboard"
+            [disabled]="salvandoSubModal()"
+          />
         </div>
         @if (subEditId() !== null) {
           <label class="form-row-check">
@@ -253,12 +260,25 @@
               </button>
             </div>
             @if (subFormPermissoesCustomizadas.length > 0) {
-              <div class="custom-permission__list">
+              <div class="permission-list-inline custom-permission__list">
                 @for (perm of subFormPermissoesCustomizadas; track perm; let i = $index) {
-                  <span class="perm-chip">
-                    {{ perm }}
-                    <button type="button" class="perm-chip__remove" (click)="removerPermissaoCustomizada(i)" [disabled]="salvandoSubModal()">×</button>
-                  </span>
+                  <label class="perm-check perm-check--custom">
+                    <input
+                      type="checkbox"
+                      [checked]="true"
+                      [disabled]="salvandoSubModal()"
+                      (change)="togglePermissaoCustomizada(perm, $any($event.target).checked)"
+                    />
+                    <span>{{ perm }}</span>
+                    <button
+                      type="button"
+                      class="perm-check__remove"
+                      [disabled]="salvandoSubModal()"
+                      (click)="removerPermissaoCustomizada(i)"
+                    >
+                      Excluir
+                    </button>
+                  </label>
                 }
               </div>
             }

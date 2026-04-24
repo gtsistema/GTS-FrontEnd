@@ -1,0 +1,15 @@
+---
+description: Regras gerais para desenvolvimento no projeto
+alwaysApply: true
+---
+
+# Regras gerais
+
+- Responder sempre em pt-BR.
+- Preferir solucao simples e manter o padrao existente do projeto.
+- Evitar duplicacao; reutilizar servicos, mappers e utilitarios existentes.
+- Em bugfix, alterar somente o necessario para evitar regressao.
+- Nao introduzir nova tecnologia sem necessidade clara.
+- Em integracao backend, seguir estritamente contrato real (Swagger/DTO/payload).
+- Nao criar fallback silencioso que esconda erro de contrato.
+- Após mudancas relevantes, validar build/lint quando possivel.
