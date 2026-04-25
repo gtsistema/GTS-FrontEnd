@@ -14,43 +14,40 @@ export interface LookupOption {
 }
 
 /**
- * Lookup de Transportadoras para formulários (ex.: usuário com perfil TRANSPORTADORA).
- * Usa GET /api/Transportadora/Buscar (Swagger: RazaoSocial, Fantasia, Cnpj, Descricao).
- * @see https://gtsbackend.azurewebsites.net/swagger/v1/swagger.json
+ * Lookup de Transportadoras (GET /api/Transportadora?...).
  */
 @Injectable({ providedIn: 'root' })
 export class TransportadoraLookupService {
   constructor(private http: HttpClient) {}
 
-  /**
-   * Lista transportadoras (primeira página) para seleção em formulário.
-   * GET /api/Transportadora/Buscar?NumeroPagina=1&TamanhoPagina=100
-   */
+  /** GET /api/Transportadora?NumeroPagina=1&TamanhoPagina=100 */
   list(): Observable<LookupOption[]> {
     const params = new URLSearchParams();
     params.set('NumeroPagina', '1');
     params.set('TamanhoPagina', '100');
-    const url = `${TRANSPORTADORA}/Buscar?${params.toString()}`;
+    const url = `${TRANSPORTADORA}?${params.toString()}`;
     return this.http.get<unknown>(url).pipe(
       timeout(15000),
       map((body) => this.normalizeToOptions(body))
     );
   }
 
-  /**
-   * Busca transportadoras por Razão Social ou CNPJ.
-   * Swagger: GET /api/Transportadora/Buscar?RazaoSocial=term ou Cnpj=term
-   */
+  /** Busca por termo (usa Descricao no query string do OpenAPI). */
   search(term: string): Observable<LookupOption[]> {
     const t = (term ?? '').trim();
     if (!t) {
       return of([]);
     }
     const params = new URLSearchParams();
-    params.set('RazaoSocial', t);
+    const digits = t.replace(/\D/g, '');
+    if (digits.length >= 8) {
+      params.set('Cnpj', digits);
+    } else {
+      params.set('Descricao', t);
+    }
     params.set('NumeroPagina', '1');
     params.set('TamanhoPagina', '20');
-    const url = `${TRANSPORTADORA}/Buscar?${params.toString()}`;
+    const url = `${TRANSPORTADORA}?${params.toString()}`;
     return this.http.get<unknown>(url).pipe(
       timeout(15000),
       map((body) => this.normalizeToOptions(body))

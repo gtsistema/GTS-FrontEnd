@@ -10,7 +10,7 @@ import {
   TransportadoraObterPorIdResultDTO
 } from '../models/transportadora.dto';
 
-/** Base da API do backend Azure. Todas as requisições da tela de Cadastro Transportadora usam estes endpoints. */
+/** Base da API. Contrato: GET/POST/PUT em `/api/Transportadora`, GET/DELETE em `/api/Transportadora/{id}`. */
 const API_BASE = environment.API_BASE_URL;
 const TRANSPORTADORA = `${API_BASE}/Transportadora`;
 
@@ -21,15 +21,17 @@ export class TransportadoraService {
   constructor(private http: HttpClient) {}
 
   /**
-   * GET /api/Transportadora/Buscar — listagem no backend.
+   * GET /api/Transportadora?RazaoSocial|Descricao|... — listagem.
+   * `Termo` do legado mapeia para `Descricao` (OpenAPI).
    */
   buscar(params: TransportadoraBuscarParams): Observable<PagedResultDTO<TransportadoraListItemDTO>> {
     const query = new URLSearchParams();
-    if (params.Termo?.trim()) query.set('Termo', params.Termo.trim());
+    const termo = params.Termo?.trim();
+    if (termo) query.set('Descricao', termo);
     if (params.Propriedade?.trim()) query.set('Propriedade', params.Propriedade.trim());
     query.set('NumeroPagina', String(params.NumeroPagina));
     query.set('TamanhoPagina', String(params.TamanhoPagina));
-    const url = `${TRANSPORTADORA}/Buscar?${query.toString()}`;
+    const url = `${TRANSPORTADORA}?${query.toString()}`;
     return this.http.get<unknown>(url).pipe(
       timeout(15000),
       map((body) => this.normalizeBuscarResponse(body, params.NumeroPagina, params.TamanhoPagina)),
@@ -80,11 +82,9 @@ export class TransportadoraService {
     };
   }
 
-  /**
-   * GET /api/Transportadora/ObterPorId/{id} — backend.
-   */
+  /** GET /api/Transportadora/{id} */
   obterPorId(id: number): Observable<TransportadoraDTO | null> {
-    return this.http.get<unknown>(`${TRANSPORTADORA}/ObterPorId/${id}`).pipe(
+    return this.http.get<unknown>(`${TRANSPORTADORA}/${id}`).pipe(
       timeout(15000),
       map((body) => {
         const res = body as Record<string, unknown> | TransportadoraObterPorIdResultDTO;
@@ -132,35 +132,28 @@ export class TransportadoraService {
     };
   }
 
-  /**
-   * POST /api/Transportadora/Gravar — backend Azure.
-   */
+  /** POST /api/Transportadora */
   gravar(dto: TransportadoraDTO): Observable<TransportadoraDTO> {
     const payload = this.dtoToPayload(dto);
-    const url = `${TRANSPORTADORA}/Gravar`;
-    return this.http.post<TransportadoraDTO>(url, payload).pipe(
+    return this.http.post<TransportadoraDTO>(TRANSPORTADORA, payload).pipe(
       timeout(15000),
       map((res) => (res && typeof res === 'object' ? { ...dto, id: (res as { id?: number }).id ?? (res as { Id?: number }).Id } : dto)),
       catchError((err) => throwError(() => err))
     );
   }
 
-  /**
-   * PUT /api/Transportadora/Alterar — backend.
-   */
+  /** PUT /api/Transportadora */
   alterar(dto: TransportadoraDTO): Observable<TransportadoraDTO> {
     const payload = this.dtoToPayload(dto);
-    return this.http.put<TransportadoraDTO>(`${TRANSPORTADORA}/Alterar`, payload).pipe(
+    return this.http.put<TransportadoraDTO>(TRANSPORTADORA, payload).pipe(
       timeout(15000),
       catchError((err) => throwError(() => err))
     );
   }
 
-  /**
-   * DELETE /api/Transportadora/Delete/{id} — backend.
-   */
+  /** DELETE /api/Transportadora/{id} */
   excluir(id: number): Observable<void> {
-    return this.http.delete<void>(`${TRANSPORTADORA}/Delete/${id}`).pipe(
+    return this.http.delete<void>(`${TRANSPORTADORA}/${id}`).pipe(
       timeout(15000),
       catchError((err) => throwError(() => err))
     );

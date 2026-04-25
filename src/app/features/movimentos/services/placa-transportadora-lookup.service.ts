@@ -11,7 +11,7 @@ export interface DadosVeiculoCadastro {
   quantidadeEixos: string;
 }
 
-/** Lookup por placa reaproveitando endpoints já existentes (Veiculo/Buscar + Transportadora/ObterPorId). */
+/** Lookup por placa: GET /api/Veiculo?... e GET /api/Transportadora/{id}. */
 @Injectable({ providedIn: 'root' })
 export class PlacaTransportadoraLookupService {
   private readonly veiculoService = inject(VeiculoService);

@@ -33,7 +33,7 @@ export class EstacionamentoListComponent {
   /** Só vira true durante GET Buscar; antes do primeiro clique em "Buscar" não há requisição. */
   loading = false;
   erro: string | null = null;
-  /** Durante DELETE /Delete/{id} */
+  /** Durante DELETE /api/Estacionamento/{id} */
   excluindoId: number | null = null;
   numeroPagina = 1;
   totalCount = 0;

@@ -286,7 +286,7 @@ export class CadastroTransportadoraPageComponent implements OnInit {
     });
   }
 
-  /** Listagem sempre via GET /api/Transportadora/Buscar (backend). */
+  /** Listagem via GET /api/Transportadora?... */
   carregarLista(): void {
     this.jaBuscou = true;
     this.loadingList = true;

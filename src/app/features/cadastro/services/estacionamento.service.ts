@@ -69,16 +69,22 @@ export interface EstacionamentoFormValue {
 export class EstacionamentoService {
   constructor(private http: HttpClient) {}
 
-  /** POST /api/Estacionamento/Gravar (Swagger: EstacionamentoPostInput). Erros propagam para o ErrorInterceptor (toast). */
+  /** POST /api/Estacionamento (body: EstacionamentoPostInput). */
   gravar(dto: EstacionamentoDTO | Record<string, unknown>): Observable<EstacionamentoDTO> {
-    return this.http.post<unknown>(`${ESTACIONAMENTO}/${EstacionamentoPaths.gravar}`, dto).pipe(
+    const url = EstacionamentoPaths.gravar
+      ? `${ESTACIONAMENTO}/${EstacionamentoPaths.gravar}`
+      : ESTACIONAMENTO;
+    return this.http.post<unknown>(url, dto).pipe(
       map((body) => this.unwrapGravarAlterarResponse(body))
     );
   }
 
-  /** PUT /api/Estacionamento/Alterar (Swagger: EstacionamentoPutInput). Erros propagam para o ErrorInterceptor (toast). */
+  /** PUT /api/Estacionamento (body: EstacionamentoPutInput). */
   alterar(dto: EstacionamentoDTO | Record<string, unknown>): Observable<EstacionamentoDTO> {
-    return this.http.put<unknown>(`${ESTACIONAMENTO}/${EstacionamentoPaths.alterar}`, dto).pipe(
+    const url = EstacionamentoPaths.alterar
+      ? `${ESTACIONAMENTO}/${EstacionamentoPaths.alterar}`
+      : ESTACIONAMENTO;
+    return this.http.put<unknown>(url, dto).pipe(
       map((body) => this.unwrapGravarAlterarResponse(body))
     );
   }
@@ -98,22 +104,22 @@ export class EstacionamentoService {
     return body as EstacionamentoDTO;
   }
 
-  /** DELETE /api/Estacionamento/Delete/{id} (Swagger). Erros propagam para o ErrorInterceptor (toast). */
+  /** DELETE /api/Estacionamento/{id} */
   excluir(id: number): Observable<void> {
     return this.http.delete<void>(`${ESTACIONAMENTO}/${EstacionamentoPaths.excluir(id)}`);
   }
 
   /**
-   * GET /api/Estacionamento/Buscar (Swagger)
-   * Paginação: 50 registros por página.
+   * GET /api/Estacionamento?... (query: Descricao, DataInicial, DataFinal, paginação, etc.)
+   * Termo do formulário é mapeado para Descricao (campo do OpenAPI).
    */
   buscar(params: EstacionamentoBuscarParams): Observable<PagedResultDTO<EstacionamentoListItemDTO>> {
     const query = new URLSearchParams();
-    const termo = params.Termo != null ? params.Termo.trim() : '';
-    if (termo !== '') {
-      query.set('Termo', termo);
-    } else if (params.Descricao != null && params.Descricao.trim() !== '') {
-      query.set('Descricao', params.Descricao.trim());
+    const fromTermo = params.Termo != null && params.Termo.trim() !== '' ? params.Termo.trim() : '';
+    const fromDesc = params.Descricao != null && params.Descricao.trim() !== '' ? params.Descricao.trim() : '';
+    const desc = fromDesc || fromTermo;
+    if (desc !== '') {
+      query.set('Descricao', desc);
     }
     if (params.DataInicial != null) query.set('DataInicial', params.DataInicial);
     if (params.DataFinal != null) query.set('DataFinal', params.DataFinal);
@@ -122,7 +128,10 @@ export class EstacionamentoService {
     if (params.Propriedade != null) query.set('Propriedade', params.Propriedade);
     if (params.Sort != null) query.set('Sort', params.Sort);
 
-    const url = `${ESTACIONAMENTO}/${EstacionamentoPaths.buscar}?${query.toString()}`;
+    const listUrl = EstacionamentoPaths.buscar
+      ? `${ESTACIONAMENTO}/${EstacionamentoPaths.buscar}`
+      : ESTACIONAMENTO;
+    const url = `${listUrl}?${query.toString()}`;
     return this.http.get<unknown>(url).pipe(
       timeout(15000),
       map((body) => {
@@ -268,7 +277,7 @@ export class EstacionamentoService {
   }
 
   /**
-   * GET /api/Estacionamento/ObterPorId/:id
+   * GET /api/Estacionamento/{id}
    * Retorna o valor já mapeado para o formulário de edição.
    */
   obterPorId(id: number): Observable<EstacionamentoFormValue | null> {
