@@ -67,7 +67,7 @@ export interface PessoaObterPorIdDTO {
   dataAtualizacao: string | null;
 }
 
-/** Resultado bruto de GET /api/Estacionamento/ObterPorId/:id (campo result) */
+/** Resultado bruto de GET /api/Estacionamento/{id} (campo result) */
 export interface EstacionamentoObterPorIdResultDTO {
   pessoaId: number;
   capacidadeVeiculo: number;
@@ -100,9 +100,9 @@ export interface ApiResponseDTO<T> {
   result: T;
 }
 
-/** Parâmetros para GET /api/Estacionamento/Buscar (Swagger). Termo busca em id, descrição, nome/razão social, documento, e-mail, ativo. */
+/** Parâmetros para GET /api/Estacionamento?... (`Termo` é enviado como `Descricao` quando o backend não expõe `Termo` no OpenAPI). */
 export interface EstacionamentoBuscarParams {
-  /** Termo único: busca em id, descricao, nomeRazaoSocial, documento, email, ativo (backend aplica OR). */
+  /** Mapeado para `Descricao` no HttpClient. */
   Termo?: string;
   Descricao?: string;
   DataInicial?: string;

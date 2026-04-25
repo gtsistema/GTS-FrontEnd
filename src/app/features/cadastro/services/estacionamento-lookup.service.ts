@@ -16,8 +16,7 @@ export interface LookupOption {
 
 /**
  * Lookup de Estacionamentos para formulários (ex.: usuário com perfil ESTACIONAMENTO).
- * Usa GET /api/Estacionamento/Buscar (Swagger: parâmetro Descricao).
- * @see https://gtsbackend.azurewebsites.net/swagger/v1/swagger.json
+ * GET /api/Estacionamento?Descricao=...
  */
 @Injectable({ providedIn: 'root' })
 export class EstacionamentoLookupService {
@@ -25,13 +24,16 @@ export class EstacionamentoLookupService {
 
   /**
    * Lista estacionamentos (primeira página) para combobox/listagem.
-   * Swagger: GET /api/Estacionamento/Buscar?NumeroPagina=1&TamanhoPagina=100
+   * GET /api/Estacionamento?NumeroPagina=1&TamanhoPagina=100
    */
   list(): Observable<LookupOption[]> {
     const params = new URLSearchParams();
     params.set('NumeroPagina', '1');
     params.set('TamanhoPagina', '100');
-    const url = `${ESTACIONAMENTO}/${EstacionamentoPaths.buscar}?${params.toString()}`;
+    const listUrl = EstacionamentoPaths.buscar
+      ? `${ESTACIONAMENTO}/${EstacionamentoPaths.buscar}`
+      : ESTACIONAMENTO;
+    const url = `${listUrl}?${params.toString()}`;
     return this.http.get<unknown>(url).pipe(
       timeout(15000),
       map((body) => this.normalizeToOptions(body))
@@ -40,7 +42,7 @@ export class EstacionamentoLookupService {
 
   /**
    * Busca estacionamentos por Descricao (Razão Social / texto).
-   * Swagger: GET /api/Estacionamento/Buscar?Descricao=term&NumeroPagina=1&TamanhoPagina=20
+   * GET /api/Estacionamento?Descricao=term&NumeroPagina=1&TamanhoPagina=20
    */
   search(term: string): Observable<LookupOption[]> {
     const t = (term ?? '').trim();
@@ -51,7 +53,10 @@ export class EstacionamentoLookupService {
     params.set('Descricao', t);
     params.set('NumeroPagina', '1');
     params.set('TamanhoPagina', '20');
-    const url = `${ESTACIONAMENTO}/${EstacionamentoPaths.buscar}?${params.toString()}`;
+    const listUrl = EstacionamentoPaths.buscar
+      ? `${ESTACIONAMENTO}/${EstacionamentoPaths.buscar}`
+      : ESTACIONAMENTO;
+    const url = `${listUrl}?${params.toString()}`;
     return this.http.get<unknown>(url).pipe(
       timeout(15000),
       map((body) => this.normalizeToOptions(body))

@@ -1,4 +1,4 @@
-/** Item da listagem GET /api/Veiculo/Buscar */
+/** Item da listagem GET /api/Veiculo?... */
 export interface VeiculoListItemDTO {
   id: number;
   placa: string;
@@ -28,8 +28,9 @@ export interface VeiculoDTO {
 }
 
 export interface VeiculoBuscarParams {
+  /** Mapeado para query `Descricao` no serviço. */
   Termo?: string;
-  /** Busca por placa (GET /api/Veiculo/Buscar?Placa=xxx) */
+  /** Busca por placa (GET /api/Veiculo?Placa=xxx) */
   Placa?: string;
   TransportadoraId?: number;
   NumeroPagina: number;

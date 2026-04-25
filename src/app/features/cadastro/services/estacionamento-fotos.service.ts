@@ -45,7 +45,7 @@ export class EstacionamentoFotosService {
   constructor(private http: HttpClient) {}
 
   /**
-   * GET /api/Estacionamento/BuscarFotos/buscar-fotos/{id}
+   * GET /api/Estacionamento/buscar-fotos/{id}
    * Lista fotos do estacionamento. Retorna itens com id (quando o backend envia) para permitir DeletarFotos.
    */
   buscarFotos(estacionamentoId: number | string): Observable<FotoItem[]> {

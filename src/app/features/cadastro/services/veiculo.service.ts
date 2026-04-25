@@ -9,7 +9,11 @@ import {
   PagedResultVeiculoDTO
 } from '../models/veiculo.dto';
 
-/** Base da API do backend. Todas as requisições de veículos (aba Frota) usam estes endpoints. */
+/**
+ * Contrato: GET/POST/PUT `/api/Veiculo`, GET/DELETE `/api/Veiculo/{id}`.
+ * Parâmetros de listagem: Placa, Descricao, DataInicial, DataFinal, paginação (OpenAPI).
+ * `TransportadoraId` e `Termo` não estão no spec; o backend ASP.NET costuma aceitar parâmetros extras no mesmo GET.
+ */
 const API_BASE = environment.API_BASE_URL;
 const VEICULO = `${API_BASE}/Veiculo`;
 
@@ -19,16 +23,17 @@ const VEICULO = `${API_BASE}/Veiculo`;
 export class VeiculoService {
   constructor(private http: HttpClient) {}
 
-  /** GET /api/Veiculo/Buscar — backend. Parâmetros: Termo, Placa, TransportadoraId (Swagger: Placa, Descricao, etc.). */
+  /** GET /api/Veiculo?... */
   buscar(params: VeiculoBuscarParams): Observable<PagedResultVeiculoDTO> {
     const query = new URLSearchParams();
-    if (params.Termo?.trim()) query.set('Termo', params.Termo.trim());
+    const termo = params.Termo?.trim();
+    if (termo) query.set('Descricao', termo);
     const placaNorm = (params.Placa ?? '').replace(/\s/g, '').toUpperCase();
     if (placaNorm.length >= 7) query.set('Placa', placaNorm);
     if (params.TransportadoraId != null) query.set('TransportadoraId', String(params.TransportadoraId));
     query.set('NumeroPagina', String(params.NumeroPagina));
     query.set('TamanhoPagina', String(params.TamanhoPagina));
-    const url = `${VEICULO}/Buscar?${query.toString()}`;
+    const url = `${VEICULO}?${query.toString()}`;
     return this.http.get<unknown>(url).pipe(
       timeout(15000),
       map((body) => this.normalizeBuscar(body, params.NumeroPagina, params.TamanhoPagina)),
@@ -79,9 +84,9 @@ export class VeiculoService {
     };
   }
 
-  /** GET /api/Veiculo/ObterPorId/{id} — backend. */
+  /** GET /api/Veiculo/{id} */
   obterPorId(id: number): Observable<VeiculoDTO | null> {
-    return this.http.get<unknown>(`${VEICULO}/ObterPorId/${id}`).pipe(
+    return this.http.get<unknown>(`${VEICULO}/${id}`).pipe(
       timeout(15000),
       map((body) => {
         const res = body as Record<string, unknown> | VeiculoDTO;
@@ -108,28 +113,28 @@ export class VeiculoService {
     );
   }
 
-  /** POST /api/Veiculo/Gravar — backend. */
+  /** POST /api/Veiculo */
   gravar(dto: VeiculoDTO): Observable<VeiculoDTO> {
     const payload = this.dtoToPayload(dto);
-    return this.http.post<VeiculoDTO>(`${VEICULO}/Gravar`, payload).pipe(
+    return this.http.post<VeiculoDTO>(VEICULO, payload).pipe(
       timeout(15000),
       map((res) => (res && typeof res === 'object' ? { ...dto, id: (res as { id?: number }).id ?? (res as { Id?: number }).Id } : dto)),
       catchError((err) => throwError(() => err))
     );
   }
 
-  /** PUT /api/Veiculo/Alterar — backend. */
+  /** PUT /api/Veiculo */
   alterar(dto: VeiculoDTO): Observable<VeiculoDTO> {
     const payload = this.dtoToPayload(dto);
-    return this.http.put<VeiculoDTO>(`${VEICULO}/Alterar`, payload).pipe(
+    return this.http.put<VeiculoDTO>(VEICULO, payload).pipe(
       timeout(15000),
       catchError((err) => throwError(() => err))
     );
   }
 
-  /** DELETE /api/Veiculo/Delete/{id} — backend. */
+  /** DELETE /api/Veiculo/{id} */
   excluir(id: number): Observable<void> {
-    return this.http.delete<void>(`${VEICULO}/Delete/${id}`).pipe(
+    return this.http.delete<void>(`${VEICULO}/${id}`).pipe(
       timeout(15000),
       catchError((err) => throwError(() => err))
     );

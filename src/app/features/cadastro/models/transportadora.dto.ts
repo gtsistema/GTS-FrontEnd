@@ -6,7 +6,7 @@ export interface PagedResultDTO<T> {
   tamanhoPagina?: number;
 }
 
-/** Parâmetros para GET /api/Transportadora/Buscar */
+/** Parâmetros para GET /api/Transportadora?... (`Termo` mapeia para `Descricao` no client). */
 export interface TransportadoraBuscarParams {
   Termo?: string;
   Propriedade?: string;
