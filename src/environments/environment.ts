@@ -3,8 +3,8 @@
  */
 export const environment = {
   production: false,
-  apiUrl: 'https://localhost:44317',
-  API_BASE_URL: 'https://localhost:44317/api',
+  apiUrl: 'http://108.174.145.123:5000',
+  API_BASE_URL: 'http://108.174.145.123:5000/api',
   emergencyAdmin: {
     enabled: true,
     username: 'teste.admin',

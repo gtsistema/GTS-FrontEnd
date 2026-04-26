@@ -1,24 +1,33 @@
 <div class="page-container">
   <header class="page-header">
     <div class="page-header__row page-header__row--1">
-      <div class="page-header__title-wrap">
-        <h1 class="page-title">Cadastro Transportadora</h1>
-        <p class="page-subtitle">Cadastro e gestão da transportadora, frota e condutores</p>
-      </div>
-      @if (activeTab === 'cadastro' && !listView) {
+      <h1 class="page-title">Cadastro Transportadora</h1>
+    </div>
+    <div class="page-header__row page-header__row--2">
+      @if (listView) {
+        <div class="page-header__actions">
+          <select class="search-filter input-control" [(ngModel)]="campoBusca" aria-label="Filtrar busca por">
+            <option value="geral">Busca geral</option>
+            <option value="cnpj">CNPJ</option>
+            <option value="razaoSocial">Razão social</option>
+            <option value="nomeFantasia">Nome fantasia</option>
+            <option value="email">E-mail</option>
+            <option value="id">ID</option>
+          </select>
+          <input type="text" class="search-input input-control" [placeholder]="searchPlaceholder" [(ngModel)]="termoBusca" (keyup.enter)="onBuscar()" />
+          <button type="button" class="btn btn-secondary" (click)="onBuscar()">Buscar</button>
+          <button type="button" class="btn btn-primary" (click)="novoTransportadora()">Novo</button>
+        </div>
+      } @else {
+        <nav class="tabs" role="tablist" aria-label="Abas Cadastro Transportadora">
+          <button type="button" class="tab" role="tab" [class.tab--active]="activeTab === 'cadastro'" [attr.aria-selected]="activeTab === 'cadastro'" (click)="setTab('cadastro')">Cadastro</button>
+          <button type="button" class="tab" role="tab" [class.tab--active]="activeTab === 'frota'" [attr.aria-selected]="activeTab === 'frota'" (click)="setTab('frota')">Frota</button>
+          <button type="button" class="tab" role="tab" [class.tab--active]="activeTab === 'motoristas'" [attr.aria-selected]="activeTab === 'motoristas'" (click)="setTab('motoristas')">Motoristas</button>
+        </nav>
         <div class="page-header__actions">
           <button type="button" class="btn btn-secondary" (click)="voltarLista()">Voltar</button>
         </div>
       }
-    </div>
-    <div class="page-header__row page-header__row--2">
-      <nav class="tabs" role="tablist" aria-label="Abas Cadastro Transportadora">
-        <button type="button" class="tab" role="tab" [class.tab--active]="activeTab === 'cadastro'" [attr.aria-selected]="activeTab === 'cadastro'" (click)="setTab('cadastro')">Cadastro</button>
-        @if (!listView) {
-          <button type="button" class="tab" role="tab" [class.tab--active]="activeTab === 'frota'" [attr.aria-selected]="activeTab === 'frota'" (click)="setTab('frota')">Frota</button>
-          <button type="button" class="tab" role="tab" [class.tab--active]="activeTab === 'condutores'" [attr.aria-selected]="activeTab === 'condutores'" (click)="setTab('condutores')">Condutores</button>
-        }
-      </nav>
     </div>
   </header>
 
@@ -27,19 +36,6 @@
       @case ('cadastro') {
         @if (listView) {
           <div class="tab-panel">
-            <div class="page-header__actions" style="margin-bottom: 12px;">
-              <select class="search-input input-control" [(ngModel)]="campoBusca" aria-label="Filtrar busca por">
-                <option value="geral">Busca geral</option>
-                <option value="cnpj">CNPJ</option>
-                <option value="razaoSocial">Razão social</option>
-                <option value="nomeFantasia">Nome fantasia</option>
-                <option value="email">E-mail</option>
-                <option value="id">ID</option>
-              </select>
-              <input type="text" class="search-input input-control" [placeholder]="searchPlaceholder" [(ngModel)]="termoBusca" (keyup.enter)="onBuscar()" />
-              <button type="button" class="btn btn-secondary" (click)="onBuscar()">Buscar</button>
-              <button type="button" class="btn btn-primary" (click)="novoTransportadora()">Novo</button>
-            </div>
             @if (erroList) {
               <p class="error-msg">{{ erroList }}</p>
             }
@@ -340,22 +336,24 @@
         </div>
       }
 
-      @case ('condutores') {
+      @case ('motoristas') {
         <div class="tab-panel">
-          <!-- TODO: integrar com endpoint de Condutor quando disponível no backend. Estrutura pronta com mock. -->
-          <div class="page-header__actions" style="margin-bottom: 12px;">
-            <button type="button" class="btn btn-primary" (click)="abrirNovoCondutor()">Adicionar condutor</button>
+          <div class="page-header__actions condutores-actions">
+            <button type="button" class="btn btn-primary" (click)="abrirNovoCondutor()">Adicionar motorista</button>
             <button
               type="button"
               class="btn btn-secondary"
               [disabled]="transportadoraId == null"
               (click)="abrirImportarCondutores()"
             >
-              Importar Condutores
+              Importar Motoristas
             </button>
           </div>
           @if (transportadoraId == null) {
-            <p class="frota-hint">Você já pode adicionar condutores e continuar o preenchimento antes de salvar a transportadora.</p>
+            <p class="frota-hint">Você já pode adicionar motoristas e continuar o preenchimento antes de salvar a transportadora.</p>
+          }
+          @if (loadingCondutores) {
+            <p class="loading-msg">Carregando motoristas...</p>
           }
           <div class="table-wrap">
             <table class="data-table">
@@ -363,36 +361,33 @@
                 <tr>
                   <th>Nome</th>
                   <th>CPF</th>
-                  <th>Celular</th>
                   <th>E-mail</th>
                   <th>CNH</th>
-                  <th>Categoria</th>
                   <th>Venc. CNH</th>
                   <th>Status</th>
                   <th>Ações</th>
                 </tr>
               </thead>
               <tbody>
-                @for (c of condutoresMock; track c.id) {
+                @for (c of condutores; track c.id) {
                   <tr>
                     <td>{{ c.nomeCompleto }}</td>
                     <td>{{ formatCpfCondutor(c.cpf) }}</td>
-                    <td>{{ c.celular || '—' }}</td>
                     <td>{{ c.email || '—' }}</td>
                     <td>{{ c.cnh || '—' }}</td>
-                    <td>{{ c.categoriaCnh || '—' }}</td>
                     <td>{{ c.vencimentoCnh || '—' }}</td>
                     <td>{{ c.ativo ? 'Ativo' : 'Inativo' }}</td>
                     <td>
                       <button type="button" class="btn btn-primary btn--sm" (click)="editarCondutor(c)">Editar</button>
+                      <button type="button" class="btn btn-secondary btn--sm" (click)="excluirCondutor(c)">Excluir</button>
                     </td>
                   </tr>
                 }
               </tbody>
             </table>
           </div>
-          @if (condutoresMock.length === 0) {
-            <p class="empty-msg">Nenhum condutor cadastrado. (Dados mockados — integração com backend quando endpoint estiver disponível.)</p>
+          @if (!loadingCondutores && condutores.length === 0) {
+            <p class="empty-msg">Nenhum motorista cadastrado para esta transportadora.</p>
           }
         </div>
       }
@@ -431,10 +426,10 @@
               />
             </div>
             <div class="form-row">
-              <label for="frota-condutor">Condutor</label>
+              <label for="frota-condutor">Motorista</label>
               <select id="frota-condutor" class="input-control input-control--select" formControlName="condutorId">
                 <option [ngValue]="null">Selecione</option>
-                @for (c of condutoresMock; track c.id) {
+                @for (c of condutoresParaFrota(); track c.id) {
                   <option [ngValue]="c.id">{{ c.nomeCompleto }}</option>
                 }
               </select>
@@ -503,13 +498,13 @@
         (click)="$event.stopPropagation()"
       >
         <div class="modal-header">
-          <h2 id="modal-condutor-title">{{ condutorEditId ? 'Editar condutor' : 'Novo condutor' }}</h2>
+          <h2 id="modal-condutor-title">{{ condutorEditId ? 'Editar motorista' : 'Novo motorista' }}</h2>
           <button type="button" class="modal-close" aria-label="Fechar" (click)="fecharModalCondutor()">&times;</button>
         </div>
         <form [formGroup]="condutorForm" (ngSubmit)="salvarCondutor()">
           <div class="modal-body modal-body--frota-compact">
             @if (transportadoraId == null) {
-              <p class="modal-frota-hint" role="alert">Você pode cadastrar condutores agora. Eles permanecem na tela durante o preenchimento.</p>
+              <p class="modal-frota-hint" role="alert">Você pode cadastrar motoristas agora. Eles permanecem na tela durante o preenchimento.</p>
             }
             <div class="form-row">
               <label for="cond-nome">Nome completo <span class="required">*</span></label>
@@ -520,20 +515,12 @@
               <input id="cond-cpf" type="text" class="input-control" formControlName="cpf" placeholder="000.000.000-00" appCpfFormat />
             </div>
             <div class="form-row">
-              <label for="cond-celular">Celular</label>
-              <input id="cond-celular" type="text" class="input-control" formControlName="celular" placeholder="(00) 00000-0000" appTelefoneFormat />
-            </div>
-            <div class="form-row">
               <label for="cond-email">E-mail</label>
               <input id="cond-email" type="email" class="input-control" formControlName="email" placeholder="E-mail" />
             </div>
             <div class="form-row">
               <label for="cond-cnh">CNH</label>
               <input id="cond-cnh" type="text" class="input-control" formControlName="cnh" placeholder="Número da CNH" />
-            </div>
-            <div class="form-row">
-              <label for="cond-categoria">Categoria CNH</label>
-              <input id="cond-categoria" type="text" class="input-control" formControlName="categoriaCnh" placeholder="Ex.: B, E" />
             </div>
             <div class="form-row">
               <label for="cond-venc">Vencimento CNH</label>
@@ -583,11 +570,11 @@
     <div class="modal-overlay" (click)="fecharImportarCondutores()" role="dialog" aria-modal="true" aria-labelledby="importar-condutores-title">
       <div class="modal modal--importar-frota" (click)="$event.stopPropagation()">
         <div class="modal__header">
-          <h2 id="importar-condutores-title" class="modal__title">Importar condutores</h2>
+          <h2 id="importar-condutores-title" class="modal__title">Importar motoristas</h2>
           <button type="button" class="modal__close" (click)="fecharImportarCondutores()" aria-label="Fechar">&times;</button>
         </div>
         <div class="modal__body">
-          <p class="modal__description">Selecione um arquivo Excel (.xlsx ou .csv) com as colunas: <strong>Nome</strong>, <strong>CPF</strong>, Celular, E-mail, CNH, Categoria CNH, Venc. CNH, Ativo. A primeira linha deve conter o cabeçalho.</p>
+          <p class="modal__description">Selecione um arquivo Excel (.xlsx ou .csv) com as colunas: <strong>Nome</strong>, <strong>CPF</strong>, E-mail, CNH, Venc. CNH, Ativo. A primeira linha deve conter o cabeçalho.</p>
           <div class="importacao-actions">
             <input type="file" #fileCondutoresInput accept=".xlsx,.xls,.csv" (change)="onFileCondutores($event)" style="display: none;" />
             <button type="button" class="btn btn-secondary" (click)="fileCondutoresInput.click()">Selecionar arquivo</button>

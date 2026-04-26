@@ -5,9 +5,10 @@
 export const environment = {
   production: true,
   /** Base do backend (sem /api no final). Ajuste para o host público da API em produção. */
-  apiUrl: 'https://localhost:44317',
+  apiUrl: 'http://108.174.145.123:5000:5000',
   /** Base URL da API (uso em serviços HTTP e interceptors). */
-  API_BASE_URL: 'https://localhost:44317/api',
+  API_BASE_URL: 'http://108.174.145.123:5000:5000/api',
+  
   emergencyAdmin: {
     enabled: false,
     username: '',
