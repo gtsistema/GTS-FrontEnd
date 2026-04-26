@@ -25,7 +25,6 @@ const ALIAS_NOME_PARA_ROTA: Record<string, string> = {
   gerenciamento: '/app/gerenciamento',
   transportadora: '/app/cadastro/transportadora',
   estacionamento: '/app/cadastro/estacionamento',
-  motorista: '/app/cadastro/motorista',
   /** Submódulo "menu" na API ≈ aba Menu em Gerenciamento */
   menu: '/app/gerenciamento/menu',
   acessos: '/app/gerenciamento',
