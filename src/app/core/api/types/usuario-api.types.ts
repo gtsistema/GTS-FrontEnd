@@ -84,3 +84,34 @@ export interface LoginEnvelopeBody {
   Message?: string;
   notifications?: string[] | string;
 }
+
+/** POST esqueci-senha — conteúdo típico de `result` / `Result`. */
+export interface EsqueciSenhaResultDto {
+  mensagem?: string | null;
+  Mensagem?: string | null;
+  linkRedefinicaoNoFrontend?: string | null;
+  LinkRedefinicaoNoFrontend?: string | null;
+  emailEnviado?: boolean;
+  EmailEnviado?: boolean;
+}
+
+/** Resposta amigável mapeada para a tela (mensagem genérica de segurança). */
+export interface EsqueciSenhaFlowResult {
+  userMessage: string;
+  devLink: string | null;
+  emailEnviado?: boolean;
+}
+
+/** POST redefinir-senha — corpo (camelCase, alinhado ao Login). */
+export interface RedefinirSenhaRequest {
+  email: string;
+  token: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
+/** Conteúdo de `result` em redefinir-senha (anonymous type no backend pode usar camelCase). */
+export interface RedefinirSenhaResultDto {
+  senhaAlterada?: boolean;
+  SenhaAlterada?: boolean;
+}

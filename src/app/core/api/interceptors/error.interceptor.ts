@@ -75,6 +75,12 @@ function isConfirmarEmailRequest(req: HttpRequest<unknown>): boolean {
   return req.url.toLowerCase().includes('auth/usuario/confirmar-email');
 }
 
+/** Esqueci / redefinir senha: mensagens na própria página (evita toast duplicado). */
+function isPasswordResetPublicRequest(req: HttpRequest<unknown>): boolean {
+  const u = req.url.toLowerCase();
+  return u.includes('auth/usuario/esqueci-senha') || u.includes('auth/usuario/redefinir-senha');
+}
+
 /**
  * Padroniza erros HTTP em ApiError, exibe toast e repassa o erro com mensagem e fieldErrors.
  * Não exibe toast para: login (tela exibe); BrasilAPI CNPJ (formulário exibe abaixo do campo).
@@ -88,7 +94,12 @@ export function errorInterceptor(req: HttpRequest<unknown>, next: HttpHandlerFn)
         status: undefined,
         fieldErrors: undefined
       };
-      if (!isLoginRequest(req) && !isBrasilApiCnpjRequest(req) && !isConfirmarEmailRequest(req)) {
+      if (
+        !isLoginRequest(req) &&
+        !isBrasilApiCnpjRequest(req) &&
+        !isConfirmarEmailRequest(req) &&
+        !isPasswordResetPublicRequest(req)
+      ) {
         toast.error(apiError.message);
       }
       return throwError(() => apiError);

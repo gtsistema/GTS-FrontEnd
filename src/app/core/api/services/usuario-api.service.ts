@@ -2,9 +2,13 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, map, timeout } from 'rxjs';
 import { environment } from '../../../../environments/environment';
-import { unwrapServiceResult } from '../utils/service-result.util';
+import { throwIfServiceFailure, unwrapServiceResult } from '../utils/service-result.util';
+import { ApiError } from '../models';
 import type {
   ConfirmarEmailRequest,
+  EsqueciSenhaFlowResult,
+  RedefinirSenhaRequest,
+  RedefinirSenhaResultDto,
   RegistroResult,
   RegisterInput,
   UsuarioDetalheOutput,
@@ -132,4 +136,61 @@ export class UsuarioApiService {
       })
     );
   }
+
+  /** POST api/auth/Usuario/esqueci-senha (público, sem Bearer). */
+  esqueciSenha(email: string): Observable<EsqueciSenhaFlowResult> {
+    return this.http.post<unknown>(`${USUARIO_BASE}/esqueci-senha`, { email }).pipe(
+      timeout(HTTP_TIMEOUT_MS),
+      map((body) => mapEsqueciSenhaEnvelope(body))
+    );
+  }
+
+  /** POST api/auth/Usuario/redefinir-senha (público, sem Bearer). */
+  redefinirSenha(dto: RedefinirSenhaRequest): Observable<RedefinirSenhaResultDto> {
+    return this.http.post<unknown>(`${USUARIO_BASE}/redefinir-senha`, dto).pipe(
+      timeout(HTTP_TIMEOUT_MS),
+      map((body) => {
+        throwIfServiceFailure(body);
+        return unwrapServiceResult<RedefinirSenhaResultDto>(body);
+      })
+    );
+  }
+}
+
+const MENSAGEM_ESQUECI_SENHA_GENERICA =
+  'Se existir uma conta com este e-mail, você receberá instruções para redefinir a senha.';
+
+function pickTrimmedString(v: unknown): string | null {
+  return typeof v === 'string' && v.trim() ? v.trim() : null;
+}
+
+function mapEsqueciSenhaEnvelope(body: unknown): EsqueciSenhaFlowResult {
+  throwIfServiceFailure(body);
+  if (body == null || typeof body !== 'object') {
+    const err: ApiError = { message: 'Resposta inválida do servidor.', status: undefined };
+    throw err;
+  }
+  const b = body as Record<string, unknown>;
+  const envelopeMsg = pickTrimmedString(b['message'] ?? b['Message']);
+  const result = (b['result'] ?? b['Result']) as Record<string, unknown> | undefined;
+  const resultMsg =
+    result && typeof result === 'object'
+      ? pickTrimmedString(result['mensagem'] ?? result['Mensagem'])
+      : null;
+  const userMessage =
+    [envelopeMsg, resultMsg, MENSAGEM_ESQUECI_SENHA_GENERICA].find((m) => m && m.length > 0) ??
+    MENSAGEM_ESQUECI_SENHA_GENERICA;
+
+  let devLink: string | null = null;
+  let emailEnviado: boolean | undefined;
+  if (result && typeof result === 'object') {
+    const raw = result['linkRedefinicaoNoFrontend'] ?? result['LinkRedefinicaoNoFrontend'];
+    devLink = typeof raw === 'string' && raw.trim() ? raw.trim() : null;
+    const ev = result['emailEnviado'] ?? result['EmailEnviado'];
+    if (typeof ev === 'boolean') {
+      emailEnviado = ev;
+    }
+  }
+
+  return { userMessage, devLink, emailEnviado };
 }

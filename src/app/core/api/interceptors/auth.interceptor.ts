@@ -9,10 +9,15 @@ function isExternalApi(req: HttpRequest<unknown>): boolean {
   return req.url.includes('brasilapi.com.br') || req.url.includes('viacep.com.br');
 }
 
-/** Confirmação de e-mail é pública; não enviar Bearer mesmo se houver token antigo no storage. */
+/** Rotas públicas de auth/Usuario: não enviar Bearer mesmo se houver token antigo no storage. */
 function isPublicAuthUsuarioRoute(req: HttpRequest<unknown>): boolean {
   const u = req.url.toLowerCase();
-  return u.includes('auth/usuario/confirmar-email') || u.includes('auth/usuario/login');
+  return (
+    u.includes('auth/usuario/confirmar-email') ||
+    u.includes('auth/usuario/login') ||
+    u.includes('auth/usuario/esqueci-senha') ||
+    u.includes('auth/usuario/redefinir-senha')
+  );
 }
 
 /**

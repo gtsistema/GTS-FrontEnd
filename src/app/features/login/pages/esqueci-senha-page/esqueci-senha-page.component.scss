@@ -1,0 +1,53 @@
+.subtitle {
+  margin: 0.5rem 0 0 0;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: var(--font-body, 14px);
+  line-height: 1.45;
+}
+
+.success-block {
+  gap: 1rem;
+}
+
+.success-text {
+  margin: 0;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.dev-banner {
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px dashed color-mix(in srgb, var(--accent) 45%, var(--border));
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+  font-size: 13px;
+
+  p {
+    margin: 0.35rem 0 0.5rem;
+  }
+
+  a {
+    color: var(--accent);
+    word-break: break-all;
+  }
+}
+
+.btn-secondary {
+  margin-top: 0;
+}
+
+.footer-link {
+  margin: 0;
+  text-align: center;
+
+  a {
+    color: var(--text-muted);
+    font-size: var(--font-body, 14px);
+    text-decoration: none;
+  }
+
+  a:hover {
+    color: var(--accent);
+  }
+}
