@@ -72,8 +72,14 @@ export class AcessosUsuariosPageComponent implements OnDestroy {
   get perfilKey(): string {
     const id = this.form.perfilId;
     if (!id) return '';
-    const role = this.perfisList.find((r) => (r.id ?? r.name) === id);
-    const name = (role?.name ?? role?.normalizedName ?? id).toString().toUpperCase();
+    const role = this.findPerfilBySelectedValue(id);
+    const name = (
+      role?.name ??
+      role?.perfil ??
+      role?.nome ??
+      role?.normalizedName ??
+      id
+    ).toString().toUpperCase();
     if (name.includes(PERFIL_KEY_ADMIN)) return PERFIL_KEY_ADMIN;
     if (name.includes(PERFIL_KEY_ESTACIONAMENTO)) return PERFIL_KEY_ESTACIONAMENTO;
     if (name.includes(PERFIL_KEY_TRANSPORTADORA)) return PERFIL_KEY_TRANSPORTADORA;
@@ -119,10 +125,31 @@ export class AcessosUsuariosPageComponent implements OnDestroy {
   get profilePermissions(): string[] {
     const id = this.form.perfilId;
     if (!id) return [];
-    const role = this.perfisList.find((r) => (r.id ?? r.name) === id);
-    const key = String(role?.name ?? role?.id ?? id);
+    const role = this.findPerfilBySelectedValue(id);
+    const key = String(
+      role?.name ?? role?.perfil ?? role?.nome ?? role?.normalizedName ?? role?.id ?? id
+    );
     const fromStore = this.profileStore.getProfilePermissions(key);
     return fromStore;
+  }
+
+  private findPerfilBySelectedValue(value: string | number): ApplicationRole | undefined {
+    const selected = String(value ?? '').trim().toLowerCase();
+    if (!selected) return undefined;
+    return this.perfisList.find((p) => {
+      const candidates = [p.name, p.perfil, p.nome, p.normalizedName, p.id]
+        .filter((v) => v != null)
+        .map((v) => String(v).trim().toLowerCase());
+      return candidates.includes(selected);
+    });
+  }
+
+  private resolvePerfilNomeForPayload(selectedValue: string): string | undefined {
+    const role = this.findPerfilBySelectedValue(selectedValue);
+    const nome = String(
+      role?.name ?? role?.perfil ?? role?.nome ?? role?.normalizedName ?? selectedValue ?? ''
+    ).trim();
+    return nome || undefined;
   }
 
   get profilePermissionsByModule(): { module: PermissionModule; keys: string[] }[] {
@@ -494,7 +521,7 @@ export class AcessosUsuariosPageComponent implements OnDestroy {
       this.cdr.markForCheck();
       return;
     }
-    const selectedPerfil = this.perfisList.find((p) => (p.id ?? p.name) === this.form.perfilId);
+    const perfilNome = this.resolvePerfilNomeForPayload(this.form.perfilId);
     const payload = {
       nome: this.form.nome.trim(),
       email: this.form.email.trim(),
@@ -502,23 +529,35 @@ export class AcessosUsuariosPageComponent implements OnDestroy {
       senha: this.form.senha || undefined,
       ativo: this.form.ativo,
       perfilId: this.form.perfilId || undefined,
-      perfilNome: selectedPerfil?.name ?? selectedPerfil?.normalizedName ?? undefined,
+      perfilNome,
       estacionamentoId: this.showEstacionamentoField ? this.form.estacionamentoId ?? undefined : undefined,
       transportadoraId: this.showTransportadoraField ? this.form.transportadoraId ?? undefined : undefined,
       userPermissionIds: this.form.userPermissionIds,
       ...(this.editItem()?.id ? { id: this.editItem()!.id } : {}),
     };
-    if (this.isEdit()) {
-      this.toast.show('Backend ainda não possui endpoint para editar usuário.', 'info');
-      this.cdr.markForCheck();
-      return;
-    }
-
     this.saving.set(true);
-    this.usuariosService.gravar(payload).subscribe({
+    const obs = this.isEdit()
+      ? this.usuariosService.alterar({
+          id: this.editItem()!.id,
+          nome: payload.nome,
+          email: payload.email,
+          login: (this.editItem() as { userName?: string })?.userName,
+          senha: payload.senha,
+          confirmarSenha: payload.senha,
+          cpfCnpj: payload.cpfCnpj,
+          perfilId: payload.perfilId,
+          perfilNome: payload.perfilNome,
+          estacionamentoId: payload.estacionamentoId,
+          transportadoraId: payload.transportadoraId,
+        })
+      : this.usuariosService.gravar(payload);
+
+    obs.subscribe({
       next: () => {
         this.saving.set(false);
-        this.toast.success('Usuário cadastrado no backend com sucesso.');
+        this.toast.success(
+          this.isEdit() ? 'Usuário atualizado com sucesso.' : 'Usuário cadastrado no backend com sucesso.'
+        );
         this.closeModal();
         this.cdr.markForCheck();
       },

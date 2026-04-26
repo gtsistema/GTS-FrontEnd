@@ -9,12 +9,18 @@ function isExternalApi(req: HttpRequest<unknown>): boolean {
   return req.url.includes('brasilapi.com.br') || req.url.includes('viacep.com.br');
 }
 
+/** Confirmação de e-mail é pública; não enviar Bearer mesmo se houver token antigo no storage. */
+function isPublicAuthUsuarioRoute(req: HttpRequest<unknown>): boolean {
+  const u = req.url.toLowerCase();
+  return u.includes('auth/usuario/confirmar-email') || u.includes('auth/usuario/login');
+}
+
 /**
  * Adiciona `Authorization: Bearer <token>` em toda requisição HTTP (exceto APIs externas),
  * usando o valor gravado no login em {@link AUTH_TOKEN_STORAGE_KEY}.
  */
 export function authInterceptor(req: HttpRequest<unknown>, next: HttpHandlerFn) {
-  if (isExternalApi(req)) return next(req);
+  if (isExternalApi(req) || isPublicAuthUsuarioRoute(req)) return next(req);
 
   const platformId = inject(PLATFORM_ID);
   let raw: string | null = null;

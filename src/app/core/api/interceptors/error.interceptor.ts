@@ -41,12 +41,15 @@ function toApiError(res: HttpErrorResponse): ApiError {
 
   const body = res.error;
   if (body && typeof body === 'object' && !(body instanceof ProgressEvent)) {
-    const b = body as ApiErrorResponseBody & { notifications?: string[] };
-    if (Array.isArray(b.notifications) && b.notifications.length > 0) {
-      const fromNotifications = b.notifications.filter((n): n is string => typeof n === 'string').join(' ').trim();
+    const b = body as ApiErrorResponseBody & { notifications?: string[] | string; Notifications?: string[] | string };
+    const nRaw = b.notifications ?? b.Notifications;
+    if (Array.isArray(nRaw) && nRaw.length > 0) {
+      const fromNotifications = nRaw.filter((n): n is string => typeof n === 'string').join(' ').trim();
       if (fromNotifications) message = fromNotifications;
+    } else if (typeof nRaw === 'string' && nRaw.trim()) {
+      message = nRaw.trim();
     } else {
-      const msg = b.message ?? b.title;
+      const msg = b.message ?? b.title ?? (b as { Message?: string }).Message ?? (b as { Title?: string }).Title;
       if (typeof msg === 'string' && msg.trim()) message = msg.trim();
     }
     if (b.errors) fieldErrors = parseFieldErrors(b.errors as Record<string, string[]> | string[]);
@@ -67,6 +70,11 @@ function isBrasilApiCnpjRequest(req: HttpRequest<unknown>): boolean {
   return req.url.includes('brasilapi.com.br');
 }
 
+/** Confirmação de e-mail: feedback na própria página. */
+function isConfirmarEmailRequest(req: HttpRequest<unknown>): boolean {
+  return req.url.toLowerCase().includes('auth/usuario/confirmar-email');
+}
+
 /**
  * Padroniza erros HTTP em ApiError, exibe toast e repassa o erro com mensagem e fieldErrors.
  * Não exibe toast para: login (tela exibe); BrasilAPI CNPJ (formulário exibe abaixo do campo).
@@ -80,7 +88,7 @@ export function errorInterceptor(req: HttpRequest<unknown>, next: HttpHandlerFn)
         status: undefined,
         fieldErrors: undefined
       };
-      if (!isLoginRequest(req) && !isBrasilApiCnpjRequest(req)) {
+      if (!isLoginRequest(req) && !isBrasilApiCnpjRequest(req) && !isConfirmarEmailRequest(req)) {
         toast.error(apiError.message);
       }
       return throwError(() => apiError);

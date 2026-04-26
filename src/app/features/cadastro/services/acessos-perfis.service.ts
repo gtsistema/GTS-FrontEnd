@@ -62,6 +62,7 @@ export interface PerfilBuscarParams {
  * GET /api/auth/Perfil/{id}
  * DELETE /api/auth/Perfil/{id}
  * GET /api/auth/Perfil/usuario/{usuarioId}
+ * GET /api/auth/Perfil/usuario/buscarSimplicado
  * @see https://localhost:44317/swagger/v1/swagger.json (tag Perfil)
  */
 @Injectable({
@@ -105,5 +106,10 @@ export class AcessosPerfisService {
   /** GET /api/auth/Perfil/usuario/{usuarioId} */
   buscarPorUsuario(usuarioId: string | number): Observable<unknown> {
     return this.http.get<unknown>(`${AUTH_PERFIL}/usuario/${usuarioId}`).pipe(timeout(15000));
+  }
+
+  /** GET /api/auth/Perfil/usuario/buscarSimplicado */
+  buscarSimplicadoUsuario(): Observable<unknown> {
+    return this.http.get<unknown>(`${AUTH_PERFIL}/usuario/buscarSimplicado`).pipe(timeout(15000));
   }
 }

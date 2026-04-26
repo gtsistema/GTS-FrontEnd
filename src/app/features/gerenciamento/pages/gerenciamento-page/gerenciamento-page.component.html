@@ -2,7 +2,7 @@
   <header class="page-header">
     <div class="page-header__row page-header__row--1">
       <h2 class="page-title page-title--section">Acessos</h2>
-      <p class="page-subtitle">Central de gestão de acessos, usuários e permissões do sistema.</p>
+      <p class="page-subtitle">Gestão de usuários (API <code>api/auth/Usuario</code>).</p>
     </div>
   </header>
 
@@ -12,47 +12,33 @@
         <input
           type="text"
           class="input-control filter-input"
-          placeholder="Nome do usuário"
-          [(ngModel)]="filtros.nomeUsuario"
+          placeholder="Nome, e-mail ou login"
+          [(ngModel)]="filtros.nomeOuEmail"
           (keyup.enter)="buscar()"
         />
-        <input
-          type="text"
-          class="input-control filter-input"
-          placeholder="CNPJ"
-          [(ngModel)]="filtros.cnpj"
-          (keyup.enter)="buscar()"
-        />
-        <input
-          type="text"
-          class="input-control filter-input"
-          placeholder="Razão social / Nome da empresa"
-          [(ngModel)]="filtros.razaoSocial"
-          (keyup.enter)="buscar()"
-        />
-        <select class="input-control filter-select" [(ngModel)]="filtros.tipo">
-          <option value="">Tipo: Todos</option>
-          <option value="Transportadora">Transportadora</option>
-          <option value="Estacionamento">Estacionamento</option>
-        </select>
-        <select class="input-control filter-select" [(ngModel)]="filtros.perfilId">
-          <option value="">Perfil</option>
+        <select class="input-control filter-select" [(ngModel)]="filtros.perfilNome">
+          <option value="">Perfil (todos)</option>
           @for (p of perfisList; track p.id ?? p.name) {
-            <option [value]="p.id ?? p.name">{{ p.name ?? p.id }}</option>
+            <option [value]="p.name ?? p.id ?? ''">{{ p.name ?? p.id }}</option>
           }
-        </select>
-        <select class="input-control filter-select" [(ngModel)]="filtros.status">
-          <option value="">Status</option>
-          <option value="ativo">Ativo</option>
-          <option value="inativo">Inativo</option>
         </select>
         <div class="filters-search-wrap">
           <button type="button" class="btn btn-primary" (click)="buscar()">Buscar</button>
-          <button type="button" class="filter-clear-btn" (click)="limparFiltros()" aria-label="Limpar filtros" title="Limpar filtros">×</button>
+          <button
+            type="button"
+            class="filter-clear-btn"
+            (click)="limparFiltros()"
+            aria-label="Limpar filtros"
+            title="Limpar filtros"
+          >
+            ×
+          </button>
         </div>
       </div>
       <div class="filters-actions">
-        <button type="button" class="btn btn-primary" (click)="abrirNovo()">Novo usuário</button>
+        @if (canGravar) {
+          <button type="button" class="btn btn-primary" (click)="abrirNovo()">Novo usuário</button>
+        }
       </div>
     </section>
 
@@ -66,15 +52,11 @@
         <table class="data-table">
           <thead>
             <tr>
-              <th>Nome do usuário</th>
-              <th>E-mail / Login</th>
-              <th>Empresa vinculada</th>
-              <th>Tipo</th>
-              <th>CNPJ</th>
-              <th>Perfil</th>
-              <th>Permissões / Acessos</th>
-              <th>Status</th>
-              <th>Último acesso</th>
+              <th>Nome</th>
+              <th>E-mail</th>
+              <th>Login (userName)</th>
+              <th>Perfil (role)</th>
+              <th>Estacionamento (id)</th>
               <th>Ações</th>
             </tr>
           </thead>
@@ -82,27 +64,34 @@
             @for (item of itens; track item.id ?? $index) {
               <tr>
                 <td>{{ item.nome ?? '—' }}</td>
-                <td>{{ item.emailOuLogin ?? '—' }}</td>
-                <td>{{ item.empresaVinculada ?? '—' }}</td>
-                <td>{{ item.tipo ?? '—' }}</td>
-                <td>{{ item.cnpj ?? '—' }}</td>
+                <td>{{ item.email ?? '—' }}</td>
+                <td>{{ item.userName ?? '—' }}</td>
                 <td>{{ item.perfil ?? '—' }}</td>
-                <td>{{ item.permissoesResumo ?? '—' }}</td>
-                <td>
-                  <span class="badge" [class.badge--ativo]="item.ativo" [class.badge--inativo]="!item.ativo">
-                    {{ item.ativo ? 'Ativo' : 'Inativo' }}
-                  </span>
-                </td>
-                <td>{{ item.ultimoAcesso ?? '—' }}</td>
+                <td>{{ item.estacionamentoId != null && item.estacionamentoId !== 0 ? item.estacionamentoId : '—' }}</td>
                 <td class="acoes-cell">
-                  <button type="button" class="btn btn-secondary btn--sm" (click)="abrirVisualizar(item)">
+                  <button
+                    type="button"
+                    class="btn btn-secondary btn--sm"
+                    (click)="abrirVisualizar(item)"
+                    [disabled]="!canVisualizar"
+                  >
                     Visualizar
                   </button>
-                  <button type="button" class="btn btn-primary btn--sm" (click)="abrirEditar(item)">
+                  <button
+                    type="button"
+                    class="btn btn-primary btn--sm"
+                    (click)="abrirEditar(item)"
+                    [disabled]="!canAlterar"
+                  >
                     Editar
                   </button>
-                  <button type="button" class="btn btn-secondary btn--sm" (click)="toggleAtivo(item)">
-                    {{ item.ativo ? 'Inativar' : 'Ativar' }}
+                  <button
+                    type="button"
+                    class="btn btn-secondary btn--sm"
+                    (click)="excluir(item)"
+                    [disabled]="!canExcluir"
+                  >
+                    Excluir
                   </button>
                 </td>
               </tr>
@@ -114,7 +103,7 @@
         <p class="empty-msg">Nenhum registro encontrado.</p>
       }
       @if (!buscaRealizada) {
-        <p class="empty-msg empty-msg--hint">Clique em «Buscar» para carregar os usuários do backend.</p>
+        <p class="empty-msg empty-msg--hint">Clique em «Buscar» para carregar os usuários.</p>
       }
     }
   </div>
@@ -122,206 +111,128 @@
 
 @if (modalFormOpen()) {
   <div class="modal-overlay" (click)="fecharModalForm()">
-    <div class="modal-content" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+    <div
+      class="modal-content"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-form-title"
+      (click)="$event.stopPropagation()"
+    >
       <div class="modal-header">
         <h2 id="modal-form-title">{{ isEdit() ? 'Editar usuário' : 'Novo usuário' }}</h2>
         <button type="button" class="modal-close" aria-label="Fechar" (click)="fecharModalForm()">&times;</button>
       </div>
       <div class="modal-body">
+        @if (carregandoDetalhe()) {
+          <p>Carregando dados do usuário...</p>
+        }
         @if (saveError()) {
-          <p class="modal-save-error">{{ saveError() }}</p>
+          <p class="modal-save-error" role="alert">{{ saveError() }}</p>
         }
         <div class="form-grid form-grid--basic">
           <div class="form-group">
             <label for="g-nome">Nome completo <span class="required">*</span></label>
-            <input id="g-nome" type="text" class="input-control" [(ngModel)]="form.nome" placeholder="Nome completo" />
+            <input id="g-nome" type="text" class="input-control" [(ngModel)]="form.nome" placeholder="Nome" />
           </div>
           <div class="form-group">
             <label for="g-email">E-mail <span class="required">*</span></label>
             <input id="g-email" type="email" class="input-control" [(ngModel)]="form.email" placeholder="E-mail" />
           </div>
           <div class="form-group">
-            <label for="g-login">Login</label>
-            <input id="g-login" type="text" class="input-control" [(ngModel)]="form.login" placeholder="Login" />
+            <label for="g-login">Login (userName) <span class="required">*</span></label>
+            <input id="g-login" type="text" class="input-control" [(ngModel)]="form.login" placeholder="userName" />
+          </div>
+          <div class="form-group">
+            <label for="g-doc">Documento (CPF/CNPJ)</label>
+            <input id="g-doc" type="text" class="input-control" [(ngModel)]="form.documento" />
+          </div>
+          <div class="form-group">
+            <label for="g-tp">Tipo de pessoa</label>
+            <select id="g-tp" class="input-control" [(ngModel)]="form.tipoPessoa">
+              <option [ngValue]="1">Física (1)</option>
+              <option [ngValue]="2">Jurídica (2)</option>
+            </select>
           </div>
           @if (!isEdit()) {
             <div class="form-group">
               <label for="g-senha">Senha <span class="required">*</span></label>
-              <input id="g-senha" type="password" class="input-control" [(ngModel)]="form.senha" placeholder="Senha" />
+              <input id="g-senha" type="password" class="input-control" [(ngModel)]="form.senha" />
             </div>
             <div class="form-group">
               <label for="g-confirmar">Confirmar senha <span class="required">*</span></label>
-              <input id="g-confirmar" type="password" class="input-control" [(ngModel)]="form.confirmarSenha" placeholder="Confirmar senha" />
+              <input id="g-confirmar" type="password" class="input-control" [(ngModel)]="form.confirmarSenha" />
+            </div>
+          } @else {
+            <div class="form-group">
+              <label for="g-senha-e">Nova senha (opcional)</label>
+              <input id="g-senha-e" type="password" class="input-control" [(ngModel)]="form.senha" autocomplete="new-password" />
+            </div>
+            <div class="form-group">
+              <label for="g-confirmar-e">Confirmar nova senha</label>
+              <input id="g-confirmar-e" type="password" class="input-control" [(ngModel)]="form.confirmarSenha" />
             </div>
           }
-          <div class="form-group">
-            <label for="g-tipo">Tipo de vínculo</label>
-            <select id="g-tipo" class="input-control" [(ngModel)]="form.tipoVinculo" (ngModelChange)="onTipoVinculoChange()">
-              <option value="">Selecione</option>
-              <option value="Transportadora">Transportadora</option>
-              <option value="Estacionamento">Estacionamento</option>
+          <div class="form-group" (focusin)="onEstacionamentoFieldFocus()">
+            <label for="g-estac">Estacionamento</label>
+            <select
+              id="g-estac"
+              class="input-control"
+              name="estac"
+              [ngModel]="form.estacionamentoId"
+              (ngModelChange)="onEstacionamentoIdChange($event)"
+            >
+              <option [ngValue]="0">Nenhum (0)</option>
+              @if (estacionamentoCarregando()) {
+                <option disabled>Carregando estacionamentos...</option>
+              }
+              @for (o of estacionamentoOptions(); track o.id) {
+                <option [ngValue]="o.id">{{ o.label }}</option>
+              }
             </select>
+            <button type="button" class="btn btn-secondary btn--sm" (click)="limparEstacionamento()">Limpar vínculo</button>
           </div>
-          @if (form.tipoVinculo === 'Estacionamento') {
-            <div class="form-group form-group--autocomplete">
-              <label for="g-empresa">Estacionamento (listagem por CNPJ e nome)</label>
-              <div class="autocomplete-wrap">
-                <input
-                  id="g-empresa"
-                  type="text"
-                  class="input-control"
-                  [ngModel]="empresaSearchDisplay()"
-                  (ngModelChange)="onEmpresaSearchInput($event)"
-                  (focus)="onEmpresaFocus()"
-                  placeholder="Clique para ver a listagem ou busque por nome/CNPJ"
-                  autocomplete="off"
-                />
-                @if (form.empresaVinculadaId != null && form.empresaVinculadaId !== 0) {
-                  <button type="button" class="autocomplete-clear" (click)="limparEmpresa()" aria-label="Limpar">×</button>
-                }
-                @if (empresaLoading()) {
-                  <span class="autocomplete-loading">Carregando...</span>
-                }
-                @if (empresaDropdownOpen() && !empresaLoading()) {
-                  <ul class="autocomplete-dropdown">
-                    @if (empresaOptions().length === 0) {
-                      <li class="autocomplete-empty">Nenhum resultado</li>
-                    } @else {
-                      @for (opt of empresaOptions(); track opt.id) {
-                        <li><button type="button" (click)="selectEmpresa(opt)">{{ opt.label }}</button></li>
-                      }
-                    }
-                  </ul>
-                }
-              </div>
-            </div>
-          }
-          @if (form.tipoVinculo === 'Transportadora') {
-            <div class="form-group form-group--autocomplete">
-              <label for="g-empresa-t">Transportadora (listagem por CNPJ e nome)</label>
-              <div class="autocomplete-wrap">
-                <input
-                  id="g-empresa-t"
-                  type="text"
-                  class="input-control"
-                  [ngModel]="empresaSearchDisplay()"
-                  (ngModelChange)="onEmpresaSearchInput($event)"
-                  (focus)="onEmpresaFocus()"
-                  placeholder="Clique para ver a listagem ou busque por nome/CNPJ"
-                  autocomplete="off"
-                />
-                @if (form.empresaVinculadaId != null && form.empresaVinculadaId !== 0) {
-                  <button type="button" class="autocomplete-clear" (click)="limparEmpresa()" aria-label="Limpar">×</button>
-                }
-                @if (empresaLoading()) {
-                  <span class="autocomplete-loading">Carregando...</span>
-                }
-                @if (empresaDropdownOpen() && !empresaLoading()) {
-                  <ul class="autocomplete-dropdown">
-                    @if (empresaOptions().length === 0) {
-                      <li class="autocomplete-empty">Nenhum resultado</li>
-                    } @else {
-                      @for (opt of empresaOptions(); track opt.id) {
-                        <li><button type="button" (click)="selectEmpresa(opt)">{{ opt.label }}</button></li>
-                      }
-                    }
-                  </ul>
-                }
-              </div>
-            </div>
-          }
           <div class="form-group">
-            <label for="g-perfil">Perfil</label>
+            <label for="g-perfil">Perfil (name do role) <span class="required">*</span></label>
             <div class="perfil-select-row">
-              <select id="g-perfil" class="input-control" [(ngModel)]="form.perfilId" (ngModelChange)="onPerfilChange()">
+              <select
+                id="g-perfil"
+                class="input-control"
+                [(ngModel)]="form.perfilId"
+                (ngModelChange)="onPerfilFormChange()"
+              >
                 <option value="">Selecione</option>
                 @for (p of perfisList; track p.id ?? p.name) {
-                  <option [value]="p.id ?? p.name">{{ p.name ?? p.id }}</option>
+                  <option [value]="p.name ?? p.perfil ?? p.nome ?? p.id ?? ''">
+                    {{ p.name ?? p.perfil ?? p.nome ?? p.id }}
+                  </option>
                 }
               </select>
               <button type="button" class="btn btn-secondary btn--sm" (click)="abrirNovoPerfil()">Novo perfil</button>
             </div>
             @if (showNovoPerfilForm) {
               <div class="novo-perfil-inline">
-                <input type="text" class="input-control" [(ngModel)]="novoPerfilNome" placeholder="Nome do perfil" (keyup.enter)="criarPerfil()" />
-                <button type="button" class="btn btn-primary btn--sm" [disabled]="savingPerfil" (click)="criarPerfil()">{{ savingPerfil ? 'Criando...' : 'Criar' }}</button>
+                <input
+                  type="text"
+                  class="input-control"
+                  [(ngModel)]="novoPerfilNome"
+                  placeholder="Nome do perfil"
+                  (keyup.enter)="criarPerfil()"
+                />
+                <button type="button" class="btn btn-primary btn--sm" [disabled]="savingPerfil" (click)="criarPerfil()">
+                  {{ savingPerfil ? 'Criando...' : 'Criar' }}
+                </button>
                 <button type="button" class="btn btn-secondary btn--sm" (click)="cancelarNovoPerfil()">Cancelar</button>
               </div>
             }
-          </div>
-          <div class="form-group form-group--row">
-            <input id="g-ativo" type="checkbox" [(ngModel)]="form.ativo" />
-            <label for="g-ativo">Ativo</label>
-          </div>
-        </div>
-        <div class="form-section form-section--permissions">
-          @if (form.perfilId) {
-            <label class="form-section__row">
-              <input type="checkbox" [(ngModel)]="form.useDefaultPermissions" (ngModelChange)="onUseDefaultPermissionsChange()" />
-              <span>Usar permissões padrão do perfil</span>
-            </label>
-          }
-          <h3 class="form-section__title">Permissões do usuário</h3>
-          <div class="form-section__toolbar">
-            <input
-              type="text"
-              class="input-control input-control--search"
-              placeholder="Filtrar permissões"
-              [ngModel]="permissionSearchTerm()"
-              (ngModelChange)="permissionSearchTerm.set($event)"
-            />
-            <span class="form-section__count">{{ selectedPermissionsCount }} selecionadas</span>
-            <div class="form-section__toolbar-actions">
-              <button type="button" class="btn btn-secondary btn--sm" (click)="selecionarTodasPermissoes()">Selecionar todas</button>
-              <button type="button" class="filter-clear-btn" (click)="limparPermissoesSelecionadas()" aria-label="Tirar permissões selecionadas" title="Tirar permissões selecionadas">×</button>
-            </div>
-          </div>
-          <div class="permission-list">
-            @for (group of filteredPermissionsByModule; track group.module) {
-              <div class="permission-list__row">
-                <div class="permission-list__header-wrap">
-                  <button
-                    type="button"
-                    class="permission-list__header"
-                    (click)="togglePermissionModuleExpanded(group.module)"
-                    [attr.aria-expanded]="isPermissionModuleExpanded(group.module)"
-                  >
-                    <span class="permission-list__name">{{ group.module }}</span>
-                    <span class="permission-list__badge">{{ getSelectedCountInPermissionModule(group.module, group.keys) }}/{{ group.keys.length }}</span>
-                    <span class="permission-list__chevron" [class.permission-list__chevron--open]="isPermissionModuleExpanded(group.module)">▼</span>
-                  </button>
-                  <button
-                    type="button"
-                    class="permission-list__select-topic"
-                    [class.permission-list__select-topic--active]="isModuloTotalmenteSelecionado(group.module)"
-                    (click)="toggleTodasDoModulo(group.module); $event.stopPropagation()"
-                  >
-                    {{ isModuloTotalmenteSelecionado(group.module) ? 'Desmarcar todas' : 'Selecionar todas' }}
-                  </button>
-                </div>
-                @if (isPermissionModuleExpanded(group.module)) {
-                  <div class="permission-list__body">
-                    @for (key of group.keys; track key) {
-                      <label class="permission-checkbox">
-                        <input
-                          type="checkbox"
-                          [checked]="isUserPermissionChecked(key)"
-                          [disabled]="form.useDefaultPermissions"
-                          (change)="toggleUserPermission(key)"
-                        />
-                        <span>{{ key }}</span>
-                      </label>
-                    }
-                  </div>
-                }
-              </div>
+            @if (form.perfilId) {
+              <p class="form-hint">Sincronizado com a API de menu no login (cache do perfil): {{ profilePermissions.length }} chaves.</p>
             }
           </div>
         </div>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" (click)="fecharModalForm()">Cancelar</button>
-        <button type="button" class="btn btn-primary" [disabled]="saving()" (click)="salvar()">
+        <button type="button" class="btn btn-primary" [disabled]="saving() || carregandoDetalhe()" (click)="salvar()">
           {{ saving() ? 'Salvando...' : 'Salvar' }}
         </button>
       </div>
@@ -331,7 +242,13 @@
 
 @if (modalVerOpen()) {
   <div class="modal-overlay" (click)="fecharModalVer()">
-    <div class="modal-content modal-content--view" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+    <div
+      class="modal-content modal-content--view"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-ver-title"
+      (click)="$event.stopPropagation()"
+    >
       <div class="modal-header">
         <h2 id="modal-ver-title">Detalhes do usuário</h2>
         <button type="button" class="modal-close" aria-label="Fechar" (click)="fecharModalVer()">&times;</button>
@@ -341,30 +258,24 @@
           <dl class="detail-list">
             <dt>Nome</dt>
             <dd>{{ itemVer()!.nome ?? '—' }}</dd>
-            <dt>E-mail / Login</dt>
-            <dd>{{ itemVer()!.emailOuLogin ?? '—' }}</dd>
-            <dt>Empresa vinculada</dt>
-            <dd>{{ itemVer()!.empresaVinculada ?? '—' }}</dd>
-            <dt>Tipo</dt>
-            <dd>{{ itemVer()!.tipo ?? '—' }}</dd>
-            <dt>CNPJ</dt>
-            <dd>{{ itemVer()!.cnpj ?? '—' }}</dd>
-            <dt>Perfil</dt>
+            <dt>E-mail</dt>
+            <dd>{{ itemVer()!.email ?? '—' }}</dd>
+            <dt>Login</dt>
+            <dd>{{ itemVer()!.userName ?? '—' }}</dd>
+            <dt>Perfil (role)</dt>
             <dd>{{ itemVer()!.perfil ?? '—' }}</dd>
-            <dt>Permissões</dt>
-            <dd>{{ itemVer()!.permissoesResumo ?? '—' }}</dd>
-            <dt>Status</dt>
-            <dd>{{ itemVer()!.ativo ? 'Ativo' : 'Inativo' }}</dd>
-            <dt>Data de criação</dt>
-            <dd>{{ itemVer()!.dataCriacao ?? '—' }}</dd>
-            <dt>Último acesso</dt>
-            <dd>{{ itemVer()!.ultimoAcesso ?? '—' }}</dd>
+            <dt>Estacionamento (id)</dt>
+            <dd>
+              {{ itemVer()!.estacionamentoId != null && itemVer()!.estacionamentoId !== 0 ? itemVer()!.estacionamentoId : '—' }}
+            </dd>
           </dl>
         }
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" (click)="fecharModalVer()">Fechar</button>
-        <button type="button" class="btn btn-primary" (click)="abrirEditar(itemVer()!); fecharModalVer()">Editar</button>
+        @if (canAlterar) {
+          <button type="button" class="btn btn-primary" (click)="abrirEditar(itemVer()!); fecharModalVer()">Editar</button>
+        }
       </div>
     </div>
   </div>

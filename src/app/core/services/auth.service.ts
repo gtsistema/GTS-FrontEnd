@@ -14,6 +14,7 @@ import { PermissionCacheService } from './permission-cache.service';
 import { SessionAccessService, SessionMenuAccess } from './session-access.service';
 import { environment } from '../../../environments/environment';
 import { ApiError } from '../api/models';
+import { mergeServiceResultToRoot, readLoginServiceFailure } from '../api/utils/service-result.util';
 
 export interface LoginRequest {
   userName: string;
@@ -68,7 +69,19 @@ export class AuthService {
 
     const url = `${environment.API_BASE_URL}/auth/Usuario/Login`;
     return this.http.post<LoginResponse>(url, body).pipe(
-      map((res): LoginResult => this.buildSessionFromLoginResponse(username, res)),
+      map((res): LoginResult => {
+        if (res && typeof res === 'object') {
+          const fail = readLoginServiceFailure(res);
+          if (fail) {
+            return fail;
+          }
+        }
+        const merged =
+          res && typeof res === 'object'
+            ? (mergeServiceResultToRoot(res as Record<string, unknown>) as unknown as LoginResponse)
+            : res;
+        return this.buildSessionFromLoginResponse(username, merged);
+      }),
       catchError((err: unknown) => {
         const message = this.getLoginErrorMessage(err);
         return of({ success: false, message });

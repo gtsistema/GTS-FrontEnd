@@ -1,52 +1,38 @@
 /**
- * Tipos e interfaces da tela de Gerenciamento (acessos centralizados).
- * Alinhado aos endpoints de Usuário, Perfil, Estacionamento e Transportadora.
+ * Tipos da tela Gerenciamento / Acessos, alinhados a GET/POST/PUT/DELETE
+ * de `api/auth/Usuario` e RegisterInput.
  */
 
-export type TipoVinculo = 'Transportadora' | 'Estacionamento';
-
-export type StatusFiltro = '' | 'ativo' | 'inativo';
-
-/** Item da listagem principal (quando o backend expuser listagem de usuários com vínculo). */
+/** Item da grid (após mapear UsuarioOutput). */
 export interface UsuarioGerenciamentoItem {
   id?: string;
+  userName?: string | null;
   nome?: string | null;
+  email?: string | null;
   emailOuLogin?: string | null;
-  empresaVinculada?: string | null;
-  tipo?: TipoVinculo | string | null;
-  cnpj?: string | null;
   perfil?: string | null;
-  permissoesResumo?: string | null;
-  ativo?: boolean;
-  ultimoAcesso?: string | null;
-  dataCriacao?: string | null;
   estacionamentoId?: number | null;
-  transportadoraId?: number | null;
+  ativo?: boolean;
 }
 
-/** Filtros da área de busca. */
 export interface GerenciamentoFiltros {
-  nomeUsuario: string;
-  cnpj: string;
-  razaoSocial: string;
-  tipo: '' | TipoVinculo;
-  perfilId: string;
-  status: StatusFiltro;
+  nomeOuEmail: string;
+  /** Nome do role (como exibido no select), vazio = todos. */
+  perfilNome: string;
 }
 
-/** Valores do formulário de novo/editar usuário. */
 export interface UsuarioGerenciamentoForm {
   nome: string;
   email: string;
   login: string;
   senha: string;
   confirmarSenha: string;
-  tipoVinculo: '' | TipoVinculo;
-  empresaVinculadaId: number | null;
-  empresaVinculadaLabel: string;
-  cnpj: string;
+  /** 0 = sem vínculo (contrato API). */
+  estacionamentoId: number;
+  estacionamentoLabel: string;
+  documento: string;
+  tipoPessoa: 1 | 2;
+  pessoaId: number | null;
   perfilId: string;
-  useDefaultPermissions: boolean;
-  userPermissionIds: string[];
   ativo: boolean;
 }

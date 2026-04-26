@@ -8,23 +8,23 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subject, Subscription, of } from 'rxjs';
-import { debounceTime, distinctUntilChanged, switchMap, map } from 'rxjs/operators';
+import { Subscription } from 'rxjs';
 import { GerenciamentoService } from '../../services/gerenciamento.service';
-import { GerenciamentoFiltros, UsuarioGerenciamentoItem, UsuarioGerenciamentoForm, TipoVinculo } from '../../models/gerenciamento.types';
-import { AcessosPerfisService, ApplicationRole } from '../../../cadastro/services/acessos-perfis.service';
-import { EstacionamentoLookupService, LookupOption as EstacionamentoOption } from '../../../cadastro/services/estacionamento-lookup.service';
-import { TransportadoraLookupService, LookupOption as TransportadoraOption } from '../../../cadastro/services/transportadora-lookup.service';
-import { ProfilePermissionsStoreService } from '../../../cadastro/services/profile-permissions-store.service';
-import { ToastService } from '../../../../core/api/services/toast.service';
 import {
-  PERMISSION_MODULES,
-  PERMISSION_CATALOG,
-  getAllPermissionKeys,
-  type PermissionModule
-} from '../../../cadastro/constants/permission-catalog';
-
-export type EmpresaOption = { id: number; label: string; cnpj: string };
+  GerenciamentoFiltros,
+  UsuarioGerenciamentoForm,
+  UsuarioGerenciamentoItem
+} from '../../models/gerenciamento.types';
+import { AcessosPerfisService, ApplicationRole } from '../../../cadastro/services/acessos-perfis.service';
+import {
+  EstacionamentoLookupService,
+  LookupOption as EstacionamentoOption
+} from '../../../cadastro/services/estacionamento-lookup.service';
+import { ProfilePermissionsStoreService } from '../../../cadastro/services/profile-permissions-store.service';
+import { PermissionCacheService } from '../../../../core/services/permission-cache.service';
+import { ToastService } from '../../../../core/api/services/toast.service';
+import type { UsuarioDetalheOutput, RegistroResult } from '../../../../core/api/types/usuario-api.types';
+import { ApiError } from '../../../../core/api/models';
 
 @Component({
   selector: 'app-gerenciamento-page',
@@ -37,24 +37,22 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
   private gerenciamentoService = inject(GerenciamentoService);
   private perfisService = inject(AcessosPerfisService);
   private estacionamentoLookup = inject(EstacionamentoLookupService);
-  private transportadoraLookup = inject(TransportadoraLookupService);
   private profileStore = inject(ProfilePermissionsStoreService);
+  private permissionCache = inject(PermissionCacheService);
   private toast = inject(ToastService);
   private cdr = inject(ChangeDetectorRef);
 
-  filtros: GerenciamentoFiltros = {
-    nomeUsuario: '',
-    cnpj: '',
-    razaoSocial: '',
-    tipo: '',
-    perfilId: '',
-    status: ''
-  };
+  /** Permissões alinhadas ao back ([PermissionAuthorize]). */
+  canVisualizar = this.permissionCache.has('usuario.visualizar') || this.permissionCache.hasAny(['*']);
+  canGravar = this.permissionCache.has('usuario.gravar') || this.permissionCache.hasAny(['*']);
+  canAlterar = this.permissionCache.has('usuario.alterar') || this.permissionCache.hasAny(['*']);
+  canExcluir = this.permissionCache.has('usuario.excluir') || this.permissionCache.hasAny(['*']);
+
+  filtros: GerenciamentoFiltros = { nomeOuEmail: '', perfilNome: '' };
 
   loading = false;
   erro: string | null = null;
   itens: UsuarioGerenciamentoItem[] = [];
-  /** Só após o usuário clicar em «Buscar» (ou Enter nos filtros) — igual à lista de estacionamento. */
   buscaRealizada = false;
   perfisList: ApplicationRole[] = [];
 
@@ -65,6 +63,7 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
   itemVer = signal<UsuarioGerenciamentoItem | null>(null);
   saveError = signal<string | null>(null);
   saving = signal(false);
+  carregandoDetalhe = signal(false);
 
   showNovoPerfilForm = false;
   novoPerfilNome = '';
@@ -72,117 +71,52 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
 
   form: UsuarioGerenciamentoForm = this.getEmptyForm();
 
-  empresaSearchTerm = '';
-  empresaOptions = signal<EmpresaOption[]>([]);
-  empresaLoading = signal(false);
-  empresaDropdownOpen = signal(false);
-  private empresaSearch$ = new Subject<string>();
+  estacionamentoOptions = signal<EstacionamentoOption[]>([]);
+  estacionamentoCarregando = signal(false);
   private subs = new Subscription();
   private buscaSub?: Subscription;
 
-  permissionSearchTerm = signal('');
-  expandedPermissionModules = signal<PermissionModule[]>([]);
-
-  get profilePermissions(): string[] {
-    const id = this.form.perfilId;
-    if (!id) return [];
-    const role = this.perfisList.find((r) => (r.id ?? r.name) === id);
-    const key = String(role?.name ?? role?.id ?? id);
-    const fromStore = this.profileStore.getProfilePermissions(key);
-    return fromStore;
-  }
-
-  get profilePermissionsByModule(): { module: PermissionModule; keys: string[] }[] {
-    const list = this.profilePermissions;
-    const result: { module: PermissionModule; keys: string[] }[] = [];
-    for (const mod of PERMISSION_MODULES) {
-      const keys = (PERMISSION_CATALOG[mod] ?? []).filter((k) => list.includes(k));
-      if (keys.length) result.push({ module: mod, keys });
-    }
-    return result;
-  }
-
-  /** Todas as permissões por módulo (catálogo completo) para seleção livre. */
-  get allPermissionsByModule(): { module: PermissionModule; keys: string[] }[] {
-    const result: { module: PermissionModule; keys: string[] }[] = [];
-    for (const mod of PERMISSION_MODULES) {
-      const keys = PERMISSION_CATALOG[mod] ?? [];
-      if (keys.length) result.push({ module: mod, keys });
-    }
-    return result;
-  }
-
-  /** Permissões filtradas pelo termo de busca (layout listagem expandível). */
-  get filteredPermissionsByModule(): { module: PermissionModule; keys: string[] }[] {
-    const term = this.permissionSearchTerm().trim().toLowerCase();
-    const result: { module: PermissionModule; keys: string[] }[] = [];
-    for (const mod of PERMISSION_MODULES) {
-      const allKeys = PERMISSION_CATALOG[mod] ?? [];
-      const keys = term
-        ? allKeys.filter((key) => key.toLowerCase().includes(term) || mod.toLowerCase().includes(term))
-        : allKeys;
-      if (keys.length) result.push({ module: mod, keys });
-    }
-    return result;
-  }
-
-  get selectedPermissionsCount(): number {
-    return this.form.userPermissionIds.length;
-  }
-
-  togglePermissionModuleExpanded(module: PermissionModule): void {
-    const current = this.expandedPermissionModules();
-    if (current.includes(module)) {
-      this.expandedPermissionModules.set(current.filter((m) => m !== module));
-    } else {
-      this.expandedPermissionModules.set([...current, module]);
-    }
-    this.cdr.markForCheck();
-  }
-
-  isPermissionModuleExpanded(module: PermissionModule): boolean {
-    return this.expandedPermissionModules().includes(module);
-  }
-
-  /** Quantidade selecionada no módulo; se keys for passado (ex.: grupo filtrado), conta só entre essas. */
-  getSelectedCountInPermissionModule(module: PermissionModule, keys?: string[]): number {
-    const list = keys ?? (PERMISSION_CATALOG[module] ?? []);
-    return list.filter((k) => this.form.userPermissionIds.includes(k)).length;
-  }
-
-  /** Verifica se todas as permissões do tópico estão selecionadas. */
-  isModuloTotalmenteSelecionado(module: PermissionModule): boolean {
-    const keys = PERMISSION_CATALOG[module] ?? [];
-    if (keys.length === 0) return false;
-    return keys.every((k) => this.form.userPermissionIds.includes(k));
-  }
-
-  /** Alterna: seleciona todas as permissões do tópico ou desmarca todas. */
-  toggleTodasDoModulo(module: PermissionModule): void {
-    if (this.form.useDefaultPermissions) return;
-    const keys = PERMISSION_CATALOG[module] ?? [];
-    const current = new Set(this.form.userPermissionIds);
-    if (keys.every((k) => current.has(k))) {
-      keys.forEach((k) => current.delete(k));
-    } else {
-      keys.forEach((k) => current.add(k));
-    }
-    this.form.userPermissionIds = Array.from(current);
-    this.cdr.markForCheck();
-  }
-
-  empresaSearchDisplay(): string {
-    return this.form.empresaVinculadaLabel || this.empresaSearchTerm;
-  }
-
   ngOnInit(): void {
     this.carregarPerfis();
-    this.setupEmpresaSearch();
   }
 
   ngOnDestroy(): void {
     this.subs.unsubscribe();
     this.buscaSub?.unsubscribe();
+  }
+
+  get profilePermissions(): string[] {
+    const id = this.form.perfilId;
+    if (!id) return [];
+    const role = this.findPerfilBySelectedValue(id);
+    const key = String(
+      role?.name ?? role?.perfil ?? role?.nome ?? role?.normalizedName ?? role?.id ?? id
+    );
+    return this.profileStore.getProfilePermissions(key);
+  }
+
+  onPerfilFormChange(): void {
+    this.profilePermissions;
+    this.cdr.markForCheck();
+  }
+
+  private findPerfilBySelectedValue(value: string | number): ApplicationRole | undefined {
+    const selected = String(value ?? '').trim().toLowerCase();
+    if (!selected) return undefined;
+    return this.perfisList.find((p) => {
+      const candidates = [p.name, p.perfil, p.nome, p.normalizedName, p.id]
+        .filter((v) => v != null)
+        .map((v) => String(v).trim().toLowerCase());
+      return candidates.includes(selected);
+    });
+  }
+
+  private resolvePerfilNomeForPayload(selectedValue: string): string | undefined {
+    const role = this.findPerfilBySelectedValue(selectedValue);
+    const nome = String(
+      role?.name ?? role?.perfil ?? role?.nome ?? role?.normalizedName ?? selectedValue ?? ''
+    ).trim();
+    return nome || undefined;
   }
 
   private getEmptyForm(): UsuarioGerenciamentoForm {
@@ -192,66 +126,40 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
       login: '',
       senha: '',
       confirmarSenha: '',
-      tipoVinculo: '',
-      empresaVinculadaId: null,
-      empresaVinculadaLabel: '',
-      cnpj: '',
+      estacionamentoId: 0,
+      estacionamentoLabel: '',
+      documento: '',
+      tipoPessoa: 1,
+      pessoaId: null,
       perfilId: '',
-      useDefaultPermissions: true,
-      userPermissionIds: [],
       ativo: true
     };
-  }
-
-  private setupEmpresaSearch(): void {
-    this.subs.add(
-      this.empresaSearch$.pipe(
-        debounceTime(300),
-        map((term) => term.trim()),
-        distinctUntilChanged(),
-        switchMap((term) => {
-          if (this.form.tipoVinculo !== 'Estacionamento' && this.form.tipoVinculo !== 'Transportadora') {
-            this.empresaLoading.set(false);
-            this.empresaOptions.set([]);
-            this.empresaDropdownOpen.set(false);
-            this.cdr.markForCheck();
-            return of([]);
-          }
-          if (!term) {
-            this.empresaLoading.set(false);
-            this.empresaOptions.set([]);
-            this.empresaDropdownOpen.set(false);
-            this.cdr.markForCheck();
-            return of([]);
-          }
-          this.empresaLoading.set(true);
-          this.cdr.markForCheck();
-          if (this.form.tipoVinculo === 'Estacionamento') {
-            return this.estacionamentoLookup.search(term);
-          }
-          return this.transportadoraLookup.search(term);
-        })
-      ).subscribe({
-        next: (opts) => {
-          this.empresaLoading.set(false);
-          this.empresaOptions.set(opts.map((o) => ({ id: o.id, label: o.label, cnpj: o.cnpj })));
-          this.empresaDropdownOpen.set(opts.length > 0);
-          this.cdr.markForCheck();
-        },
-        error: () => {
-          this.empresaLoading.set(false);
-          this.empresaOptions.set([]);
-          this.toast.error('Erro ao buscar empresa.');
-          this.cdr.markForCheck();
-        }
-      })
-    );
   }
 
   private carregarPerfis(): void {
     this.gerenciamentoService.getPerfis().subscribe({
       next: (list) => {
         this.perfisList = list;
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  private carregarEstacionamentosParaModal(): void {
+    if (this.estacionamentoOptions().length > 0 || this.estacionamentoCarregando()) {
+      return;
+    }
+    this.estacionamentoCarregando.set(true);
+    this.cdr.markForCheck();
+    this.estacionamentoLookup.list().subscribe({
+      next: (opts) => {
+        this.estacionamentoCarregando.set(false);
+        this.estacionamentoOptions.set(opts);
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.estacionamentoCarregando.set(false);
+        this.toast.error('Não foi possível carregar estacionamentos.');
         this.cdr.markForCheck();
       }
     });
@@ -270,9 +178,9 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
         this.itens = list;
         this.cdr.markForCheck();
       },
-      error: (err) => {
+      error: (err: ApiError) => {
         this.loading = false;
-        this.erro = err?.message ?? 'Erro ao carregar a lista.';
+        this.erro = err?.message ?? 'Erro ao carregar a lista de usuários.';
         this.itens = [];
         this.cdr.markForCheck();
       }
@@ -280,14 +188,7 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
   }
 
   limparFiltros(): void {
-    this.filtros = {
-      nomeUsuario: '',
-      cnpj: '',
-      razaoSocial: '',
-      tipo: '',
-      perfilId: '',
-      status: ''
-    };
+    this.filtros = { nomeOuEmail: '', perfilNome: '' };
     this.buscaRealizada = false;
     this.itens = [];
     this.erro = null;
@@ -296,50 +197,89 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
   }
 
   abrirNovo(): void {
+    if (!this.canGravar) {
+      this.toast.error('Você não possui permissão para cadastrar usuários (usuario.gravar).');
+      return;
+    }
     this.saveError.set(null);
     this.form = this.getEmptyForm();
-    this.empresaSearchTerm = '';
-    this.empresaOptions.set([]);
-    this.empresaDropdownOpen.set(false);
     this.showNovoPerfilForm = false;
     this.novoPerfilNome = '';
-    this.permissionSearchTerm.set('');
-    this.expandedPermissionModules.set([]);
     this.isEdit.set(false);
     this.editItem.set(null);
+    this.carregarEstacionamentosParaModal();
     this.modalFormOpen.set(true);
     this.cdr.markForCheck();
   }
 
   abrirEditar(item: UsuarioGerenciamentoItem): void {
+    if (!this.canAlterar) {
+      this.toast.error('Você não possui permissão para editar usuários (usuario.alterar).');
+      return;
+    }
+    if (!item.id) {
+      return;
+    }
     this.saveError.set(null);
     this.editItem.set(item);
-    const ext = item as UsuarioGerenciamentoItem & { login?: string };
-    this.form = {
-      nome: item.nome ?? '',
-      email: item.emailOuLogin ?? '',
-      login: ext.login ?? item.emailOuLogin ?? '',
-      senha: '',
-      confirmarSenha: '',
-      tipoVinculo: (item.tipo as TipoVinculo) ?? '',
-      empresaVinculadaId: item.estacionamentoId ?? item.transportadoraId ?? null,
-      empresaVinculadaLabel: item.empresaVinculada ?? '',
-      cnpj: item.cnpj ?? '',
-      perfilId: '',
-      useDefaultPermissions: true,
-      userPermissionIds: [],
-      ativo: item.ativo ?? true
-    };
-    this.empresaSearchTerm = this.form.empresaVinculadaLabel;
-    this.empresaOptions.set([]);
-    this.empresaDropdownOpen.set(false);
+    this.isEdit.set(true);
     this.showNovoPerfilForm = false;
     this.novoPerfilNome = '';
-    this.permissionSearchTerm.set('');
-    this.expandedPermissionModules.set([]);
-    this.isEdit.set(true);
+    this.form = this.getEmptyForm();
+    this.carregarEstacionamentosParaModal();
+    this.carregandoDetalhe.set(true);
     this.modalFormOpen.set(true);
     this.cdr.markForCheck();
+    this.gerenciamentoService.obterDetalhe(item.id).subscribe({
+      next: (d) => {
+        this.preencherFormDoDetalhe(d);
+        this.carregandoDetalhe.set(false);
+        this.cdr.markForCheck();
+      },
+      error: (err: ApiError) => {
+        this.carregandoDetalhe.set(false);
+        this.saveError.set(err?.message ?? 'Não foi possível carregar o usuário.');
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  private preencherFormDoDetalhe(
+    d: UsuarioDetalheOutput & { nome?: string; emailOuLogin?: string; cpfCnpj?: string }
+  ): void {
+    const p = d.pessoa;
+    const perf = d.perfil;
+    const matchPerfil = this.perfisList.find(
+      (r) =>
+        (r.name && perf?.name && r.name.toLowerCase() === String(perf.name).toLowerCase()) ||
+        (r.id && perf?.id && r.id === perf.id) ||
+        (r.name && r.name === (perf as { name?: string })?.name)
+    );
+    this.form = {
+      nome: p?.nome ?? '',
+      email: String(d.email ?? '').trim(),
+      login: String(d.userName ?? '').trim(),
+      senha: '',
+      confirmarSenha: '',
+      estacionamentoId:
+        typeof d.estacionamentoId === 'number' && Number.isFinite(d.estacionamentoId)
+          ? d.estacionamentoId
+          : 0,
+      estacionamentoLabel: '',
+      documento: p?.documento ?? d.cpfCnpj ?? '',
+      tipoPessoa: p?.tipoPessoa === 2 ? 2 : 1,
+      pessoaId: typeof p?.id === 'number' ? p.id : null,
+      perfilId: (matchPerfil?.id ?? matchPerfil?.name ?? perf?.id ?? perf?.name ?? '') as string,
+      ativo: this.form.ativo
+    };
+    if (this.form.estacionamentoId != null) {
+      const fromList = this.estacionamentoOptions().find(
+        (o) => o.id === this.form.estacionamentoId
+      );
+      if (fromList) {
+        this.form.estacionamentoLabel = fromList.label;
+      }
+    }
   }
 
   abrirVisualizar(item: UsuarioGerenciamentoItem): void {
@@ -353,8 +293,6 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
     this.saveError.set(null);
     this.showNovoPerfilForm = false;
     this.novoPerfilNome = '';
-    this.permissionSearchTerm.set('');
-    this.expandedPermissionModules.set([]);
     this.cdr.markForCheck();
   }
 
@@ -364,140 +302,26 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
     this.cdr.markForCheck();
   }
 
-  onTipoVinculoChange(): void {
-    this.form.empresaVinculadaId = null;
-    this.form.empresaVinculadaLabel = '';
-    this.form.cnpj = '';
-    this.empresaSearchTerm = '';
-    this.empresaOptions.set([]);
-    this.empresaDropdownOpen.set(false);
-    this.cdr.markForCheck();
-    this.loadEmpresaList();
-  }
-
-  /** Carrega a listagem de empresas (transportadoras ou estacionamentos) já cadastradas no banco. */
-  loadEmpresaList(): void {
-    if (this.form.tipoVinculo !== 'Estacionamento' && this.form.tipoVinculo !== 'Transportadora') {
-      return;
-    }
-    if (this.empresaLoading()) return;
-    this.empresaLoading.set(true);
-    this.cdr.markForCheck();
-    const request =
-      this.form.tipoVinculo === 'Estacionamento'
-        ? this.estacionamentoLookup.list()
-        : this.transportadoraLookup.list();
-    request.subscribe({
-      next: (opts) => {
-        this.empresaLoading.set(false);
-        this.empresaOptions.set(opts.map((o) => ({ id: o.id, label: o.label, cnpj: o.cnpj })));
-        this.empresaDropdownOpen.set(true);
-        this.cdr.markForCheck();
-      },
-      error: () => {
-        this.empresaLoading.set(false);
-        this.empresaOptions.set([]);
-        this.empresaDropdownOpen.set(false);
-        this.toast.error('Erro ao carregar listagem de empresas.');
-        this.cdr.markForCheck();
-      }
-    });
-  }
-
-  onEmpresaFocus(): void {
-    if (this.form.tipoVinculo !== 'Estacionamento' && this.form.tipoVinculo !== 'Transportadora') return;
-    if (this.empresaOptions().length > 0) {
-      this.empresaDropdownOpen.set(true);
-      this.cdr.markForCheck();
-      return;
-    }
-    if (!this.empresaLoading()) {
-      this.loadEmpresaList();
-    }
-  }
-
-  onEmpresaSearchInput(value: string): void {
-    this.empresaSearchTerm = value;
-    if (!value.trim()) {
-      this.form.empresaVinculadaId = null;
-      this.form.empresaVinculadaLabel = '';
-      this.form.cnpj = '';
-      this.empresaOptions.set([]);
-      this.empresaDropdownOpen.set(false);
-      this.cdr.markForCheck();
-      return;
-    }
-    this.empresaSearch$.next(value);
-  }
-
-  selectEmpresa(opt: EmpresaOption): void {
-    this.form.empresaVinculadaId = opt.id;
-    this.form.empresaVinculadaLabel = opt.label;
-    this.form.cnpj = opt.cnpj || '';
-    this.empresaSearchTerm = opt.label;
-    this.empresaOptions.set([]);
-    this.empresaDropdownOpen.set(false);
+  limparEstacionamento(): void {
+    this.form.estacionamentoId = 0;
+    this.form.estacionamentoLabel = '';
     this.cdr.markForCheck();
   }
 
-  limparEmpresa(): void {
-    this.form.empresaVinculadaId = null;
-    this.form.empresaVinculadaLabel = '';
-    this.form.cnpj = '';
-    this.empresaSearchTerm = '';
-    this.empresaOptions.set([]);
-    this.empresaDropdownOpen.set(false);
-    this.cdr.markForCheck();
-  }
-
-  onPerfilChange(): void {
-    const profile = this.profilePermissions;
-    if (this.form.useDefaultPermissions) {
-      this.form.userPermissionIds = [...profile];
+  onEstacionamentoIdChange(v: number | null | undefined): void {
+    if (v == null || v === 0) {
+      this.form.estacionamentoId = 0;
+      this.form.estacionamentoLabel = '';
     } else {
-      this.form.userPermissionIds = this.form.userPermissionIds.filter((p) => profile.includes(p));
+      this.form.estacionamentoId = v;
+      const o = this.estacionamentoOptions().find((e) => e.id === v);
+      this.form.estacionamentoLabel = o?.label ?? '';
     }
     this.cdr.markForCheck();
   }
 
-  onUseDefaultPermissionsChange(): void {
-    if (this.form.useDefaultPermissions) {
-      this.form.userPermissionIds = [...this.profilePermissions];
-    }
-    this.cdr.markForCheck();
-  }
-
-  toggleUserPermission(key: string): void {
-    if (this.form.useDefaultPermissions) return;
-    const idx = this.form.userPermissionIds.indexOf(key);
-    if (idx >= 0) {
-      this.form.userPermissionIds = this.form.userPermissionIds.filter((k) => k !== key);
-    } else {
-      this.form.userPermissionIds = [...this.form.userPermissionIds, key];
-    }
-    this.cdr.markForCheck();
-  }
-
-  isUserPermissionChecked(key: string): boolean {
-    return this.form.userPermissionIds.includes(key);
-  }
-
-  selecionarTodasPermissoes(): void {
-    this.form.useDefaultPermissions = false;
-    this.form.userPermissionIds = [...getAllPermissionKeys()];
-    this.cdr.markForCheck();
-  }
-
-  limparFiltroPermissoes(): void {
-    this.permissionSearchTerm.set('');
-    this.cdr.markForCheck();
-  }
-
-  /** Remove todas as permissões selecionadas do usuário. */
-  limparPermissoesSelecionadas(): void {
-    this.form.useDefaultPermissions = false;
-    this.form.userPermissionIds = [];
-    this.cdr.markForCheck();
+  onEstacionamentoFieldFocus(): void {
+    this.carregarEstacionamentosParaModal();
   }
 
   abrirNovoPerfil(): void {
@@ -546,57 +370,107 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
       this.cdr.markForCheck();
       return;
     }
-    if (!this.isEdit() && (!this.form.senha || this.form.senha !== this.form.confirmarSenha)) {
-      this.saveError.set('Senha e confirmar senha devem ser iguais.');
+    if (!this.form.login?.trim() && !this.form.email?.trim()) {
+      this.saveError.set('Informe o login (userName) ou e-mail para credenciais.');
       this.cdr.markForCheck();
+      return;
+    }
+    if (!this.isEdit()) {
+      if (!this.form.senha || this.form.senha !== this.form.confirmarSenha) {
+        this.saveError.set('Senha e confirmar senha devem ser iguais no cadastro.');
+        this.cdr.markForCheck();
+        return;
+      }
+    } else {
+      if (this.form.senha || this.form.confirmarSenha) {
+        if (this.form.senha !== this.form.confirmarSenha) {
+          this.saveError.set('Se alterar a senha, confirmação deve coincidir.');
+          this.cdr.markForCheck();
+          return;
+        }
+      }
+    }
+    if (!this.canGravar && !this.isEdit()) {
+      this.toast.error('Sem permissão para cadastrar.');
+      return;
+    }
+    if (this.isEdit() && !this.canAlterar) {
+      this.toast.error('Sem permissão para alterar.');
       return;
     }
     this.saving.set(true);
     this.cdr.markForCheck();
-    const selectedPerfil = this.perfisList.find((p) => (p.id ?? p.name) === this.form.perfilId);
-    const payload = {
+    const pessoaId =
+      this.form.pessoaId != null && Number.isFinite(this.form.pessoaId) ? this.form.pessoaId : 0;
+    const perfilNome = this.resolvePerfilNomeForPayload(this.form.perfilId);
+    const payload: Record<string, unknown> = {
       nome: this.form.nome.trim(),
       email: this.form.email.trim(),
-      login: this.form.login?.trim() || undefined,
+      login: (this.form.login || this.form.email).trim(),
       senha: this.form.senha || undefined,
+      confirmarSenha: this.form.confirmarSenha || undefined,
+      cpfCnpj: this.form.documento?.trim() || undefined,
+      tipoPessoa: this.form.tipoPessoa,
+      pessoaId,
       ativo: this.form.ativo,
       perfilId: this.form.perfilId || undefined,
-      perfilNome: selectedPerfil?.name ?? selectedPerfil?.normalizedName ?? undefined,
-      estacionamentoId: this.form.tipoVinculo === 'Estacionamento' ? this.form.empresaVinculadaId ?? undefined : undefined,
-      transportadoraId: this.form.tipoVinculo === 'Transportadora' ? this.form.empresaVinculadaId ?? undefined : undefined,
-      userPermissionIds: this.form.userPermissionIds,
+      perfilNome,
+      estacionamentoId: typeof this.form.estacionamentoId === 'number' ? this.form.estacionamentoId : 0,
       ...(this.editItem()?.id ? { id: this.editItem()!.id } : {})
     };
     const req = this.isEdit()
       ? this.gerenciamentoService.alterar(payload)
       : this.gerenciamentoService.gravar(payload);
     req.subscribe({
-      next: () => {
+      next: (res) => {
         this.saving.set(false);
-        this.toast.success(this.isEdit() ? 'Usuário atualizado.' : 'Usuário criado.');
+        if (!this.isEdit() && res && typeof res === 'object') {
+          const r = res as RegistroResult;
+          const msg =
+            r.mensagem ?? r.message ?? (r as { Message?: string }).Message ?? 'Usuário cadastrado.';
+          const emailOk = r.emailDeConfirmacaoEnviado ?? (r as { EmailDeConfirmacaoEnviado?: boolean }).EmailDeConfirmacaoEnviado;
+          if (emailOk === true) {
+            this.toast.success(
+              String(msg) + (r.linkConfirmacaoNoFrontend ? ' Use o link enviado ou o informado abaixo (' + r.linkConfirmacaoNoFrontend + ').' : '')
+            );
+          } else {
+            this.toast.success('Usuário criado. ' + String(msg));
+          }
+        } else {
+          this.toast.success(this.isEdit() ? 'Usuário atualizado.' : 'Usuário criado.');
+        }
         this.fecharModalForm();
         this.buscar();
         this.cdr.markForCheck();
       },
-      error: (err) => {
+      error: (err: ApiError) => {
         this.saving.set(false);
-        this.saveError.set(err?.error?.message ?? err?.message ?? 'Erro ao salvar.');
+        this.saveError.set(
+          (err as { error?: { message?: string } })?.error?.message ??
+            (err as { message?: string })?.message ??
+            'Erro ao salvar.'
+        );
         this.cdr.markForCheck();
       }
     });
   }
 
-  toggleAtivo(item: UsuarioGerenciamentoItem): void {
-    if (!item.id) return;
-    const novoAtivo = !item.ativo;
-    this.gerenciamentoService.ativarInativar(item.id, novoAtivo).subscribe({
+  excluir(item: UsuarioGerenciamentoItem): void {
+    if (!this.canExcluir || !item.id) {
+      this.toast.error('Sem permissão para excluir (usuario.excluir) ou dado inválido.');
+      return;
+    }
+    if (!window.confirm('Excluir este usuário? Esta ação não pode ser desfeita.')) {
+      return;
+    }
+    this.gerenciamentoService.excluir(item.id).subscribe({
       next: () => {
-        this.toast.success(novoAtivo ? 'Usuário ativado.' : 'Usuário inativado.');
+        this.toast.success('Usuário excluído.');
         this.buscar();
         this.cdr.markForCheck();
       },
-      error: () => {
-        this.toast.error('Ação não disponível no backend.');
+      error: (err: ApiError) => {
+        this.toast.error(err?.message ?? 'Falha ao excluir.');
         this.cdr.markForCheck();
       }
     });

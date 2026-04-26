@@ -1,153 +1,232 @@
-import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable, timeout, throwError } from 'rxjs';
-import { environment } from '../../../../environments/environment';
+import { Injectable, inject } from '@angular/core';
+import { map, Observable, throwError } from 'rxjs';
+import { UsuarioApiService } from '../../../core/api/services/usuario-api.service';
+import type { RegisterInput, UsuarioDetalheOutput, UsuarioOutput } from '../../../core/api/types/usuario-api.types';
+import { unwrapServiceResult } from '../../../core/api/utils/service-result.util';
 
-const API_BASE = environment.API_BASE_URL;
-const AUTH_USUARIO = `${API_BASE}/auth/Usuario`;
+export const USUARIO_ENDPOINT_NAO_DISPONIVEL = 'Não foi possível criar o usuário com os dados informados.';
+export const USUARIO_EDITAR_ENDPOINT_NAO_DISPONIVEL = 'Não foi possível alterar o usuário.';
 
-const STUB_ERROR = 'Endpoint não encontrado no backend.';
-
-/** Mensagem exibida quando a criação falha por dados inválidos ou erro do backend. */
-export const USUARIO_ENDPOINT_NAO_DISPONIVEL =
-  'Não foi possível criar o usuário com os dados informados.';
-export const USUARIO_EDITAR_ENDPOINT_NAO_DISPONIVEL =
-  'Backend não possui endpoint para editar usuário ainda.';
-
-/** Modelo de item da listagem (para quando o backend expuser GET listagem). */
+/** Modelo de item de listagem (UI legada e Gerenciamento). */
 export interface UsuarioListItem {
   id?: string;
   nome?: string | null;
+  email?: string | null;
+  userName?: string | null;
   emailOuLogin?: string | null;
   tipo?: string | null;
   ativo?: boolean;
   perfil?: string | null;
+  role?: string | null;
+  estacionamentoId?: number | null;
+  cpfCnpj?: string;
 }
 
-/** POST /api/auth/Usuario/Login (Swagger: LoginInput) */
 export interface LoginInput {
   userName: string;
   password: string;
 }
 
-/** POST /api/auth/Usuario/Register (Swagger: RegisterInput) */
-export interface RegisterInput {
-  userName: string;
-  password: string;
-  confirmPassword?: string | null;
-  email?: string | null;
-  estacionamentoId?: number;
-  pessoa?: {
-    id?: number;
-    nome?: string | null;
-    documento?: string | null;
-    tipoPessoa?: number;
-  };
-  perfil?: {
-    id?: string;
-    name?: string | null;
-    normalizedName?: string | null;
-    concurrencyStamp?: string | null;
-  };
-}
-
-/** Payload de criação utilizado no formulário legado de usuários. */
 export interface UsuarioCreateInput {
+  id?: string;
   nome?: string;
   email?: string;
   login?: string;
+  senha?: string;
+  confirmarSenha?: string;
   cpfCnpj?: string;
   cnpj?: string;
-  senha?: string;
+  ativo?: boolean;
   perfilId?: string;
   perfilNome?: string;
   estacionamentoId?: number;
+  transportadoraId?: number;
+  tipoPessoa?: 1 | 2;
+  pessoaId?: number;
 }
 
-/**
- * Service para Usuários (Auth).
- * Endpoints reais: POST Login, POST Register.
- * Mapeamento aplicado:
- * - `gravar()` -> POST Register (endpoint confirmado)
- * Stubs remanescentes (sem endpoint no Swagger): Buscar, ObterPorId, Alterar e Delete.
- * @see https://gtsbackend.azurewebsites.net/swagger/v1/swagger.json (tag Usuario)
- */
 @Injectable({
   providedIn: 'root'
 })
 export class AcessosUsuariosService {
-  constructor(private http: HttpClient) {}
+  private api = inject(UsuarioApiService);
 
-  /** POST /api/auth/Usuario/Login */
-  login(dto: LoginInput): Observable<unknown> {
-    return this.http.post<unknown>(`${AUTH_USUARIO}/Login`, dto).pipe(timeout(15000));
+  private mapOutputToListItem(u: UsuarioOutput): UsuarioListItem {
+    return {
+      id: u.id != null ? String(u.id) : undefined,
+      nome: u.nome,
+      userName: u.userName,
+      email: u.email,
+      emailOuLogin: (u.email?.trim() || u.userName?.trim() || null) as string | null,
+      ativo: true,
+      role: u.role,
+      perfil: u.role,
+      estacionamentoId: u.estacionamentoId ?? null
+    };
   }
 
-  /** POST /api/auth/Usuario/Register */
-  register(dto: RegisterInput): Observable<unknown> {
-    return this.http.post<unknown>(`${AUTH_USUARIO}/Register`, dto).pipe(timeout(15000));
-  }
-
-  /** Stub: endpoint de listagem de usuários não existe no Swagger. Quando existir, retornar GET listagem (termo opcional). */
+  /**
+   * Listagem: sempre `GET /api/auth/Usuario` (Swagger v1).
+   * O parâmetro `termo` só filtra em memória — a API não expõe query de busca nesse GET.
+   */
   buscar(termo?: string): Observable<unknown> {
-    return throwError(() => new Error(STUB_ERROR)) as Observable<unknown>;
+    return this.api.listar().pipe(
+      map((list) => {
+        let items = (list ?? []).map((u) => this.mapOutputToListItem(u));
+        const t = (termo ?? '').trim().toLowerCase();
+        if (t) {
+          items = items.filter(
+            (i) =>
+              (i.nome?.toLowerCase().includes(t) ?? false) ||
+              (i.userName?.toLowerCase().includes(t) ?? false) ||
+              (i.email?.toLowerCase().includes(t) ?? false) ||
+              (i.emailOuLogin?.toLowerCase().includes(t) ?? false) ||
+              (i.perfil?.toLowerCase().includes(t) ?? false) ||
+              (i.role?.toLowerCase().includes(t) ?? false)
+          );
+        }
+        return items;
+      })
+    );
   }
 
-  /** Stub: endpoint ObterPorId de usuário não existe no Swagger. */
-  obterPorId(_id: string): Observable<never> {
-    return throwError(() => new Error(STUB_ERROR));
+  /**
+   * Detalhe: GET /api/auth/Usuario/{id}.
+   * Expõe também shape plano usado em formulários legados (`nome`, `emailOuLogin`, `cpfCnpj`).
+   */
+  obterPorId(id: string): Observable<unknown> {
+    return this.api.obterPorId(id).pipe(
+      map((d) => {
+        const p = d.pessoa;
+        return {
+          ...d,
+          nome: p?.nome,
+          emailOuLogin: d.email ?? d.userName,
+          cpfCnpj: p?.documento
+        } as UsuarioDetalheOutput & {
+          nome?: string;
+          emailOuLogin?: string;
+          cpfCnpj?: string;
+        };
+      })
+    );
   }
 
-  /** Mapeado para POST /Register (cadastro de usuário). */
+  /** Registro: POST /api/auth/Usuario/Register */
   gravar(dto: unknown): Observable<unknown> {
+    try {
+      return this.api.register(this.toRegisterInput(dto as UsuarioCreateInput, false));
+    } catch (e) {
+      return throwError(() => (e instanceof Error ? e : new Error(String(e))));
+    }
+  }
+
+  /** Alteração: PUT /api/auth/Usuario/{id} */
+  alterar(dto: unknown): Observable<unknown> {
     const input = dto as UsuarioCreateInput;
-    const email = String(input?.email ?? '').trim();
-    const login = String(input?.login ?? '').trim();
-    const userName = login || email;
-    const senha = String(input?.senha ?? '').trim();
-    if (!userName || !senha) {
-      return throwError(() => new Error('Dados inválidos para cadastro de usuário.'));
+    const id = input.id;
+    if (!id) {
+      return throwError(() => new Error('Id obrigatório para alterar usuário.'));
+    }
+    try {
+      return this.api.atualizar(id, this.toRegisterInput(input, true));
+    } catch (e) {
+      return throwError(() => (e instanceof Error ? e : new Error(String(e))));
+    }
+  }
+
+  /** Exclusão: DELETE /api/auth/Usuario/{id} */
+  delete(id: string): Observable<unknown> {
+    return this.api.excluir(id);
+  }
+
+  private inferTipoPessoa(input: UsuarioCreateInput): 1 | 2 {
+    if (input.tipoPessoa === 1 || input.tipoPessoa === 2) {
+      return input.tipoPessoa;
+    }
+    const doc = String(input.cpfCnpj ?? input.cnpj ?? '')
+      .replace(/\D/g, '');
+    if (doc.length > 11) {
+      return 2;
+    }
+    return 1;
+  }
+
+  private toRegisterInput(input: UsuarioCreateInput, isEdit: boolean): RegisterInput {
+    const email = String(input.email ?? '').trim();
+    const login = String(input.login ?? '').trim();
+    const userName = (login || email).trim();
+    if (!userName) {
+      throw new Error('Informe e-mail ou login (userName) para o usuário.');
     }
 
-    const perfilId = String(input?.perfilId ?? '').trim();
-    const perfilNome = String(input?.perfilNome ?? '').trim();
-    const documento = String(input?.cpfCnpj ?? input?.cnpj ?? '').trim();
-    const nome = String(input?.nome ?? '').trim();
+    const senha = String(input.senha ?? '').trim();
+    const conf = String(input.confirmarSenha ?? input.senha ?? '').trim();
+    if (!isEdit) {
+      if (!senha) {
+        throw new Error('Senha é obrigatória no cadastro.');
+      }
+      if (senha !== conf) {
+        throw new Error('Senha e confirmar senha devem ser iguais.');
+      }
+    } else {
+      if (senha || conf) {
+        if (senha !== conf) {
+          throw new Error('Senha e confirmar senha devem ser iguais.');
+        }
+      }
+    }
+
+    const nomePessoa = String(input.nome ?? '').trim();
+    const documento = String(input.cpfCnpj ?? input.cnpj ?? '').trim();
+    if (!nomePessoa) {
+      throw new Error('Informe o nome (pessoa).');
+    }
+
+    const estacionamentoId =
+      typeof input.estacionamentoId === 'number' && Number.isFinite(input.estacionamentoId)
+        ? input.estacionamentoId
+        : 0;
+
+    const perfilNome = String(input.perfilNome ?? input.perfilId ?? '').trim();
+    if (!perfilNome) {
+      throw new Error('Selecione o perfil (name).');
+    }
+
+    const pessoaId =
+      typeof input.pessoaId === 'number' && Number.isFinite(input.pessoaId) ? input.pessoaId : 0;
+    const tipoPessoa = this.inferTipoPessoa(input);
 
     const payload: RegisterInput = {
       userName,
-      password: senha,
-      confirmPassword: senha,
-      email: email || undefined,
-      estacionamentoId:
-        typeof input?.estacionamentoId === 'number' && Number.isFinite(input.estacionamentoId)
-          ? input.estacionamentoId
-          : undefined,
-      pessoa:
-        nome || documento
-          ? {
-              nome: nome || undefined,
-              documento: documento || undefined,
-            }
-          : undefined,
-      perfil: perfilId || perfilNome
-        ? {
-            id: perfilId || undefined,
-            name: perfilNome || undefined,
-          }
-        : undefined,
+      estacionamentoId,
+      pessoa: {
+        id: pessoaId,
+        nome: nomePessoa,
+        documento: documento || '',
+        tipoPessoa
+      },
+      perfil: { name: perfilNome }
     };
 
-    return this.register(payload);
+    if (email) {
+      payload.email = email;
+    }
+    if (!isEdit) {
+      payload.password = senha;
+      payload.confirmPassword = conf;
+    } else {
+      if (senha) {
+        payload.password = senha;
+        payload.confirmPassword = conf;
+      }
+    }
+
+    return payload;
   }
 
-  /** Stub: endpoint Alterar de usuário não existe no Swagger. */
-  alterar(_dto: unknown): Observable<never> {
-    return throwError(() => new Error(STUB_ERROR));
-  }
-
-  /** Stub: endpoint Delete de usuário não existe no Swagger. */
-  delete(_id: string): Observable<never> {
-    return throwError(() => new Error(STUB_ERROR));
+  /** Uso em testes e chamadas manuais ao envelope. */
+  unwrapTest(body: unknown): unknown {
+    return unwrapServiceResult(body);
   }
 }

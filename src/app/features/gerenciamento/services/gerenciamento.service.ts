@@ -1,17 +1,12 @@
 import { Injectable } from '@angular/core';
-import { Observable, of, catchError, map } from 'rxjs';
+import { Observable, catchError, map, of } from 'rxjs';
 import { AcessosUsuariosService, UsuarioListItem } from '../../cadastro/services/acessos-usuarios.service';
 import { AcessosPerfisService, ApplicationRole } from '../../cadastro/services/acessos-perfis.service';
-import {
-  UsuarioGerenciamentoItem,
-  GerenciamentoFiltros,
-  TipoVinculo
-} from '../models/gerenciamento.types';
+import { UsuarioGerenciamentoItem, GerenciamentoFiltros } from '../models/gerenciamento.types';
+import type { UsuarioDetalheOutput } from '../../../core/api/types/usuario-api.types';
 
 /**
- * Service central para a tela de Gerenciamento.
- * Reutiliza AcessosUsuariosService e AcessosPerfisService.
- * Quando o backend expuser listagem/filtro de usuários com vínculo, ajustar buscar().
+ * Orquestra listagem, CRUD e perfis da tela de Acessos (Gerenciamento).
  */
 @Injectable({
   providedIn: 'root'
@@ -22,51 +17,36 @@ export class GerenciamentoService {
     private perfisService: AcessosPerfisService
   ) {}
 
-  /**
-   * Busca usuários para a listagem. Aceita filtros; termo de busca é montado a partir deles.
-   * Se o backend não tiver endpoint, retorna array vazio para não quebrar a tela.
-   */
+  /** GET /api/auth/Usuario + filtros em memória. */
   buscar(filtros: GerenciamentoFiltros): Observable<UsuarioGerenciamentoItem[]> {
-    const termo = [
-      filtros.nomeUsuario?.trim(),
-      filtros.cnpj?.trim(),
-      filtros.razaoSocial?.trim()
-    ]
-      .filter(Boolean)
-      .join(' ')
-      .trim();
-    return this.usuariosService.buscar(termo || undefined).pipe(
-      map((body) => this.normalizeList(body, filtros)),
-      catchError(() => of([]))
+    return this.usuariosService.buscar().pipe(
+      map((body) => this.normalizeList(body, filtros))
     );
   }
 
-  /** Lista perfis para selects. */
   getPerfis(): Observable<ApplicationRole[]> {
-    return this.perfisService.buscar().pipe(
+    return this.perfisService.buscarSimplicadoUsuario().pipe(
       map((body) => this.normalizePerfis(body)),
       catchError(() => of([]))
     );
   }
 
-  /** Gravar novo usuário. Delega ao AcessosUsuariosService (Register/Gravar quando existir). */
+  obterDetalhe(id: string): Observable<UsuarioDetalheOutput & { nome?: string; emailOuLogin?: string; cpfCnpj?: string }> {
+    return this.usuariosService.obterPorId(id) as Observable<
+      UsuarioDetalheOutput & { nome?: string; emailOuLogin?: string; cpfCnpj?: string }
+    >;
+  }
+
   gravar(dto: unknown): Observable<unknown> {
     return this.usuariosService.gravar(dto);
   }
 
-  /** Alterar usuário existente. */
   alterar(dto: unknown): Observable<unknown> {
     return this.usuariosService.alterar(dto);
   }
 
-  /** Ativar/inativar usuário. Quando o backend expuser, implementar PATCH/PUT. */
-  ativarInativar(_id: string, _ativo: boolean): Observable<unknown> {
-    return of(null);
-  }
-
-  /** Redefinir senha. Quando o backend expuser, implementar. */
-  redefinirSenha(_id: string): Observable<unknown> {
-    return of(null);
+  excluir(id: string): Observable<unknown> {
+    return this.usuariosService.delete(id);
   }
 
   private normalizeList(
@@ -74,18 +54,42 @@ export class GerenciamentoService {
     filtros: GerenciamentoFiltros
   ): UsuarioGerenciamentoItem[] {
     const raw = this.normalizeListRaw(body);
-    return raw.map((item) => this.toGerenciamentoItem(item)).filter((item) => {
-      if (filtros.tipo && item.tipo !== filtros.tipo) return false;
-      if (filtros.perfilId && (item as { perfilId?: string }).perfilId !== filtros.perfilId)
+    return raw
+      .map((item) => this.toGerenciamentoItem(item))
+      .filter((item) => this.passaFiltros(item, filtros));
+  }
+
+  private passaFiltros(
+    item: UsuarioGerenciamentoItem,
+    filtros: GerenciamentoFiltros
+  ): boolean {
+    const termo = (filtros.nomeOuEmail ?? '').trim().toLowerCase();
+    if (termo) {
+      const partes = [item.nome, item.userName, item.email, item.emailOuLogin].filter(
+        (s): s is string => typeof s === 'string' && s.trim() !== ''
+      );
+      const ok = partes.some((p) => p.toLowerCase().includes(termo));
+      if (!ok) {
         return false;
-      if (filtros.status === 'ativo' && !item.ativo) return false;
-      if (filtros.status === 'inativo' && item.ativo) return false;
-      return true;
-    });
+      }
+    }
+    const pn = (filtros.perfilNome ?? '').trim().toLowerCase();
+    if (pn) {
+      const role = (item.perfil ?? '').trim().toLowerCase();
+      if (!role) {
+        return false;
+      }
+      if (role !== pn && !role.includes(pn)) {
+        return false;
+      }
+    }
+    return true;
   }
 
   private normalizeListRaw(body: unknown): UsuarioListItem[] {
-    if (Array.isArray(body)) return body as UsuarioListItem[];
+    if (Array.isArray(body)) {
+      return body as UsuarioListItem[];
+    }
     if (body && typeof body === 'object' && 'result' in body) {
       const r = (body as { result?: unknown }).result;
       return Array.isArray(r) ? (r as UsuarioListItem[]) : [];
@@ -98,34 +102,22 @@ export class GerenciamentoService {
   }
 
   private toGerenciamentoItem(item: UsuarioListItem): UsuarioGerenciamentoItem {
-    const ext = item as UsuarioListItem & {
-      empresaVinculada?: string;
-      tipo?: string;
-      cnpj?: string;
-      ultimoAcesso?: string;
-      dataCriacao?: string;
-      estacionamentoId?: number;
-      transportadoraId?: number;
-    };
     return {
       id: item.id,
-      nome: item.nome ?? null,
-      emailOuLogin: item.emailOuLogin ?? null,
-      empresaVinculada: ext.empresaVinculada ?? null,
-      tipo: (ext.tipo as TipoVinculo) ?? null,
-      cnpj: ext.cnpj ?? null,
-      perfil: item.perfil ?? null,
-      permissoesResumo: null,
-      ativo: item.ativo ?? true,
-      ultimoAcesso: ext.ultimoAcesso ?? null,
-      dataCriacao: ext.dataCriacao ?? null,
-      estacionamentoId: ext.estacionamentoId ?? null,
-      transportadoraId: ext.transportadoraId ?? null
+      userName: item.userName,
+      nome: item.nome,
+      email: item.email,
+      emailOuLogin: (item.emailOuLogin ?? item.email ?? item.userName) as string,
+      perfil: item.perfil ?? item.role ?? null,
+      estacionamentoId: item.estacionamentoId ?? null,
+      ativo: item.ativo ?? true
     };
   }
 
   private normalizePerfis(body: unknown): ApplicationRole[] {
-    if (Array.isArray(body)) return body as ApplicationRole[];
+    if (Array.isArray(body)) {
+      return body as ApplicationRole[];
+    }
     if (body && typeof body === 'object' && 'result' in body) {
       const r = (body as { result?: unknown }).result;
       return Array.isArray(r) ? (r as ApplicationRole[]) : [];

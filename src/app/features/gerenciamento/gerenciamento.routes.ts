@@ -8,7 +8,13 @@ export const GERENCIAMENTO_ROUTES: Routes = [
     path: '',
     component: GerenciamentoLayoutComponent,
     children: [
-      { path: '', pathMatch: 'full', component: GerenciamentoPageComponent },
+      {
+        path: '',
+        pathMatch: 'full',
+        component: GerenciamentoPageComponent,
+        canActivate: [permissionGuard],
+        data: { permissions: ['usuario.visualizar'] }
+      },
       { path: 'permissoes', redirectTo: 'menu', pathMatch: 'full' },
       { path: 'admin', redirectTo: 'menu', pathMatch: 'full' },
       {
