@@ -2,6 +2,7 @@ import { Component, OnInit, inject, ChangeDetectorRef, DestroyRef } from '@angul
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import { debounceTime, distinctUntilChanged, filter, switchMap } from 'rxjs';
 import { TransportadoraService } from '../../services/transportadora.service';
 import { VeiculoService } from '../../services/veiculo.service';
@@ -83,6 +84,7 @@ export class CadastroTransportadoraPageComponent implements OnInit {
   private fb = inject(FormBuilder);
   private cdr = inject(ChangeDetectorRef);
   private destroyRef = inject(DestroyRef);
+  private route = inject(ActivatedRoute);
 
   activeTab: TransportadoraTab = 'cadastro';
 
@@ -141,6 +143,11 @@ export class CadastroTransportadoraPageComponent implements OnInit {
     this.setupCnpjBusca();
     this.criarFormVeiculo();
     this.criarFormCondutor();
+
+    const forceTab = this.route.snapshot.data['forceTab'];
+    if (forceTab === 'motoristas') {
+      this.setTab('motoristas');
+    }
   }
 
   setTab(tab: TransportadoraTab): void {
@@ -1192,3 +1199,4 @@ export class CadastroTransportadoraPageComponent implements OnInit {
     salvarProximo(0);
   }
 }
+

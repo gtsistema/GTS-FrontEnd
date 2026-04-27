@@ -25,6 +25,7 @@ const ALIAS_NOME_PARA_ROTA: Record<string, string> = {
   gerenciamento: '/app/gerenciamento',
   transportadora: '/app/cadastro/transportadora',
   estacionamento: '/app/cadastro/estacionamento',
+  motorista: '/app/cadastro/motorista',
   /** Submódulo "menu" na API ≈ aba Menu em Gerenciamento */
   menu: '/app/gerenciamento/menu',
   acessos: '/app/gerenciamento',
@@ -53,17 +54,29 @@ function tryMatchMenuStructure(nome: string): string | null {
 
 function normalizeApiRota(raw: string | null | undefined): string | null {
   if (raw == null) return null;
-  const t = String(raw).trim();
-  if (!t || t === '/app') return null;
-  if (t.startsWith('/app/')) {
+  let t = String(raw).trim();
+  if (!t || t === '/app' || t === '/app/') return null;
+
+  /**
+   * API costuma enviar `app/{menu}/...` sem barra inicial.
+   * Deve virar `/app/...` — nunca `/app/app/...` (bug do antigo `\/app${t}` quando t já começava com `app/`).
+   */
+  if (!t.startsWith('/')) {
+    if (/^app\//i.test(t)) {
+      t = `/${t}`;
+    } else {
+      t = `/app/${t.replace(/^\/+/, '')}`;
+    }
+  }
+
+  const tl = t.toLowerCase();
+  if (tl === '/app') return null;
+
+  if (tl.startsWith('/app/')) {
     return ALIAS_PATH_PARA_ROTA[t] ?? t;
   }
-  if (t === '/app') return null;
-  if (t.startsWith('/')) {
-    const route = t.startsWith('/app') ? t : `/app${t}`;
-    return ALIAS_PATH_PARA_ROTA[route] ?? route;
-  }
-  const route = `/app/${t.replace(/^\//, '')}`;
+
+  const route = `/app${t}`.replace(/\/{2,}/g, '/');
   return ALIAS_PATH_PARA_ROTA[route] ?? route;
 }
 
@@ -140,3 +153,4 @@ export function resolveMaterialSymbolIconFromModule(
 
   return 'menu';
 }
+

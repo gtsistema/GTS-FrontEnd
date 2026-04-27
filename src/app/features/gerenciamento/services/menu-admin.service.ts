@@ -391,14 +391,9 @@ export class MenuAdminService {
 
     return source
       .map((item) => {
-        const normalizedChildren = (item.children ?? []).filter(
-          (child) =>
-            !this.isMotoristaSidebarRoute(child.route) &&
-            child.label.trim().toLowerCase() !== 'motorista'
-        );
         const baseItem = {
           ...item,
-          children: normalizedChildren.length > 0 ? normalizedChildren : undefined,
+          children: (item.children ?? []).length > 0 ? item.children : undefined,
         };
         if (!this.isGerenciamentoNavItem(baseItem)) return baseItem;
         return {
@@ -406,9 +401,7 @@ export class MenuAdminService {
           route: '/app/gerenciamento',
           icon: item.icon,
         };
-      })
-      .filter((item) => !this.isMotoristaSidebarRoute(item.route))
-      .filter((item) => item.label.trim().toLowerCase() !== 'motorista');
+      });
   }
 
   private buildNavItemsFromSessionMenus(): {
@@ -517,9 +510,5 @@ export class MenuAdminService {
       return true;
     }
     return item.children?.some((c) => c.route.startsWith('/app/gerenciamento')) ?? false;
-  }
-
-  private isMotoristaSidebarRoute(route: string): boolean {
-    return route === '/app/cadastro/motorista' || route.startsWith('/app/cadastro/motorista/');
   }
 }

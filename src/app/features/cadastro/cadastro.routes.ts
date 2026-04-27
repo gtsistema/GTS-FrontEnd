@@ -41,6 +41,14 @@ export const CADASTRO_ROUTES: Routes = [
         './pages/cadastro-transportadora-page/cadastro-transportadora-page.component'
       ).then((m) => m.CadastroTransportadoraPageComponent)
   },
+  {
+    path: 'motorista',
+    loadComponent: () =>
+      import(
+        './pages/cadastro-transportadora-page/cadastro-transportadora-page.component'
+      ).then((m) => m.CadastroTransportadoraPageComponent),
+    data: { forceTab: 'motoristas' }
+  },
   { path: 'acessos', redirectTo: '/app/configuracoes/usuarios', pathMatch: 'full' },
   { path: 'acessos/usuarios', redirectTo: '/app/configuracoes/usuarios', pathMatch: 'full' },
   { path: 'acessos/perfis', redirectTo: '/app/gerenciamento/perfil', pathMatch: 'full' },

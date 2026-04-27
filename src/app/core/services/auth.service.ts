@@ -15,6 +15,7 @@ import { SessionAccessService, SessionMenuAccess } from './session-access.servic
 import { environment } from '../../../environments/environment';
 import { ApiError } from '../api/models';
 import { mergeServiceResultToRoot, readLoginServiceFailure } from '../api/utils/service-result.util';
+import { getLoginMenusAppRouteValidationMessage } from '../utils/login-menus-app-route.validator';
 
 export interface LoginRequest {
   userName: string;
@@ -205,7 +206,13 @@ export class AuthService {
     const permissionKeys = extractJwtPermissionKeys(payload);
     this.permissionCache.setKeys(permissionKeys);
     const jwtRole = resolveJwtRole(payload);
-    this.sessionAccess.setMenus(extractMenusFromLoginBody(res, jwtRole));
+    const menusFromLogin = extractMenusFromLoginBody(res, jwtRole);
+    const rotaInvalidaMsg = getLoginMenusAppRouteValidationMessage(menusFromLogin);
+    if (rotaInvalidaMsg) {
+      this.permissionCache.clear();
+      return { success: false, message: rotaInvalidaMsg };
+    }
+    this.sessionAccess.setMenus(menusFromLogin);
     if (this.sessionAccess.hasSessionMenus() && !this.sessionAccess.getDefaultRoute()) {
       this.permissionCache.clear();
       this.sessionAccess.clear();
