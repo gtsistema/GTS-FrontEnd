@@ -1,23 +1,11 @@
 <div class="page-container">
-  <header class="page-header">
+  <header class="page-header page-header-card">
     <div class="page-header__row page-header__row--1">
       <h1 class="page-title">Cadastro Transportadora</h1>
+      <p class="page-subtitle">Cadastre e gerencie transportadoras, frota e motoristas.</p>
     </div>
     <div class="page-header__row page-header__row--2">
       @if (listView) {
-        <div class="page-header__actions">
-          <select class="search-filter input-control" [(ngModel)]="campoBusca" aria-label="Filtrar busca por">
-            <option value="geral">Busca geral</option>
-            <option value="cnpj">CNPJ</option>
-            <option value="razaoSocial">Razão social</option>
-            <option value="nomeFantasia">Nome fantasia</option>
-            <option value="email">E-mail</option>
-            <option value="id">ID</option>
-          </select>
-          <input type="text" class="search-input input-control" [placeholder]="searchPlaceholder" [(ngModel)]="termoBusca" (keyup.enter)="onBuscar()" />
-          <button type="button" class="btn btn-secondary" (click)="onBuscar()">Buscar</button>
-          <button type="button" class="btn btn-primary" (click)="novoTransportadora()">Novo</button>
-        </div>
       } @else {
         <nav class="tabs" role="tablist" aria-label="Abas Cadastro Transportadora">
           <button type="button" class="tab" role="tab" [class.tab--active]="activeTab === 'cadastro'" [attr.aria-selected]="activeTab === 'cadastro'" (click)="setTab('cadastro')">Cadastro</button>
@@ -32,17 +20,38 @@
   </header>
 
   <div class="page-content">
+    @if (listView) {
+      <section class="filter-card">
+        <div class="filter-row">
+          <select class="search-filter input-control form-control-dark" [(ngModel)]="campoBusca" aria-label="Filtrar busca por">
+            <option value="geral">Busca geral</option>
+            <option value="cnpj">CNPJ</option>
+            <option value="razaoSocial">Razão social</option>
+            <option value="nomeFantasia">Nome fantasia</option>
+            <option value="email">E-mail</option>
+            <option value="id">ID</option>
+          </select>
+          <input type="text" class="search-input input-control form-control-dark filter-row__grow" [placeholder]="searchPlaceholder" [(ngModel)]="termoBusca" (keyup.enter)="onBuscar()" />
+          <button type="button" class="btn btn-secondary" (click)="onBuscar()">Buscar</button>
+          <button type="button" class="btn btn-primary" (click)="novoTransportadora()">Novo</button>
+        </div>
+      </section>
+    }
+
     @switch (activeTab) {
       @case ('cadastro') {
         @if (listView) {
-          <div class="tab-panel">
+          <section class="tab-panel data-card">
             @if (erroList) {
               <p class="error-msg">{{ erroList }}</p>
             }
             @if (loadingList) {
               <p class="loading-msg">Carregando...</p>
             } @else if (!jaBuscou) {
-              <p class="empty-msg">Clique em <strong>Buscar</strong> para carregar as transportadoras.</p>
+              <div class="empty-state">
+                <span class="material-symbols-outlined">search</span>
+                <p class="empty-msg">Clique em <strong>Buscar</strong> para carregar as transportadoras.</p>
+              </div>
             } @else {
               <div class="table-wrap">
                 <table class="data-table">
@@ -75,10 +84,12 @@
                 </table>
               </div>
               @if (transportadoraList.length === 0) {
-                <p class="empty-msg">Nenhuma transportadora encontrada.</p>
+                <div class="empty-state">
+                  <p class="empty-msg">Nenhuma transportadora encontrada.</p>
+                </div>
               }
             }
-          </div>
+          </section>
         } @else {
           <div class="tab-panel tab-panel--form">
             <div class="container container--form">

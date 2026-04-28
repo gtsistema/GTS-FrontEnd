@@ -1,5 +1,5 @@
 <div class="page-container">
-  <header class="page-header">
+  <header class="page-header page-header-card">
     <div class="page-header__row page-header__row--1">
       <h2 class="page-title page-title--section">Usuários</h2>
       <p class="page-subtitle">Gestão de usuários (API <code>api/auth/Usuario</code>).</p>
@@ -7,16 +7,16 @@
   </header>
 
   <div class="page-content">
-    <section class="filters-section">
-      <div class="filters-row">
+    <section class="filter-card filters-section">
+      <div class="filter-row filters-row">
         <input
           type="text"
-          class="input-control filter-input"
+          class="input-control form-control-dark filter-input filter-row__grow"
           placeholder="Nome, e-mail ou login"
           [(ngModel)]="filtros.nomeOuEmail"
           (keyup.enter)="buscar()"
         />
-        <select class="input-control filter-select" [(ngModel)]="filtros.perfilNome">
+        <select class="input-control form-control-dark filter-select" [(ngModel)]="filtros.perfilNome">
           <option value="">Perfil (todos)</option>
           @for (p of perfisList; track p.id ?? p.name) {
             <option [value]="p.name ?? p.id ?? ''">{{ p.name ?? p.id }}</option>
@@ -24,94 +24,93 @@
         </select>
         <div class="filters-search-wrap">
           <button type="button" class="btn btn-primary" (click)="buscar()">Buscar</button>
-          <button
-            type="button"
-            class="filter-clear-btn"
-            (click)="limparFiltros()"
-            aria-label="Limpar filtros"
-            title="Limpar filtros"
-          >
-            ×
-          </button>
         </div>
-      </div>
-      <div class="filters-actions">
         @if (canGravar) {
-          <button type="button" class="btn btn-primary" (click)="abrirNovo()">Novo usuário</button>
+          <button type="button" class="btn btn-novo-usuario" (click)="abrirNovo()">Novo usuário</button>
         }
       </div>
     </section>
 
     @if (loading) {
-      <p class="loading-msg">Carregando...</p>
+      <section class="data-card">
+        <p class="loading-msg">Carregando...</p>
+      </section>
     } @else if (erro) {
-      <p class="error-msg">{{ erro }}</p>
-      <button type="button" class="btn btn-secondary" (click)="buscar()">Tentar novamente</button>
+      <section class="data-card">
+        <p class="error-msg">{{ erro }}</p>
+        <button type="button" class="btn btn-secondary" (click)="buscar()">Tentar novamente</button>
+      </section>
     } @else {
-      <div class="table-wrap">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>Nome</th>
-              <th>E-mail</th>
-              <th>Login (userName)</th>
-              <th>Perfil (role)</th>
-              <th>Estacionamento</th>
-              <th>Ações</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (item of itens; track item.id ?? $index) {
+      <section class="data-card">
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
               <tr>
-                <td>{{ item.nome ?? '—' }}</td>
-                <td>{{ item.email ?? '—' }}</td>
-                <td>{{ item.userName ?? '—' }}</td>
-                <td>{{ item.perfil ?? '—' }}</td>
-                <td>
-                  {{
-                    item.EstacionamentoNome ??
-                      (item.EstacionamentoId != null && item.EstacionamentoId !== 0
-                        ? ('ID ' + item.EstacionamentoId)
-                        : '—')
-                  }}
-                </td>
-                <td class="acoes-cell">
-                  <button
-                    type="button"
-                    class="btn btn-secondary btn--sm"
-                    (click)="abrirVisualizar(item)"
-                    [disabled]="!canVisualizar"
-                  >
-                    Visualizar
-                  </button>
-                  <button
-                    type="button"
-                    class="btn btn-primary btn--sm"
-                    (click)="abrirEditar(item)"
-                    [disabled]="!canAlterar"
-                  >
-                    Editar
-                  </button>
-                  <button
-                    type="button"
-                    class="btn btn-secondary btn--sm"
-                    (click)="excluir(item)"
-                    [disabled]="!canExcluir"
-                  >
-                    Excluir
-                  </button>
-                </td>
+                <th>Nome</th>
+                <th>E-mail</th>
+                <th>Login (userName)</th>
+                <th>Perfil (role)</th>
+                <th>Estacionamento</th>
+                <th>Ações</th>
               </tr>
-            }
-          </tbody>
-        </table>
-      </div>
-      @if (buscaRealizada && itens.length === 0) {
-        <p class="empty-msg">Nenhum registro encontrado.</p>
-      }
-      @if (!buscaRealizada) {
-        <p class="empty-msg empty-msg--hint">Clique em «Buscar» para carregar os usuários.</p>
-      }
+            </thead>
+            <tbody>
+              @for (item of itens; track item.id ?? $index) {
+                <tr>
+                  <td>{{ item.nome ?? '—' }}</td>
+                  <td>{{ item.email ?? '—' }}</td>
+                  <td>{{ item.userName ?? '—' }}</td>
+                  <td>{{ item.perfil ?? '—' }}</td>
+                  <td>
+                    {{
+                      item.EstacionamentoNome ??
+                        (item.EstacionamentoId != null && item.EstacionamentoId !== 0
+                          ? ('ID ' + item.EstacionamentoId)
+                          : '—')
+                    }}
+                  </td>
+                  <td class="acoes-cell">
+                    <button
+                      type="button"
+                      class="btn btn-secondary btn--sm"
+                      (click)="abrirVisualizar(item)"
+                      [disabled]="!canVisualizar"
+                    >
+                      Visualizar
+                    </button>
+                    <button
+                      type="button"
+                      class="btn btn-primary btn--sm"
+                      (click)="abrirEditar(item)"
+                      [disabled]="!canAlterar"
+                    >
+                      Editar
+                    </button>
+                    <button
+                      type="button"
+                    class="btn btn-danger btn--sm"
+                      (click)="excluir(item)"
+                      [disabled]="!canExcluir"
+                    >
+                      Excluir
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        @if (buscaRealizada && itens.length === 0) {
+          <div class="empty-state">
+            <p class="empty-msg">Nenhum registro encontrado.</p>
+          </div>
+        }
+        @if (!buscaRealizada) {
+          <div class="empty-state">
+            <p class="empty-msg empty-msg--hint">Clique em «Buscar» para carregar os usuários.</p>
+          </div>
+        }
+      </section>
     }
   </div>
 </div>

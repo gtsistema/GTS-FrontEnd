@@ -114,11 +114,20 @@ export class GerenciamentoService {
   }
 
   private toGerenciamentoItem(item: UsuarioListItem, estMap: Map<number, string>): UsuarioGerenciamentoItem {
-    const EstacionamentoId = item.EstacionamentoId ?? null;
+    const rawItem = item as UsuarioListItem & {
+      estacionamentoId?: number | null;
+      estacionamento?: string | null;
+      Estacionamento?: string | null;
+    };
+    const EstacionamentoId = item.EstacionamentoId ?? rawItem.estacionamentoId ?? null;
+    const estacionamentoDaApi = String(
+      rawItem.estacionamento ?? rawItem.Estacionamento ?? ''
+    ).trim();
     const EstacionamentoNome =
-      typeof EstacionamentoId === 'number' && EstacionamentoId > 0
+      estacionamentoDaApi ||
+      (typeof EstacionamentoId === 'number' && EstacionamentoId > 0
         ? estMap.get(EstacionamentoId) ?? null
-        : null;
+        : null);
     return {
       id: item.id,
       userName: item.userName,

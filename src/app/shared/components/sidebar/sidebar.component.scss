@@ -167,8 +167,8 @@
   display: flex;
   align-items: center;
   gap: 9px;
-  padding: 7px 9px;
-  min-height: 35px;
+  padding: 9px 10px;
+  min-height: 40px;
   border-radius: 10px;
   color: var(--text-muted);
   text-decoration: none;
@@ -178,7 +178,7 @@
   font-family: inherit;
   font-weight: 600;
   font-size: 15px;
-  line-height: 1.3;
+  line-height: 1.45;
   letter-spacing: 0;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -191,18 +191,7 @@
   &.active {
     color: #d8e1ff;
     background: rgba(79, 107, 255, 0.16);
-    box-shadow: none;
-
-    &::before {
-      content: '';
-      position: absolute;
-      left: 6px;
-      top: 7px;
-      bottom: 7px;
-      width: 3px;
-      background: linear-gradient(180deg, var(--accent), #00d4ff);
-      border-radius: 99px;
-    }
+    box-shadow: 0 0 0 1px rgba(79, 107, 255, 0.22), 0 4px 14px rgba(10, 22, 44, 0.38);
   }
 }
 
@@ -261,11 +250,12 @@
 }
 
 .submenu-item {
-  padding: 6px 8px;
-  min-height: 32px;
+  padding: 8px 8px;
+  min-height: 36px;
   font-size: 14px;
   font-weight: 600;
   opacity: 0.93;
+  line-height: 1.35;
 }
 
 .submenu-group {

@@ -7,30 +7,6 @@
       </div>
       <span class="page-header__badge">Em desenvolvimento</span>
     </div>
-    <div class="page-header__row page-header__row--2">
-      <nav class="tabs" role="tablist" aria-label="Abas de Movimentos">
-        <button
-          type="button"
-          class="tab"
-          role="tab"
-          [class.tab--active]="activeTab === 'operacao'"
-          [attr.aria-selected]="activeTab === 'operacao'"
-          (click)="setActiveTab('operacao')"
-        >
-          Operação
-        </button>
-        <button
-          type="button"
-          class="tab"
-          role="tab"
-          [class.tab--active]="activeTab === 'historico'"
-          [attr.aria-selected]="activeTab === 'historico'"
-          (click)="setActiveTab('historico')"
-        >
-          Histórico
-        </button>
-      </nav>
-    </div>
   </header>
 
   <div class="page-content">

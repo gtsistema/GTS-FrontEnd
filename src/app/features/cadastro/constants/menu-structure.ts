@@ -20,7 +20,16 @@ export interface MenuNode {
 /** Estrutura completa do menu (espelha a sidebar). */
 export const MENU_STRUCTURE: MenuNode[] = [
   { id: 'menu-dashboard', label: 'Dashboard', route: '/app/dashboard', icon: 'dashboard' },
-  { id: 'menu-movimentos', label: 'Movimentos', route: '/app/movimentos', icon: 'swap_horiz' },
+  {
+    id: 'menu-movimentos',
+    label: 'Movimento',
+    route: '/app/movimentos',
+    icon: 'swap_horiz',
+    children: [
+      { id: 'sub-mov-operacao', label: 'Operação', route: '/app/movimentos/operacao' },
+      { id: 'sub-mov-historico', label: 'Histórico', route: '/app/movimentos/historico' },
+    ],
+  },
   { id: 'menu-relatorios', label: 'Relatórios', route: '/app/relatorios', icon: 'assessment' },
   { id: 'menu-financeiro', label: 'Financeiro', route: '/app/financeiro', icon: 'payments' },
   {

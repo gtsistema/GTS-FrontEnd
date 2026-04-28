@@ -19,6 +19,9 @@ export interface UsuarioListItem {
   perfil?: string | null;
   role?: string | null;
   EstacionamentoId?: number | null;
+  estacionamentoId?: number | null;
+  Estacionamento?: string | null;
+  estacionamento?: string | null;
   cpfCnpj?: string;
 }
 
@@ -52,6 +55,11 @@ export class AcessosUsuariosService {
   private api = inject(UsuarioApiService);
 
   private mapOutputToListItem(u: UsuarioOutput): UsuarioListItem {
+    const raw = u as UsuarioOutput & {
+      estacionamentoId?: number | null;
+      estacionamento?: string | null;
+      Estacionamento?: string | null;
+    };
     return {
       id: u.id != null ? String(u.id) : undefined,
       nome: u.nome,
@@ -61,7 +69,10 @@ export class AcessosUsuariosService {
       ativo: true,
       role: u.role,
       perfil: u.role,
-      EstacionamentoId: u.EstacionamentoId ?? null
+      EstacionamentoId: u.EstacionamentoId ?? raw.estacionamentoId ?? null,
+      estacionamentoId: raw.estacionamentoId ?? u.EstacionamentoId ?? null,
+      estacionamento: raw.estacionamento ?? raw.Estacionamento ?? null,
+      Estacionamento: raw.Estacionamento ?? raw.estacionamento ?? null
     };
   }
 

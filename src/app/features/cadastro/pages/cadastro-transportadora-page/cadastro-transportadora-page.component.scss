@@ -31,8 +31,8 @@
 
 /* ========== Topo: título, subtítulo, Voltar, tabs (igual Estacionamento) */
 .page-header {
-  padding: 0 var(--container-padding) 14px;
-  border-bottom: 1px solid var(--border-subtle);
+  padding: 18px 20px;
+  border-bottom: 0;
   flex-shrink: 0;
 }
 
@@ -123,12 +123,20 @@
   flex: 1;
   overflow-y: auto;
   min-height: 0;
-  padding: var(--container-padding);
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
 }
 
 .tab-panel {
   flex: 1;
   min-height: 0;
+}
+
+.filter-card,
+.data-card {
+  width: 100%;
 }
 
 .container--form {

@@ -1,6 +1,8 @@
 import { Component, inject, OnInit, OnDestroy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { NavigationEnd, Router } from '@angular/router';
+import { filter } from 'rxjs/operators';
 import {
   PlacaTransportadoraLookupService,
   DadosVeiculoCadastro,
@@ -67,6 +69,7 @@ export type FiltroPeriodoHistorico = 'todos' | 'hoje' | 'semana' | 'mes';
 })
 export class MovimentosPageComponent implements OnInit, OnDestroy {
   private placaTransportadoraLookup = inject(PlacaTransportadoraLookupService);
+  private router = inject(Router);
 
   activeTab: MovimentosTab = 'operacao';
   entradaModalOpen = false;
@@ -166,6 +169,11 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    this.syncTabFromUrl();
+    this.router.events
+      .pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
+      .subscribe(() => this.syncTabFromUrl());
+
     this.intervalId = setInterval(() => {
       this.tickAtualizacao++;
     }, 1_000);
@@ -180,6 +188,19 @@ export class MovimentosPageComponent implements OnInit, OnDestroy {
 
   setActiveTab(tab: MovimentosTab): void {
     this.activeTab = tab;
+    const target = `/app/movimentos/${tab}`;
+    if (this.router.url !== target) {
+      this.router.navigateByUrl(target);
+    }
+  }
+
+  private syncTabFromUrl(): void {
+    const url = this.router.url.toLowerCase();
+    if (url.includes('/app/movimentos/historico')) {
+      this.activeTab = 'historico';
+      return;
+    }
+    this.activeTab = 'operacao';
   }
 
   /**

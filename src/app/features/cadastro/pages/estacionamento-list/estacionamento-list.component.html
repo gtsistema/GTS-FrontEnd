@@ -52,10 +52,14 @@
         </table>
       </div>
       @if (itens.length === 0 && !loading && toolbar.trigger() > 0) {
-        <p class="empty-msg">Nenhum registro encontrado.</p>
+        <div class="empty-state">
+          <p class="empty-msg">Nenhum registro encontrado.</p>
+        </div>
       }
       @if (toolbar.trigger() === 0 && !loading && !erro) {
-        <p class="empty-msg empty-msg--hint">Clique em «Buscar» para consultar o backend.</p>
+        <div class="empty-state">
+          <p class="empty-msg empty-msg--hint">Clique em «Buscar» para consultar o backend.</p>
+        </div>
       }
       @if (totalPaginas > 1 && itens.length > 0) {
         <nav class="paginacao" aria-label="Paginação">
