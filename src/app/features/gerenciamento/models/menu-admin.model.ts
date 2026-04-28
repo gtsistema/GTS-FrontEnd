@@ -24,6 +24,8 @@ export interface MenuAdmin {
   nome: string;
   ordem: number;
   icone: string;
+  /** Rota base do módulo (ex.: `/app/configuracoes`). Usada na sidebar e para derivar rotas de submenus. */
+  rota?: string;
   ativo: boolean;
   subMenus: SubMenuAdmin[];
   /**

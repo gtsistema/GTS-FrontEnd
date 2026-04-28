@@ -2,7 +2,7 @@ import { Injectable, signal, computed } from '@angular/core';
 
 /**
  * Store em memória do vínculo permissões por nó do menu (menu / módulo / submenu).
- * Chave: id do nó (menu-dashboard, sub-estacionamento, etc.); valor: lista de chaves de permissão.
+ * Chave: id do nó (menu-dashboard, sub-Estacionamento, etc.); valor: lista de chaves de permissão.
  */
 @Injectable({ providedIn: 'root' })
 export class MenuPermissionsStoreService {

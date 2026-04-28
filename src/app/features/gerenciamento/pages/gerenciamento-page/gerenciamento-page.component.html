@@ -1,7 +1,7 @@
 <div class="page-container">
   <header class="page-header">
     <div class="page-header__row page-header__row--1">
-      <h2 class="page-title page-title--section">Acessos</h2>
+      <h2 class="page-title page-title--section">Usuários</h2>
       <p class="page-subtitle">Gestão de usuários (API <code>api/auth/Usuario</code>).</p>
     </div>
   </header>
@@ -56,7 +56,7 @@
               <th>E-mail</th>
               <th>Login (userName)</th>
               <th>Perfil (role)</th>
-              <th>Estacionamento (id)</th>
+              <th>Estacionamento</th>
               <th>Ações</th>
             </tr>
           </thead>
@@ -67,7 +67,14 @@
                 <td>{{ item.email ?? '—' }}</td>
                 <td>{{ item.userName ?? '—' }}</td>
                 <td>{{ item.perfil ?? '—' }}</td>
-                <td>{{ item.estacionamentoId != null && item.estacionamentoId !== 0 ? item.estacionamentoId : '—' }}</td>
+                <td>
+                  {{
+                    item.EstacionamentoNome ??
+                      (item.EstacionamentoId != null && item.EstacionamentoId !== 0
+                        ? ('ID ' + item.EstacionamentoId)
+                        : '—')
+                  }}
+                </td>
                 <td class="acoes-cell">
                   <button
                     type="button"
@@ -178,14 +185,14 @@
               id="g-estac"
               class="input-control"
               name="estac"
-              [ngModel]="form.estacionamentoId"
+              [ngModel]="form.EstacionamentoId"
               (ngModelChange)="onEstacionamentoIdChange($event)"
             >
               <option [ngValue]="0">Nenhum (0)</option>
-              @if (estacionamentoCarregando()) {
-                <option disabled>Carregando estacionamentos...</option>
+              @if (EstacionamentoCarregando()) {
+                <option disabled>Carregando Estacionamentos...</option>
               }
-              @for (o of estacionamentoOptions(); track o.id) {
+              @for (o of EstacionamentoOptions(); track o.id) {
                 <option [ngValue]="o.id">{{ o.label }}</option>
               }
             </select>
@@ -264,9 +271,14 @@
             <dd>{{ itemVer()!.userName ?? '—' }}</dd>
             <dt>Perfil (role)</dt>
             <dd>{{ itemVer()!.perfil ?? '—' }}</dd>
-            <dt>Estacionamento (id)</dt>
+            <dt>Estacionamento</dt>
             <dd>
-              {{ itemVer()!.estacionamentoId != null && itemVer()!.estacionamentoId !== 0 ? itemVer()!.estacionamentoId : '—' }}
+              {{
+                itemVer()!.EstacionamentoNome ??
+                  (itemVer()!.EstacionamentoId != null && itemVer()!.EstacionamentoId !== 0
+                    ? ('ID ' + itemVer()!.EstacionamentoId)
+                    : '—')
+              }}
             </dd>
           </dl>
         }

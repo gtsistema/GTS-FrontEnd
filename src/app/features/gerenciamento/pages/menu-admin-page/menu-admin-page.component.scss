@@ -204,6 +204,23 @@
   font-size: 0.9375rem;
 }
 
+.menu-card__route {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.75rem;
+  color: var(--muted);
+  font-weight: 400;
+  word-break: break-all;
+}
+
+.form-hint {
+  display: block;
+  margin-top: 6px;
+  font-size: 0.75rem;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
 .badge {
   font-size: 0.75rem;
   padding: 2px 8px;

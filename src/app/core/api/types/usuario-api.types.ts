@@ -8,7 +8,7 @@ export interface UsuarioOutput {
   userName?: string | null;
   email?: string | null;
   nome?: string | null;
-  estacionamentoId?: number | null;
+  EstacionamentoId?: number | null;
   /** Nome do perfil/role. */
   role?: string | null;
 }
@@ -33,7 +33,7 @@ export interface UsuarioDetalheOutput {
   id?: string;
   userName?: string | null;
   email?: string | null;
-  estacionamentoId?: number;
+  EstacionamentoId?: number;
   pessoa?: PessoaUsuarioOutput | null;
   perfil?: PerfilRoleOutput | null;
 }
@@ -47,7 +47,7 @@ export interface RegisterInput {
   password?: string;
   confirmPassword?: string;
   email?: string;
-  estacionamentoId: number;
+  EstacionamentoId: number;
   pessoa: {
     id: number;
     nome: string;

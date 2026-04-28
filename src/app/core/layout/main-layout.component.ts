@@ -87,11 +87,11 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
 
   private updateFullWidthContent(url: string): void {
     const movimentos = url.includes('/movimentos');
-    const estacionamento = url.includes('/cadastro/estacionamento');
+    const Estacionamento = url.includes('/cadastro/Estacionamento');
     const transportadora = url.includes('/cadastro/transportadora');
     const acessos = url.includes('/configuracoes/');
     const gerenciamento = url.includes('/gerenciamento');
-    this.isFullWidthContent.set(movimentos || estacionamento || transportadora || acessos || gerenciamento);
+    this.isFullWidthContent.set(movimentos || Estacionamento || transportadora || acessos || gerenciamento);
   }
 
   ngOnDestroy(): void {
@@ -180,11 +180,11 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
     const role = (perfil ?? '').trim().toLowerCase();
     if (role === 'admin' || role === 'administrator') return 'Admin';
     if (role.includes('transportadora')) return 'Transportadora';
-    if (role.includes('estacionamento')) return 'Estacionamento';
+    if (role.includes('Estacionamento')) return 'Estacionamento';
 
     const keys = permissionKeys.map((k) => k.toLowerCase());
     if (keys.some((k) => k.includes('transportadora'))) return 'Transportadora';
-    if (keys.some((k) => k.includes('estacionamento'))) return 'Estacionamento';
+    if (keys.some((k) => k.includes('Estacionamento'))) return 'Estacionamento';
     return perfil?.trim() || 'Operacional';
   }
 

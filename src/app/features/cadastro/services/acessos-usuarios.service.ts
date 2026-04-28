@@ -18,7 +18,7 @@ export interface UsuarioListItem {
   ativo?: boolean;
   perfil?: string | null;
   role?: string | null;
-  estacionamentoId?: number | null;
+  EstacionamentoId?: number | null;
   cpfCnpj?: string;
 }
 
@@ -39,7 +39,7 @@ export interface UsuarioCreateInput {
   ativo?: boolean;
   perfilId?: string;
   perfilNome?: string;
-  estacionamentoId?: number;
+  EstacionamentoId?: number;
   transportadoraId?: number;
   tipoPessoa?: 1 | 2;
   pessoaId?: number;
@@ -61,7 +61,7 @@ export class AcessosUsuariosService {
       ativo: true,
       role: u.role,
       perfil: u.role,
-      estacionamentoId: u.estacionamentoId ?? null
+      EstacionamentoId: u.EstacionamentoId ?? null
     };
   }
 
@@ -183,9 +183,9 @@ export class AcessosUsuariosService {
       throw new Error('Informe o nome (pessoa).');
     }
 
-    const estacionamentoId =
-      typeof input.estacionamentoId === 'number' && Number.isFinite(input.estacionamentoId)
-        ? input.estacionamentoId
+    const EstacionamentoId =
+      typeof input.EstacionamentoId === 'number' && Number.isFinite(input.EstacionamentoId)
+        ? input.EstacionamentoId
         : 0;
 
     const perfilNome = String(input.perfilNome ?? input.perfilId ?? '').trim();
@@ -199,7 +199,7 @@ export class AcessosUsuariosService {
 
     const payload: RegisterInput = {
       userName,
-      estacionamentoId,
+      EstacionamentoId,
       pessoa: {
         id: pessoaId,
         nome: nomePessoa,

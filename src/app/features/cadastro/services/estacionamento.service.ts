@@ -15,7 +15,7 @@ import { EstacionamentoPaths } from '../constants/estacionamento-api.paths';
 
 /** Base da API do backend (dev: /api com proxy; prod: URL completa). */
 const API_BASE = environment.API_BASE_URL;
-const ESTACIONAMENTO = `${API_BASE}/Estacionamento`;
+const Estacionamento = `${API_BASE}/Estacionamento`;
 
 /** Objeto no formato do formulário (para patchValue) após carregar ObterPorId */
 export interface EstacionamentoFormValue {
@@ -72,8 +72,8 @@ export class EstacionamentoService {
   /** POST /api/Estacionamento (body: EstacionamentoPostInput). */
   gravar(dto: EstacionamentoDTO | Record<string, unknown>): Observable<EstacionamentoDTO> {
     const url = EstacionamentoPaths.gravar
-      ? `${ESTACIONAMENTO}/${EstacionamentoPaths.gravar}`
-      : ESTACIONAMENTO;
+      ? `${Estacionamento}/${EstacionamentoPaths.gravar}`
+      : Estacionamento;
     return this.http.post<unknown>(url, dto).pipe(
       map((body) => this.unwrapGravarAlterarResponse(body))
     );
@@ -82,8 +82,8 @@ export class EstacionamentoService {
   /** PUT /api/Estacionamento (body: EstacionamentoPutInput). */
   alterar(dto: EstacionamentoDTO | Record<string, unknown>): Observable<EstacionamentoDTO> {
     const url = EstacionamentoPaths.alterar
-      ? `${ESTACIONAMENTO}/${EstacionamentoPaths.alterar}`
-      : ESTACIONAMENTO;
+      ? `${Estacionamento}/${EstacionamentoPaths.alterar}`
+      : Estacionamento;
     return this.http.put<unknown>(url, dto).pipe(
       map((body) => this.unwrapGravarAlterarResponse(body))
     );
@@ -106,7 +106,7 @@ export class EstacionamentoService {
 
   /** DELETE /api/Estacionamento/{id} */
   excluir(id: number): Observable<void> {
-    return this.http.delete<void>(`${ESTACIONAMENTO}/${EstacionamentoPaths.excluir(id)}`);
+    return this.http.delete<void>(`${Estacionamento}/${EstacionamentoPaths.excluir(id)}`);
   }
 
   /**
@@ -129,8 +129,8 @@ export class EstacionamentoService {
     if (params.Sort != null) query.set('Sort', params.Sort);
 
     const listUrl = EstacionamentoPaths.buscar
-      ? `${ESTACIONAMENTO}/${EstacionamentoPaths.buscar}`
-      : ESTACIONAMENTO;
+      ? `${Estacionamento}/${EstacionamentoPaths.buscar}`
+      : Estacionamento;
     const url = `${listUrl}?${query.toString()}`;
     return this.http.get<unknown>(url).pipe(
       timeout(15000),
@@ -281,7 +281,7 @@ export class EstacionamentoService {
    * Retorna o valor já mapeado para o formulário de edição.
    */
   obterPorId(id: number): Observable<EstacionamentoFormValue | null> {
-    return this.http.get<unknown>(`${ESTACIONAMENTO}/${EstacionamentoPaths.obterPorId(id)}`).pipe(
+    return this.http.get<unknown>(`${Estacionamento}/${EstacionamentoPaths.obterPorId(id)}`).pipe(
       timeout(15000),
       map((body) => {
         const result = this.extractObterPorIdPayload(body);

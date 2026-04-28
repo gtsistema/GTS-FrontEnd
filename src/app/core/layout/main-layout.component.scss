@@ -1,5 +1,5 @@
 :host {
-  --sidebar-width: 260px;
+  --sidebar-width: 250px;
 }
 
 .sidebar-overlay {
@@ -70,9 +70,9 @@
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  background: var(--topbar-glass, #141c2e);
-  border-bottom: 1px solid var(--border-subtle);
-  box-shadow: var(--shadow-sm);
+  background: linear-gradient(180deg, rgba(10, 21, 40, 0.92), rgba(12, 25, 47, 0.88));
+  border-bottom: 1px solid rgba(80, 120, 255, 0.16);
+  box-shadow: 0 10px 24px rgba(3, 8, 20, 0.28);
   color: var(--text);
 }
 
@@ -140,9 +140,9 @@
   gap: 10px;
   min-height: 40px;
   padding: 6px 10px;
-  border: 1px solid var(--border-subtle);
-  border-radius: 8px;
-  background: transparent;
+  border: 1px solid rgba(80, 120, 255, 0.2);
+  border-radius: 12px;
+  background: rgba(12, 24, 44, 0.75);
 }
 
 .user-access-panel__main {
@@ -238,9 +238,9 @@
   gap: var(--space-sm, 8px);
   height: 40px;
   padding: 0 var(--space-md, 14px);
-  border: 1px solid var(--border-subtle);
-  border-radius: 8px;
-  background: transparent;
+  border: 1px solid rgba(80, 120, 255, 0.2);
+  border-radius: 12px;
+  background: rgba(12, 24, 44, 0.7);
   color: var(--text);
   font-size: var(--font-body, 14px);
   font-weight: var(--font-weight-body, 500);

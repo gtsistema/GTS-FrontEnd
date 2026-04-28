@@ -23,10 +23,10 @@ export type PermissionModule = (typeof PERMISSION_MODULES)[number];
 /** Chaves por módulo (espelhando endpoints: Buscar, ObterPorId, Gravar, Alterar, Delete). */
 export const PERMISSION_CATALOG: Record<PermissionModule, string[]> = {
   Estacionamento: [
-    'estacionamento.visualizar',
-    'estacionamento.gravar',
-    'estacionamento.alterar',
-    'estacionamento.excluir',
+    'Estacionamento.visualizar',
+    'Estacionamento.gravar',
+    'Estacionamento.alterar',
+    'Estacionamento.excluir',
   ],
   Motorista: [
     'motorista.visualizar',

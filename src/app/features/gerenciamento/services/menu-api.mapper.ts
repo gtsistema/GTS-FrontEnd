@@ -72,6 +72,8 @@ function mapMenuRow(row: Record<string, unknown>): MenuAdmin {
   const Ativo = getProp(row, 'Ativo');
   const nomeMenu = nomeOuDescricao(row);
   const rawIcone = getProp(row, 'icone') ?? getProp(row, 'Icone');
+  const rawMenuRota = getProp(row, 'rota') ?? getProp(row, 'Rota');
+  const rotaApi = rawMenuRota == null ? null : String(rawMenuRota);
   return {
     id,
     nome: nomeMenu,
@@ -80,6 +82,7 @@ function mapMenuRow(row: Record<string, unknown>): MenuAdmin {
       nomeMenu,
       rawIcone == null ? null : String(rawIcone)
     ),
+    rota: resolveAppRouteFromNome(nomeMenu, rotaApi),
     ativo: ativo !== false && Ativo !== false,
     subMenus: subs,
     existeNoServidor: true,
@@ -161,6 +164,7 @@ export function menuAdminToCreateInput(m: MenuAdmin): MenuCreateInput {
     nome: m.nome,
     descricao: m.nome,
     ordem: m.ordem,
+    rota: m.rota?.trim() ? m.rota.trim() : undefined,
     ativo: m.ativo,
     subMenus: m.subMenus.map(toSubMenuInputForInsert),
   };
@@ -177,6 +181,7 @@ export function menuAdminToUpdateInput(
     nome: m.nome,
     descricao: m.nome,
     ordem: m.ordem,
+    rota: m.rota?.trim() ? m.rota.trim() : undefined,
     ativo: m.ativo,
     subMenus: m.subMenus.map((s) =>
       toSubMenuInputForUpdate(s, {

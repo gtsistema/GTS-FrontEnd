@@ -1,7 +1,7 @@
 :host {
-  --sidebar-width: 236px;
+  --sidebar-width: 250px;
   --sidebar-width-collapsed: 84px;
-  --accent: #5b7cff;
+  --accent: #4f6bff;
   --accent-hover: #8aa3ff;
   --active-bg: rgba(91, 124, 255, 0.14);
   color: var(--text-primary, rgba(255, 255, 255, 0.95));
@@ -13,7 +13,7 @@
   top: 0;
   height: 100vh;
   width: var(--sidebar-width);
-  background: linear-gradient(180deg, #0f172a 0%, #101b33 55%, #0f1a30 100%);
+  background: linear-gradient(180deg, #081426 0%, #0a1830 55%, #0b1b35 100%);
   border-right: 1px solid var(--sidebar-border, #1a2844);
   box-shadow: 8px 0 28px rgba(0, 0, 0, 0.2);
   display: flex;
@@ -189,8 +189,8 @@
   }
 
   &.active {
-    color: var(--accent);
-    background: transparent;
+    color: #d8e1ff;
+    background: rgba(79, 107, 255, 0.16);
     box-shadow: none;
 
     &::before {
@@ -199,11 +199,32 @@
       left: 6px;
       top: 7px;
       bottom: 7px;
-      width: 2px;
-      background: var(--accent);
+      width: 3px;
+      background: linear-gradient(180deg, var(--accent), #00d4ff);
       border-radius: 99px;
     }
   }
+}
+
+.sidebar-security-card {
+  margin: 0 10px 10px;
+  padding: 10px;
+  border: 1px solid rgba(80, 120, 255, 0.24);
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(79, 107, 255, 0.12), rgba(0, 212, 255, 0.06));
+  color: rgba(248, 250, 252, 0.9);
+}
+
+.sidebar-security-card__title {
+  margin: 0 0 4px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.sidebar-security-card__desc {
+  margin: 0;
+  font-size: 11px;
+  color: var(--text-muted);
 }
 
 .menu-group {
@@ -245,6 +266,36 @@
   font-size: 14px;
   font-weight: 600;
   opacity: 0.93;
+}
+
+.submenu-group {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.submenu--nested {
+  list-style: none;
+  margin: 2px 0 0 0;
+  margin-left: 4px;
+  padding: 0 0 0 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.submenu-item--branch {
+  font-weight: 600;
+}
+
+.submenu-item--nested {
+  font-weight: 500;
+  font-size: 13px;
+  opacity: 0.9;
+  padding: 4px 6px;
+  min-height: 28px;
+  text-transform: none;
 }
 
 .icon {

@@ -32,7 +32,7 @@ const MAX_FOTOS = 4;
 const MAX_CONTATOS_COMPLEMENTARES = 5;
 
 @Component({
-  selector: 'app-estacionamento-form',
+  selector: 'app-Estacionamento-form',
   standalone: true,
   imports: [
     CommonModule,
@@ -89,7 +89,7 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
     private fb: FormBuilder,
     private router: Router,
     private route: ActivatedRoute,
-    private estacionamentoService: EstacionamentoService,
+    private EstacionamentoService: EstacionamentoService,
     private fotosService: EstacionamentoFotosService,
     private viacep: ViacepService,
     private toast: ToastService,
@@ -444,7 +444,7 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
     if (this.id == null) return;
     this.loading = true;
     this.erro = null;
-    this.estacionamentoService.obterPorId(this.id).subscribe({
+    this.EstacionamentoService.obterPorId(this.id).subscribe({
       next: (dto) => {
         this.ngZone.run(() => {
           if (dto) {
@@ -551,7 +551,7 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Salva o estacionamento (gravar ou alterar conforme id).
+   * Salva o Estacionamento (gravar ou alterar conforme id).
    * @param stayOnPage se true, não navega para a lista; atualiza id/rota quando for criação (para Fotos usarem o id do backend).
    */
   onSubmit(stayOnPage = false): void {
@@ -567,8 +567,8 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
     // Fotos são gerenciadas apenas pelos endpoints BuscarFotos / UploadFotos / DeletarFotos (Azure); não enviamos no payload Gravar/Alterar.
     const dto = formValueToEstacionamentoPayload(this.form.value, this.loadedEnderecos, []);
     const request$ = this.id
-        ? this.estacionamentoService.alterar(dto)
-        : this.estacionamentoService.gravar(dto);
+        ? this.EstacionamentoService.alterar(dto)
+        : this.EstacionamentoService.gravar(dto);
       request$.subscribe({
         next: (res) => {
           this.salvando = false;

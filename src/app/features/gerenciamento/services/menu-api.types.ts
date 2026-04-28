@@ -45,6 +45,8 @@ export interface MenuCreateInput {
   nome?: string | null;
   descricao?: string | null;
   ordem?: number;
+  /** Rota base do menu no SPA (ex.: `/app/configuracoes`). */
+  rota?: string | null;
   ativo?: boolean;
   subMenus?: SubMenuCreateInput[] | null;
 }
@@ -55,6 +57,7 @@ export interface MenuUpdateInput {
   /** Alguns backends usam/validam descricao também no Alterar. */
   descricao?: string | null;
   ordem?: number;
+  rota?: string | null;
   ativo?: boolean;
   subMenus?: SubMenuCreateInput[] | null;
 }

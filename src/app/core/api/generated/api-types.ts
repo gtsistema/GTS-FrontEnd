@@ -1399,7 +1399,7 @@ export interface components {
             /** Format: date-time */
             dataAtualizacao?: string | null;
             /** Format: int32 */
-            estacionamentoId?: number;
+            EstacionamentoId?: number;
             readonly titular?: string | null;
             readonly cpfCnpj?: string | null;
             readonly banco?: string | null;
@@ -1630,7 +1630,7 @@ export interface components {
             confirmPassword?: string | null;
             email?: string | null;
             /** Format: int32 */
-            estacionamentoId?: number;
+            EstacionamentoId?: number;
             pessoa?: components["schemas"]["PessoaUsuarioImput"];
             perfil?: components["schemas"]["ApplicationRole"];
         };

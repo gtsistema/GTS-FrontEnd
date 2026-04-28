@@ -40,15 +40,42 @@
             @if (isMenuExpanded(item.route) && !isCollapsed()) {
               <ul class="submenu">
                 @for (sub of item.children; track sub.route) {
-                  <li>
-                    <a
-                      [routerLink]="sub.route"
-                      class="menu-item submenu-item"
-                      routerLinkActive="active"
-                      [routerLinkActiveOptions]="{ exact: false }"
-                    >
-                      <span class="label">{{ sub.label }}</span>
-                    </a>
+                  <li [class.submenu-li--nested]="!!sub.children?.length">
+                    @if (sub.children?.length) {
+                      <div class="submenu-group">
+                        <a
+                          [routerLink]="sub.route"
+                          class="menu-item submenu-item submenu-item--branch"
+                          routerLinkActive="active"
+                          [routerLinkActiveOptions]="{ exact: false }"
+                        >
+                          <span class="label">{{ sub.label }}</span>
+                        </a>
+                        <ul class="submenu submenu--nested">
+                          @for (nest of sub.children; track nest.route) {
+                            <li>
+                              <a
+                                [routerLink]="nest.route"
+                                class="menu-item submenu-item submenu-item--nested"
+                                routerLinkActive="active"
+                                [routerLinkActiveOptions]="{ exact: false }"
+                              >
+                                <span class="label">{{ nest.label }}</span>
+                              </a>
+                            </li>
+                          }
+                        </ul>
+                      </div>
+                    } @else {
+                      <a
+                        [routerLink]="sub.route"
+                        class="menu-item submenu-item"
+                        routerLinkActive="active"
+                        [routerLinkActiveOptions]="{ exact: false }"
+                      >
+                        <span class="label">{{ sub.label }}</span>
+                      </a>
+                    }
                   </li>
                 }
               </ul>
@@ -70,6 +97,13 @@
       }
     </ul>
   </nav>
+
+  @if (!isCollapsed()) {
+    <section class="sidebar-security-card" aria-label="Segurança">
+      <p class="sidebar-security-card__title">Segurança</p>
+      <p class="sidebar-security-card__desc">Suas informações estão protegidas.</p>
+    </section>
+  }
 
   <div class="sidebar-footer">
     <p class="version" [class.hidden]="isCollapsed()">v1.0.0</p>

@@ -8,6 +8,7 @@ import { SessionAccessService } from '../../../core/services/session-access.serv
 interface MenuSubItem {
   label: string;
   route: string;
+  children?: MenuSubItem[];
 }
 
 interface MenuItem {
@@ -60,7 +61,10 @@ export class SidebarComponent implements OnInit {
     const url = this.currentRoute;
     for (const item of this.menuItems()) {
       if (item.children?.length) {
-        const hit = item.children.some((c) => url.startsWith(c.route));
+        const hit = item.children.some((c) => {
+          if (url.startsWith(c.route)) return true;
+          return c.children?.some((n) => url.startsWith(n.route)) ?? false;
+        });
         if (hit) {
           this.expandedMenuRoute.set(item.route);
           return;
