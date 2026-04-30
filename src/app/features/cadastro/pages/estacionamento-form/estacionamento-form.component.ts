@@ -1,7 +1,7 @@
 import { ChangeDetectorRef, Component, NgZone, OnInit, OnDestroy, inject, DestroyRef } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Subscription, combineLatest } from 'rxjs';
-import { debounceTime, distinctUntilChanged, filter, switchMap } from 'rxjs';
+import { debounceTime, distinctUntilChanged, filter, map, switchMap } from 'rxjs';
 import { startWith } from 'rxjs/operators';
 import { CommonModule } from '@angular/common';
 import {
@@ -24,9 +24,8 @@ import { CpfFormatDirective, formatCpf } from '../../directives/cpf-format.direc
 import { TelefoneFormatDirective, formatTelefone } from '../../directives/telefone-format.directive';
 import { formValueToEstacionamentoPayload } from './estacionamento-form.mapper';
 import { BANCOS_BRASIL, bancoToOption } from '../../data/bancos-brasil';
-import { CnpjBrasilApiService } from '../../services/cnpj-brasilapi.service';
 import { CnpjFormValue } from '../../models/brasilapi-cnpj.model';
-import { validarCnpj, cnpjTem14Digitos } from '../../utils/cnpj.utils';
+import { CnpjLookupResult, CnpjService } from '../../services/cnpj.service';
 
 const MAX_FOTOS = 4;
 const MAX_CONTATOS_COMPLEMENTARES = 5;
@@ -76,13 +75,15 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
   /** True se o backend não expõe endpoint para definir foto principal após envio (apenas PadraoIndex no upload). */
   readonly endpointPrincipalFalta = true;
 
-  /** Mesma consulta da tela Transportadora: BrasilAPI direta (`CnpjBrasilApiService.buscar`). */
+  /** Consulta de CNPJ unificada (via `CnpjService`) com tratamento de timeout/erros por status. */
   cnpjLoading = false;
   cnpjError: string | null = null;
+  cnpjSuccess: string | null = null;
+  private ultimoCnpjConsultado = '';
 
   private stepService = inject(EstacionamentoFormStepService);
   private destroyRef = inject(DestroyRef);
-  private cnpjBrasilApi = inject(CnpjBrasilApiService);
+  private cnpjService = inject(CnpjService);
   private titularSyncSub?: Subscription;
 
   constructor(
@@ -186,39 +187,37 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Busca automática por CNPJ (BrasilAPI), igual ao cadastro de transportadora:
-   * debounce no campo `pessoa.documento` e blur; preenche só campos vazios.
+   * Busca automática por CNPJ com debounce, distinct e cancelamento.
+   * Mantém blur como reforço, sem botão dedicado.
    */
   private setupCnpjBusca(): void {
     const docControl = this.form.get('pessoa.documento');
     if (!docControl) return;
     docControl.valueChanges
       .pipe(
-        debounceTime(500),
+        map((v) => this.cnpjService.normalizeCnpj(v)),
+        debounceTime(700),
         distinctUntilChanged(),
-        filter((v) => cnpjTem14Digitos(v) && validarCnpj(v)),
+        filter((v) => v.length > 0),
         switchMap((v) => {
           this.cnpjLoading = true;
           this.cnpjError = null;
+          this.cnpjSuccess = null;
           this.cdr.markForCheck();
-          return this.cnpjBrasilApi.buscar(v);
+          return this.cnpjService.consultarCnpj(v);
         }),
         takeUntilDestroyed(this.destroyRef)
       )
       .subscribe({
-        next: (res) => {
+        next: (result) => {
           this.cnpjLoading = false;
-          if (res == null) {
-            this.cnpjError = 'CNPJ não encontrado.';
-          } else {
-            this.cnpjError = null;
-            this.applyCnpjBrasilApiToForm(res);
-          }
+          this.handleConsultaCnpjResult(result);
           this.cdr.markForCheck();
         },
         error: () => {
           this.cnpjLoading = false;
-          this.cnpjError = 'Não foi possível buscar os dados do CNPJ.';
+          this.cnpjError = 'Não foi possível consultar os dados do CNPJ no momento.';
+          this.cnpjSuccess = null;
           this.cdr.markForCheck();
         }
       });
@@ -226,28 +225,50 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
 
   /** Dispara busca ao sair do CNPJ (evita depender só do debounce). */
   onDocumentoCnpjBlur(): void {
-    const cnpj = this.form.get('pessoa.documento')?.value ?? '';
-    if (!cnpjTem14Digitos(cnpj) || !validarCnpj(cnpj) || this.cnpjLoading) return;
+    const docControl = this.form.get('pessoa.documento');
+    docControl?.markAsTouched();
+    const cnpj = docControl?.value ?? '';
+    const normalized = this.cnpjService.normalizeCnpj(cnpj);
+    if (this.cnpjLoading || !normalized) return;
+    if (normalized === this.ultimoCnpjConsultado && !this.cnpjError) return;
     this.cnpjLoading = true;
     this.cnpjError = null;
+    this.cnpjSuccess = null;
     this.cdr.markForCheck();
-    this.cnpjBrasilApi.buscar(cnpj).subscribe({
-      next: (res) => {
+    this.cnpjService.consultarCnpj(normalized).subscribe({
+      next: (result) => {
         this.cnpjLoading = false;
-        if (res == null) {
-          this.cnpjError = 'CNPJ não encontrado.';
-        } else {
-          this.cnpjError = null;
-          this.applyCnpjBrasilApiToForm(res);
-        }
+        this.handleConsultaCnpjResult(result);
         this.cdr.markForCheck();
       },
       error: () => {
         this.cnpjLoading = false;
-        this.cnpjError = 'Não foi possível buscar os dados do CNPJ.';
+        this.cnpjError = 'Não foi possível consultar os dados do CNPJ no momento.';
+        this.cnpjSuccess = null;
         this.cdr.markForCheck();
       }
     });
+  }
+
+  private handleConsultaCnpjResult(result: CnpjLookupResult): void {
+    this.ultimoCnpjConsultado = result.normalizedCnpj;
+    this.cnpjError = null;
+    this.cnpjSuccess = null;
+
+    if (result.status === 'success' && result.data) {
+      this.applyCnpjBrasilApiToForm(result.data);
+      this.cnpjSuccess = result.message;
+      return;
+    }
+
+    if (result.status !== 'incomplete') {
+      this.cnpjError = result.message;
+      return;
+    }
+
+    if (this.form.get('pessoa.documento')?.touched) {
+      this.cnpjError = result.message;
+    }
   }
 
   private applyCnpjBrasilApiToForm(value: CnpjFormValue): void {
@@ -261,7 +282,10 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
     if (value.nomeFantasia && isEmpty(pessoa.get('nomeFantasia')?.value)) {
       pessoa.get('nomeFantasia')?.setValue(value.nomeFantasia, { emitEvent: false });
     }
-    pessoa.get('ativo')?.setValue(value.ativo, { emitEvent: false });
+    const ativoControl = pessoa.get('ativo');
+    if (ativoControl?.pristine) {
+      ativoControl.setValue(value.ativo, { emitEvent: false });
+    }
     if (value.email?.trim() && isEmpty(pessoa.get('email')?.value)) {
       pessoa.get('email')?.setValue(value.email.trim(), { emitEvent: false });
     }

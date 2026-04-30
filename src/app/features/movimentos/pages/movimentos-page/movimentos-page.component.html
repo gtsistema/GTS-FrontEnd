@@ -1,11 +1,11 @@
 <div class="page-container">
-  <header class="page-header dk-page-header">
-    <div class="page-header__row page-header__row--1">
+  <header class="page-header page-header-card">
+    <div class="page-header__row page-header__row--1 page-header__row--title-badge">
       <div class="page-header__title-wrap">
-        <h1 class="page-title dk-page-title">Movimentos</h1>
-        <p class="page-subtitle dk-page-subtitle">Central de operação (entrada e saída).</p>
+        <h1 class="page-title">Movimentos</h1>
+        <p class="page-subtitle">Central de operação (entrada e saída).</p>
       </div>
-      <span class="page-header__badge">Em desenvolvimento</span>
+      <span class="dev-badge">Em desenvolvimento</span>
     </div>
   </header>
 
@@ -13,7 +13,8 @@
     @switch (activeTab) {
       @case ('operacao') {
         <div class="operacao">
-          <div class="operacao-actions dk-action-bar">
+          <section class="filter-card operacao-toolbar" aria-label="Ações da operação">
+            <div class="operacao-actions">
             <div class="operacao-actions__entrada">
               <button type="button" class="btn btn-primary" (click)="openEntradaModal()">Entrada</button>
             </div>
@@ -65,9 +66,10 @@
                 [(ngModel)]="filtroPlaca"
               />
             </div>
-          </div>
-          <section class="card operacao-card operacao-card--full">
-            <h2 class="card__title">{{ tituloTabelaEmAndamento }}</h2>
+            </div>
+          </section>
+          <section class="data-card operacao-card--full" aria-labelledby="titulo-em-andamento">
+            <h2 class="card__title" id="titulo-em-andamento">{{ tituloTabelaEmAndamento }}</h2>
             <div class="card__body">
               <div class="table-wrap dk-table-wrap">
                 <table class="data-table dk-table">
@@ -154,7 +156,9 @@
                 </table>
               </div>
               @if (emAndamentoOrdenado.length === 0) {
-                <p class="empty-msg">
+                <div class="empty-state empty-state--compact empty-state--table movimentos-empty">
+                  <span class="material-symbols-outlined" aria-hidden="true">local_parking</span>
+                  <p class="empty-msg">
                   @if (filtroPlaca.trim()) {
                     Nenhum veículo encontrado com essa placa.
                   } @else if (filtroResumo !== 'todos') {
@@ -163,6 +167,7 @@
                     Nenhum veículo em andamento no momento.
                   }
                 </p>
+                </div>
               }
             </div>
           </section>
@@ -170,7 +175,8 @@
       }
       @case ('historico') {
         <div class="historico">
-          <div class="historico-actions dk-action-bar">
+          <section class="filter-card historico-toolbar" aria-label="Filtros do histórico">
+          <div class="historico-actions">
             <div class="historico-actions__busca">
               <input
                 type="text"
@@ -207,8 +213,9 @@
               </button>
             </div>
           </div>
+          </section>
 
-          <section class="historico-resumo" aria-label="Resumo do histórico">
+          <section class="filter-card historico-resumo-wrap" aria-label="Resumo do histórico">
             <div class="historico-chips">
               <div class="historico-chip historico-chip--movimentosHoje">
                 <span class="historico-chip__valor">{{ resumoHistorico.movimentosHoje }}</span>
@@ -233,7 +240,7 @@
             </div>
           </section>
 
-          <section class="card operacao-card operacao-card--full">
+          <section class="data-card operacao-card--full">
             <h2 class="card__title">Histórico de movimentos</h2>
             <div class="card__body">
               <div class="table-wrap dk-table-wrap">
@@ -286,13 +293,16 @@
                 </table>
               </div>
               @if (historicoFiltrado.length === 0) {
-                <p class="empty-msg">
+                <div class="empty-state empty-state--compact empty-state--table movimentos-empty">
+                  <span class="material-symbols-outlined" aria-hidden="true">history</span>
+                  <p class="empty-msg">
                   @if (filtroPlacaHistorico.trim() || filtroStatusHistorico.trim()) {
                     Nenhum movimento encontrado para os filtros aplicados.
                   } @else {
                     Nenhum movimento registrado no período.
                   }
                 </p>
+                </div>
               }
             </div>
           </section>

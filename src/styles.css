@@ -81,9 +81,9 @@ html.theme-light *::-webkit-scrollbar-thumb:hover {
 /* ========== Container global + escala tipográfica (máx. 18px) ========== */
 :root {
   --content-max-width: none;
-  --content-padding: 24px;
-  --content-padding-mobile: 12px;
-  --topbar-height: 48px;
+  --content-padding: 28px;
+  --content-padding-mobile: 18px;
+  --topbar-height: 56px;
   --touch-target-min: 44px;
   --radius-sm: 8px;
   --radius-md: 10px;
@@ -108,6 +108,12 @@ html.theme-light *::-webkit-scrollbar-thumb:hover {
   --space-lg: 16px;
   --space-xl: 20px;
   --space-2xl: 24px;
+}
+
+@media (max-width: 1280px) {
+  :root {
+    --content-padding: 24px;
+  }
 }
 
 @media (max-width: 768px) {
@@ -361,8 +367,44 @@ html:not(.theme-dark):not(.theme-light) body {
   overflow-x: hidden;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: var(--space-lg, 16px);
   min-height: 0;
+}
+
+.page-header__row--title-badge {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-md, 12px);
+  flex-wrap: wrap;
+}
+
+.page-header__row--title-badge .page-title {
+  margin-bottom: var(--space-xs, 4px);
+}
+
+/* Selo único "Em desenvolvimento" (todas as telas) */
+.dev-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm, 8px);
+  flex-shrink: 0;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: var(--font-caption, 12px);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: rgba(255, 224, 130, 0.95);
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06) inset;
+}
+
+html.theme-light .dev-badge {
+  color: #92400e;
+  background: rgba(245, 158, 11, 0.15);
+  border-color: rgba(217, 119, 6, 0.35);
 }
 
 .page-header {
@@ -623,11 +665,6 @@ a.btn,
 }
 
 /* ========== Visual system padrão (referência Configurações) ========== */
-:root {
-  --content-padding: 24px;
-  --content-padding-mobile: 14px;
-}
-
 html.theme-dark {
   --bg: #07111f;
   --surface: #111c33;
@@ -818,15 +855,33 @@ textarea.input-control {
 }
 
 .empty-state {
-  min-height: 190px;
+  min-height: 160px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: var(--space-sm, 8px);
   text-align: center;
   color: var(--muted);
-  padding: 16px;
+  padding: var(--space-xl, 20px) var(--space-lg, 16px);
+}
+
+.empty-state .material-symbols-outlined {
+  font-size: 2.25rem;
+  font-weight: 300;
+  opacity: 0.42;
+  color: var(--muted);
+  line-height: 1;
+}
+
+.empty-state--compact {
+  min-height: 120px;
+  padding: var(--space-lg, 16px);
+}
+
+.empty-state--table {
+  margin: 0;
+  border-radius: 0 0 var(--radius-lg, 12px) var(--radius-lg, 12px);
 }
 
 .form-card,

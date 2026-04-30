@@ -101,12 +101,14 @@
           </table>
         </div>
         @if (buscaRealizada && itens.length === 0) {
-          <div class="empty-state">
+          <div class="empty-state empty-state--compact empty-state--table">
+            <span class="material-symbols-outlined" aria-hidden="true">person_off</span>
             <p class="empty-msg">Nenhum registro encontrado.</p>
           </div>
         }
         @if (!buscaRealizada) {
-          <div class="empty-state">
+          <div class="empty-state empty-state--compact empty-state--table">
+            <span class="material-symbols-outlined" aria-hidden="true">manage_search</span>
             <p class="empty-msg empty-msg--hint">Clique em «Buscar» para carregar os usuários.</p>
           </div>
         }
