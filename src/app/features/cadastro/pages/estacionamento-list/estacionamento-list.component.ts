@@ -15,14 +15,14 @@ import { ToastService } from '../../../../core/api/services/toast.service';
 const TAMANHO_PAGINA = 50;
 
 @Component({
-  selector: 'app-estacionamento-list',
+  selector: 'app-Estacionamento-list',
   standalone: true,
   imports: [CommonModule, RouterLink],
   templateUrl: './estacionamento-list.component.html',
   styleUrls: ['./estacionamento-list.component.scss']
 })
 export class EstacionamentoListComponent {
-  private estacionamentoService = inject(EstacionamentoService);
+  private EstacionamentoService = inject(EstacionamentoService);
   /** Exposto para o template: `trigger() === 0` = ainda não houve clique em Buscar. */
   readonly toolbar = inject(EstacionamentoToolbarService);
   private cdr = inject(ChangeDetectorRef);
@@ -68,7 +68,7 @@ export class EstacionamentoListComponent {
     const propriedade = this.resolveSearchProperty(field);
     this.loading = true;
     this.erro = null;
-    this.estacionamentoService
+    this.EstacionamentoService
       .buscar({
         NumeroPagina: this.numeroPagina,
         TamanhoPagina: this.tamanhoPagina,
@@ -150,11 +150,11 @@ export class EstacionamentoListComponent {
 
   excluir(item: EstacionamentoListItemDTO): void {
     const label = item.descricao?.trim() || `Id ${item.id}`;
-    if (!confirm(`Excluir o estacionamento "${label}"? Esta ação não pode ser desfeita.`)) {
+    if (!confirm(`Excluir o Estacionamento "${label}"? Esta ação não pode ser desfeita.`)) {
       return;
     }
     this.excluindoId = item.id;
-    this.estacionamentoService.excluir(item.id).subscribe({
+    this.EstacionamentoService.excluir(item.id).subscribe({
       next: () => {
         this.ngZone.run(() => {
           this.excluindoId = null;

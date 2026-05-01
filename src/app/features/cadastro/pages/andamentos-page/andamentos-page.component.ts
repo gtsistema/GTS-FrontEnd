@@ -37,11 +37,11 @@ export class AndamentosPageComponent {
     '├── /financeiro            → Financeiro',
     '├── /configuracoes         → Configurações',
     '└── /cadastro (CadastroLayoutComponent)',
-    "    ├── ''                 → redirect /cadastro/estacionamento",
-    '    ├── /estacionamento (EstacionamentoLayoutComponent)',
-    "    │   ├── ''             → Lista de estacionamentos",
-    '    │   ├── /novo          → Formulário novo estacionamento',
-    '    │   └── /editar/:id    → Formulário editar estacionamento',
+    "    ├── ''                 → redirect /cadastro/Estacionamento",
+    '    ├── /Estacionamento (EstacionamentoLayoutComponent)',
+    "    │   ├── ''             → Lista de Estacionamentos",
+    '    │   ├── /novo          → Formulário novo Estacionamento',
+    '    │   └── /editar/:id    → Formulário editar Estacionamento',
     '    ├── /transportadora    → Página Cadastro Transportadora',
     '    └── /acessos (CadastroAcessosPageComponent – com abas)',
     "        (Acessos movido para Configurações: /app/configuracoes/usuarios)",
@@ -56,7 +56,7 @@ export class AndamentosPageComponent {
     { label: 'Relatórios', route: '/app/relatorios' },
     { label: 'Financeiro', route: '/app/financeiro' },
     { label: 'Configurações', route: '/app/configuracoes' },
-    { label: 'Cadastro > Estacionamento', route: '/app/cadastro/estacionamento' },
+    { label: 'Cadastro > Estacionamento', route: '/app/cadastro/Estacionamento' },
     { label: 'Cadastro > Transportadora', route: '/app/cadastro/transportadora' },
     { label: 'Configurações > Usuários', route: '/app/configuracoes/usuarios' },
   ];
@@ -68,9 +68,9 @@ export class AndamentosPageComponent {
     { rota: '/app/relatorios', tela: 'Relatórios', descricao: 'Página de relatórios.' },
     { rota: '/app/financeiro', tela: 'Financeiro', descricao: 'Página financeiro.' },
     { rota: '/app/configuracoes', tela: 'Configurações', descricao: 'Página de configurações.' },
-    { rota: '/app/cadastro/estacionamento', tela: 'Lista Estacionamento', descricao: 'Listagem, busca, botão Novo, link Editar por item.' },
-    { rota: '/app/cadastro/estacionamento/novo', tela: 'Form Estacionamento (novo)', descricao: 'Formulário em etapas (stepper) para novo estacionamento.' },
-    { rota: '/app/cadastro/estacionamento/editar/:id', tela: 'Form Estacionamento (editar)', descricao: 'Mesmo formulário, modo edição.' },
+    { rota: '/app/cadastro/Estacionamento', tela: 'Lista Estacionamento', descricao: 'Listagem, busca, botão Novo, link Editar por item.' },
+    { rota: '/app/cadastro/Estacionamento/novo', tela: 'Form Estacionamento (novo)', descricao: 'Formulário em etapas (stepper) para novo Estacionamento.' },
+    { rota: '/app/cadastro/Estacionamento/editar/:id', tela: 'Form Estacionamento (editar)', descricao: 'Mesmo formulário, modo edição.' },
     { rota: '/app/cadastro/transportadora', tela: 'Cadastro Transportadora', descricao: 'Página de cadastro de transportadora.' },
     { rota: '/app/configuracoes', tela: 'Configurações (container)', descricao: 'Abas: Usuários.' },
     { rota: '/app/configuracoes/usuarios', tela: 'Usuários', descricao: 'Lista de usuários, busca, modal Novo usuário / Editar.' },
@@ -78,9 +78,9 @@ export class AndamentosPageComponent {
   ];
 
   readonly ligamentosEstacionamento: Ligamento[] = [
-    { origem: 'Lista Estacionamento', acao: 'Botão Novo', destino: '/app/cadastro/estacionamento/novo' },
-    { origem: 'Lista Estacionamento', acao: 'Link Editar na linha', destino: '/app/cadastro/estacionamento/editar/:id' },
-    { origem: 'Form (novo/editar)', acao: 'Botão Voltar', destino: '/app/cadastro/estacionamento' },
+    { origem: 'Lista Estacionamento', acao: 'Botão Novo', destino: '/app/cadastro/Estacionamento/novo' },
+    { origem: 'Lista Estacionamento', acao: 'Link Editar na linha', destino: '/app/cadastro/Estacionamento/editar/:id' },
+    { origem: 'Form (novo/editar)', acao: 'Botão Voltar', destino: '/app/cadastro/Estacionamento' },
   ];
 
   readonly ligamentosAcessos: Ligamento[] = [

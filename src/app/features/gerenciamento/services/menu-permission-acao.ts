@@ -8,14 +8,14 @@ function norm(s: string): string {
     .replace(/[\u0300-\u036f]/g, '');
 }
 
-/** Slug do nome do submenu (ex.: "menu" → "menu", "Estacionamento" → "estacionamento"). */
+/** Slug do nome do submenu (ex.: "menu" → "menu", "Estacionamento" → "Estacionamento"). */
 export function slugSubModuloNome(nome: string): string {
   return norm(nome).replace(/\s+/g, '') || 'modulo';
 }
 
 /**
  * UI: visualizar | criar | editar | excluir → sufixo na API (ex.: menu.gravar, menu.alterar).
- * Alinhado a respostas típicas do Buscar (ex.: estacionamento.visualizar, menu.excluir).
+ * Alinhado a respostas típicas do Buscar (ex.: Estacionamento.visualizar, menu.excluir).
  */
 export const UI_TO_API_SUFFIX: Record<string, string> = {
   visualizar: 'visualizar',

@@ -1,7 +1,8 @@
 <div class="page-container">
-  <header class="page-header">
+  <header class="page-header page-header-card">
     <div class="page-header__row page-header__row--1">
       <h1 class="page-title">Cadastro Estacionamento</h1>
+      <p class="page-subtitle">Cadastre e gerencie estacionamentos do sistema.</p>
     </div>
     @if (showStepper()) {
       <div class="page-header__row page-header__row--2">
@@ -20,11 +21,15 @@
           }
         </nav>
       </div>
-    } @else {
-      <div class="page-header__row page-header__row--2">
-        <div class="page-header__actions">
+    }
+  </header>
+
+  <div class="page-content">
+    @if (!showStepper()) {
+      <section class="filter-card">
+        <div class="filter-row">
           <select
-            class="search-filter input-control"
+            class="search-filter input-control form-control-dark"
             [ngModel]="toolbar.searchField()"
             (ngModelChange)="setSearchField($event)"
             aria-label="Filtrar busca por"
@@ -38,7 +43,7 @@
           </select>
           <input
             type="text"
-            class="search-input input-control"
+            class="search-input input-control form-control-dark filter-row__grow"
             [placeholder]="searchPlaceholder()"
             [ngModel]="toolbar.searchTerm()"
             (ngModelChange)="toolbar.setSearchTerm($event)"
@@ -47,13 +52,13 @@
           <button type="button" class="btn btn-secondary" (click)="onBuscar()">Buscar</button>
           <a class="btn btn-primary" routerLink="/app/cadastro/estacionamento/novo">Novo</a>
         </div>
-      </div>
+      </section>
     }
-  </header>
 
-  <div class="page-content">
-    <div class="tab-panel">
-      <router-outlet></router-outlet>
-    </div>
+    <section class="data-card">
+      <div class="tab-panel">
+        <router-outlet></router-outlet>
+      </div>
+    </section>
   </div>
 </div>

@@ -10,11 +10,11 @@ import {
 import {
   EstacionamentoFormStepService,
   EstacionamentoFormStep,
-  ESTACIONAMENTO_STEP_LABELS
+  Estacionamento_STEP_LABELS
 } from './services/estacionamento-form-step.service';
 
 @Component({
-  selector: 'app-estacionamento-layout',
+  selector: 'app-Estacionamento-layout',
   standalone: true,
   imports: [CommonModule, RouterOutlet, RouterLink, FormsModule],
   templateUrl: './estacionamento-layout.component.html',
@@ -27,7 +27,7 @@ export class EstacionamentoLayoutComponent implements OnInit, OnDestroy {
 
   /** True quando a rota é novo ou editar (formulário com stepper). */
   showStepper = signal(false);
-  readonly stepLabels = ESTACIONAMENTO_STEP_LABELS;
+  readonly stepLabels = Estacionamento_STEP_LABELS;
   private sub: { unsubscribe: () => void } | null = null;
 
   ngOnInit(): void {

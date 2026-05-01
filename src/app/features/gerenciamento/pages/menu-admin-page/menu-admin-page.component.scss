@@ -9,7 +9,11 @@
   gap: var(--space-lg, 16px);
 }
 
-.page-description {
+.menu-admin__intro {
+  margin: 0;
+}
+
+.menu-admin__intro .page-description {
   margin: 0;
   font-size: var(--font-body, 14px);
   color: var(--muted);
@@ -151,8 +155,8 @@
 .menu-card__header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 12px;
+  gap: 10px;
+  padding: 12px 14px;
   flex-wrap: wrap;
 }
 
@@ -204,6 +208,23 @@
   font-size: 0.9375rem;
 }
 
+.menu-card__route {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.75rem;
+  color: var(--muted);
+  font-weight: 400;
+  word-break: break-all;
+}
+
+.form-hint {
+  display: block;
+  margin-top: 6px;
+  font-size: 0.75rem;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
 .badge {
   font-size: 0.75rem;
   padding: 2px 8px;
@@ -242,7 +263,7 @@
 }
 
 .menu-card__body {
-  padding: 0 12px 12px 44px;
+  padding: 0 14px 14px 48px;
   border-top: 1px solid var(--border-subtle);
 }
 

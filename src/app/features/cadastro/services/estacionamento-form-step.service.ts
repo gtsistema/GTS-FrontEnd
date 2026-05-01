@@ -2,14 +2,14 @@ import { Injectable, signal, computed } from '@angular/core';
 
 export type EstacionamentoFormStep = 1 | 2 | 3;
 
-export const ESTACIONAMENTO_STEP_LABELS: Record<EstacionamentoFormStep, string> = {
+export const Estacionamento_STEP_LABELS: Record<EstacionamentoFormStep, string> = {
   1: 'Cadastro',
   2: 'Dados Bancários',
   3: 'Fotos'
 };
 
 /**
- * Controla o step atual do formulário de novo estacionamento (Cadastro → Dados Bancários → Foto).
+ * Controla o step atual do formulário de novo Estacionamento (Cadastro → Dados Bancários → Foto).
  * Usado pelo layout (topbar stepper) e pelo form.
  */
 @Injectable({ providedIn: 'root' })

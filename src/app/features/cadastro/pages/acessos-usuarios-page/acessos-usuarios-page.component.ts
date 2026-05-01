@@ -20,7 +20,7 @@ import { ToastService } from '../../../../core/api/services/toast.service';
 import { PERMISSION_MODULES, PERMISSION_CATALOG, type PermissionModule } from '../../constants/permission-catalog';
 
 const PERFIL_KEY_ADMIN = 'ADMIN';
-const PERFIL_KEY_ESTACIONAMENTO = 'ESTACIONAMENTO';
+const PERFIL_KEY_Estacionamento = 'Estacionamento';
 const PERFIL_KEY_TRANSPORTADORA = 'TRANSPORTADORA';
 
 @Component({
@@ -35,7 +35,7 @@ export class AcessosUsuariosPageComponent implements OnDestroy {
   private perfisService = inject(AcessosPerfisService);
   private profileStore = inject(ProfilePermissionsStoreService);
   private toolbar = inject(AcessosUsuariosToolbarService);
-  private estacionamentoLookup = inject(EstacionamentoLookupService);
+  private EstacionamentoLookup = inject(EstacionamentoLookupService);
   private transportadoraLookup = inject(TransportadoraLookupService);
   private toast = inject(ToastService);
   private cdr = inject(ChangeDetectorRef);
@@ -60,15 +60,15 @@ export class AcessosUsuariosPageComponent implements OnDestroy {
     senha: '',
     ativo: true,
     perfilId: '' as string,
-    estacionamentoId: null as number | null,
-    estacionamentoLabel: '' as string,
+    EstacionamentoId: null as number | null,
+    EstacionamentoLabel: '' as string,
     transportadoraId: null as number | null,
     transportadoraLabel: '' as string,
     useDefaultPermissions: true,
     userPermissionIds: [] as string[],
   };
 
-  /** Chave do perfil selecionado (normalizada: ADMIN, ESTACIONAMENTO, TRANSPORTADORA). */
+  /** Chave do perfil selecionado (normalizada: ADMIN, Estacionamento, TRANSPORTADORA). */
   get perfilKey(): string {
     const id = this.form.perfilId;
     if (!id) return '';
@@ -81,21 +81,21 @@ export class AcessosUsuariosPageComponent implements OnDestroy {
       id
     ).toString().toUpperCase();
     if (name.includes(PERFIL_KEY_ADMIN)) return PERFIL_KEY_ADMIN;
-    if (name.includes(PERFIL_KEY_ESTACIONAMENTO)) return PERFIL_KEY_ESTACIONAMENTO;
+    if (name.includes(PERFIL_KEY_Estacionamento)) return PERFIL_KEY_Estacionamento;
     if (name.includes(PERFIL_KEY_TRANSPORTADORA)) return PERFIL_KEY_TRANSPORTADORA;
     return '';
   }
 
   get showEstacionamentoField(): boolean {
-    return this.perfilKey === PERFIL_KEY_ESTACIONAMENTO;
+    return this.perfilKey === PERFIL_KEY_Estacionamento;
   }
 
   get showTransportadoraField(): boolean {
     return this.perfilKey === PERFIL_KEY_TRANSPORTADORA;
   }
 
-  get estacionamentoObrigatorio(): boolean {
-    return this.perfilKey === PERFIL_KEY_ESTACIONAMENTO;
+  get EstacionamentoObrigatorio(): boolean {
+    return this.perfilKey === PERFIL_KEY_Estacionamento;
   }
 
   get transportadoraObrigatorio(): boolean {
@@ -103,11 +103,11 @@ export class AcessosUsuariosPageComponent implements OnDestroy {
   }
 
   /** Listagem Estacionamento (layout tipo Banco em Dados Bancários) */
-  estacionamentoList = signal<EstacionamentoOption[]>([]);
-  estacionamentoListLoaded = signal(false);
-  estacionamentoLoading = signal(false);
-  estacionamentoFiltro = '';
-  estacionamentoDropdownOpen = signal(false);
+  EstacionamentoList = signal<EstacionamentoOption[]>([]);
+  EstacionamentoListLoaded = signal(false);
+  EstacionamentoLoading = signal(false);
+  EstacionamentoFiltro = '';
+  EstacionamentoDropdownOpen = signal(false);
   private subs = new Subscription();
 
   /** Autocomplete Transportadora */
@@ -162,13 +162,13 @@ export class AcessosUsuariosPageComponent implements OnDestroy {
     return result;
   }
 
-  get estacionamentoDisplay(): string {
-    return this.estacionamentoDropdownOpen() ? this.estacionamentoFiltro : this.form.estacionamentoLabel;
+  get EstacionamentoDisplay(): string {
+    return this.EstacionamentoDropdownOpen() ? this.EstacionamentoFiltro : this.form.EstacionamentoLabel;
   }
 
-  get estacionamentoFiltrados(): EstacionamentoOption[] {
-    const list = this.estacionamentoList();
-    const t = (this.estacionamentoFiltro ?? '').trim().toLowerCase();
+  get EstacionamentoFiltrados(): EstacionamentoOption[] {
+    const list = this.EstacionamentoList();
+    const t = (this.EstacionamentoFiltro ?? '').trim().toLowerCase();
     if (!t) return list;
     return list.filter(
       (o) =>
@@ -191,19 +191,19 @@ export class AcessosUsuariosPageComponent implements OnDestroy {
   }
 
   private carregarListaEstacionamentos(): void {
-    if (this.estacionamentoListLoaded() || this.estacionamentoLoading()) return;
-    this.estacionamentoLoading.set(true);
+    if (this.EstacionamentoListLoaded() || this.EstacionamentoLoading()) return;
+    this.EstacionamentoLoading.set(true);
     this.cdr.markForCheck();
-    this.estacionamentoLookup.list().subscribe({
+    this.EstacionamentoLookup.list().subscribe({
       next: (opts) => {
-        this.estacionamentoList.set(opts);
-        this.estacionamentoListLoaded.set(true);
-        this.estacionamentoLoading.set(false);
+        this.EstacionamentoList.set(opts);
+        this.EstacionamentoListLoaded.set(true);
+        this.EstacionamentoLoading.set(false);
         this.cdr.markForCheck();
       },
       error: () => {
-        this.estacionamentoLoading.set(false);
-        this.estacionamentoList.set([]);
+        this.EstacionamentoLoading.set(false);
+        this.EstacionamentoList.set([]);
         this.toast.error('Endpoint de busca não disponível no backend.');
         this.cdr.markForCheck();
       },
@@ -211,33 +211,33 @@ export class AcessosUsuariosPageComponent implements OnDestroy {
   }
 
   onEstacionamentoFocus(): void {
-    this.estacionamentoDropdownOpen.set(true);
-    this.estacionamentoFiltro = this.form.estacionamentoLabel;
+    this.EstacionamentoDropdownOpen.set(true);
+    this.EstacionamentoFiltro = this.form.EstacionamentoLabel;
     this.carregarListaEstacionamentos();
     this.cdr.markForCheck();
   }
 
   toggleEstacionamentoDropdown(event: Event): void {
     event.preventDefault();
-    const open = !this.estacionamentoDropdownOpen();
-    this.estacionamentoDropdownOpen.set(open);
+    const open = !this.EstacionamentoDropdownOpen();
+    this.EstacionamentoDropdownOpen.set(open);
     if (open) {
-      this.estacionamentoFiltro = this.form.estacionamentoLabel;
+      this.EstacionamentoFiltro = this.form.EstacionamentoLabel;
       this.carregarListaEstacionamentos();
     }
     this.cdr.markForCheck();
   }
 
   onEstacionamentoInput(event: Event): void {
-    this.estacionamentoFiltro = (event.target as HTMLInputElement).value;
-    this.estacionamentoDropdownOpen.set(true);
+    this.EstacionamentoFiltro = (event.target as HTMLInputElement).value;
+    this.EstacionamentoDropdownOpen.set(true);
     this.cdr.markForCheck();
   }
 
   onEstacionamentoBlur(): void {
     setTimeout(() => {
-      this.estacionamentoDropdownOpen.set(false);
-      this.estacionamentoFiltro = this.form.estacionamentoLabel;
+      this.EstacionamentoDropdownOpen.set(false);
+      this.EstacionamentoFiltro = this.form.EstacionamentoLabel;
       this.cdr.markForCheck();
     }, 200);
   }
@@ -325,19 +325,19 @@ export class AcessosUsuariosPageComponent implements OnDestroy {
       senha: '',
       ativo: true,
       perfilId: '',
-      estacionamentoId: null,
-      estacionamentoLabel: '',
+      EstacionamentoId: null,
+      EstacionamentoLabel: '',
       transportadoraId: null,
       transportadoraLabel: '',
       useDefaultPermissions: true,
       userPermissionIds: [],
     };
-    this.estacionamentoFiltro = '';
+    this.EstacionamentoFiltro = '';
     this.transportadoraSearchTerm = '';
-    this.estacionamentoList.set([]);
-    this.estacionamentoListLoaded.set(false);
+    this.EstacionamentoList.set([]);
+    this.EstacionamentoListLoaded.set(false);
     this.transportadoraOptions.set([]);
-    this.estacionamentoDropdownOpen.set(false);
+    this.EstacionamentoDropdownOpen.set(false);
     this.transportadoraDropdownOpen.set(false);
     this.isEdit.set(false);
     this.editItem.set(null);
@@ -349,7 +349,7 @@ export class AcessosUsuariosPageComponent implements OnDestroy {
   openEditar(item: UsuarioListItem): void {
     this.saveError.set(null);
     this.editItem.set(item);
-    const ext = item as { estacionamentoId?: number; transportadoraId?: number; estacionamentoLabel?: string; transportadoraLabel?: string };
+    const ext = item as { EstacionamentoId?: number; transportadoraId?: number; EstacionamentoLabel?: string; transportadoraLabel?: string };
     this.form = {
       nome: item.nome ?? '',
       email: item.emailOuLogin ?? '',
@@ -357,17 +357,17 @@ export class AcessosUsuariosPageComponent implements OnDestroy {
       senha: '',
       ativo: item.ativo ?? true,
       perfilId: '',
-      estacionamentoId: ext.estacionamentoId ?? null,
-      estacionamentoLabel: ext.estacionamentoLabel ?? '',
+      EstacionamentoId: ext.EstacionamentoId ?? null,
+      EstacionamentoLabel: ext.EstacionamentoLabel ?? '',
       transportadoraId: ext.transportadoraId ?? null,
       transportadoraLabel: ext.transportadoraLabel ?? '',
       useDefaultPermissions: true,
       userPermissionIds: [],
     };
-    this.estacionamentoFiltro = this.form.estacionamentoLabel || '';
+    this.EstacionamentoFiltro = this.form.EstacionamentoLabel || '';
     this.transportadoraSearchTerm = this.form.transportadoraLabel || '';
-    this.estacionamentoList.set([]);
-    this.estacionamentoListLoaded.set(false);
+    this.EstacionamentoList.set([]);
+    this.EstacionamentoListLoaded.set(false);
     this.transportadoraOptions.set([]);
     this.isEdit.set(true);
     this.carregarPerfis();
@@ -411,16 +411,16 @@ export class AcessosUsuariosPageComponent implements OnDestroy {
   }
 
   onPerfilChange(): void {
-    this.form.estacionamentoId = null;
-    this.form.estacionamentoLabel = '';
+    this.form.EstacionamentoId = null;
+    this.form.EstacionamentoLabel = '';
     this.form.transportadoraId = null;
     this.form.transportadoraLabel = '';
-    this.estacionamentoFiltro = '';
+    this.EstacionamentoFiltro = '';
     this.transportadoraSearchTerm = '';
-    this.estacionamentoList.set([]);
-    this.estacionamentoListLoaded.set(false);
+    this.EstacionamentoList.set([]);
+    this.EstacionamentoListLoaded.set(false);
     this.transportadoraOptions.set([]);
-    this.estacionamentoDropdownOpen.set(false);
+    this.EstacionamentoDropdownOpen.set(false);
     this.transportadoraDropdownOpen.set(false);
     const profile = this.profilePermissions;
     if (this.form.useDefaultPermissions) {
@@ -456,18 +456,18 @@ export class AcessosUsuariosPageComponent implements OnDestroy {
   }
 
   selectEstacionamento(opt: EstacionamentoOption): void {
-    this.form.estacionamentoId = opt.id;
-    this.form.estacionamentoLabel = opt.label;
-    this.estacionamentoFiltro = opt.label;
-    this.estacionamentoDropdownOpen.set(false);
+    this.form.EstacionamentoId = opt.id;
+    this.form.EstacionamentoLabel = opt.label;
+    this.EstacionamentoFiltro = opt.label;
+    this.EstacionamentoDropdownOpen.set(false);
     this.cdr.markForCheck();
   }
 
   clearEstacionamento(): void {
-    this.form.estacionamentoId = null;
-    this.form.estacionamentoLabel = '';
-    this.estacionamentoFiltro = '';
-    this.estacionamentoDropdownOpen.set(false);
+    this.form.EstacionamentoId = null;
+    this.form.EstacionamentoLabel = '';
+    this.EstacionamentoFiltro = '';
+    this.EstacionamentoDropdownOpen.set(false);
     this.cdr.markForCheck();
   }
 
@@ -505,7 +505,7 @@ export class AcessosUsuariosPageComponent implements OnDestroy {
     if (!this.form.nome.trim()) return false;
     if (!this.form.email.trim()) return false;
     if (!this.isEdit() && !this.form.senha.trim()) return false;
-    if (this.estacionamentoObrigatorio && (this.form.estacionamentoId == null || this.form.estacionamentoId === 0)) {
+    if (this.EstacionamentoObrigatorio && (this.form.EstacionamentoId == null || this.form.EstacionamentoId === 0)) {
       return false;
     }
     if (this.transportadoraObrigatorio && (this.form.transportadoraId == null || this.form.transportadoraId === 0)) {
@@ -530,7 +530,7 @@ export class AcessosUsuariosPageComponent implements OnDestroy {
       ativo: this.form.ativo,
       perfilId: this.form.perfilId || undefined,
       perfilNome,
-      estacionamentoId: this.showEstacionamentoField ? this.form.estacionamentoId ?? undefined : undefined,
+      EstacionamentoId: this.showEstacionamentoField ? this.form.EstacionamentoId ?? undefined : undefined,
       transportadoraId: this.showTransportadoraField ? this.form.transportadoraId ?? undefined : undefined,
       userPermissionIds: this.form.userPermissionIds,
       ...(this.editItem()?.id ? { id: this.editItem()!.id } : {}),
@@ -547,7 +547,7 @@ export class AcessosUsuariosPageComponent implements OnDestroy {
           cpfCnpj: payload.cpfCnpj,
           perfilId: payload.perfilId,
           perfilNome: payload.perfilNome,
-          estacionamentoId: payload.estacionamentoId,
+          EstacionamentoId: payload.EstacionamentoId,
           transportadoraId: payload.transportadoraId,
         })
       : this.usuariosService.gravar(payload);

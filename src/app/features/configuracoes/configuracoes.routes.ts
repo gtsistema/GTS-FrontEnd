@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { ConfiguracoesLayoutComponent } from './configuracoes-layout/configuracoes-layout.component';
+import { permissionGuard } from '../../core/guards/permission.guard';
 
 export const CONFIGURACOES_ROUTES: Routes = [
   {
@@ -10,19 +11,11 @@ export const CONFIGURACOES_ROUTES: Routes = [
       {
         path: 'usuarios',
         loadComponent: () =>
-          import('../cadastro/pages/acessos-usuarios-layout/acessos-usuarios-layout.component').then(
-            (m) => m.AcessosUsuariosLayoutComponent
+          import('../gerenciamento/pages/gerenciamento-page/gerenciamento-page.component').then(
+            (m) => m.GerenciamentoPageComponent
           ),
-        children: [
-          {
-            path: '',
-            pathMatch: 'full',
-            loadComponent: () =>
-              import('../cadastro/pages/acessos-usuarios-page/acessos-usuarios-page.component').then(
-                (m) => m.AcessosUsuariosPageComponent
-              ),
-          },
-        ],
+        canActivate: [permissionGuard],
+        data: { permissions: ['usuario.visualizar'] },
       },
       {
         path: 'perfis',

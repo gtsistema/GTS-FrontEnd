@@ -6,7 +6,7 @@ import {
   type FormValue
 } from './estacionamento-form.mapper';
 
-describe('estacionamento-form.mapper', () => {
+describe('Estacionamento-form.mapper', () => {
   const baseFormValue: FormValue = {
     id: 0,
     descricao: 'Estacionamento Teste',

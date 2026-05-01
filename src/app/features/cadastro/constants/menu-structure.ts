@@ -6,6 +6,7 @@ export interface MenuSubItem {
   id: string;
   label: string;
   route: string;
+  children?: MenuSubItem[];
 }
 
 export interface MenuNode {
@@ -37,7 +38,6 @@ export const MENU_STRUCTURE: MenuNode[] = [
     route: '/app/gerenciamento',
     icon: 'admin_panel_settings',
     children: [
-      { id: 'sub-acessos', label: 'Acessos', route: '/app/gerenciamento' },
       { id: 'sub-menu', label: 'Menu', route: '/app/gerenciamento/menu' },
       { id: 'sub-perfil', label: 'Perfil', route: '/app/gerenciamento/perfil' },
     ],
@@ -54,14 +54,21 @@ export const MENU_STRUCTURE: MenuNode[] = [
   },
 ];
 
+function collectSubMenuIds(subs: MenuSubItem[], ids: string[]): void {
+  for (const sub of subs) {
+    ids.push(sub.id);
+    if (sub.children?.length) {
+      collectSubMenuIds(sub.children, ids);
+    }
+  }
+}
+
 /** Todos os nós (menu ou submenu) que podem ter permissões vinculadas. */
 export function getAllMenuNodeIds(): string[] {
   const ids: string[] = [];
   for (const node of MENU_STRUCTURE) {
     if (node.children?.length) {
-      for (const sub of node.children) {
-        ids.push(sub.id);
-      }
+      collectSubMenuIds(node.children, ids);
     } else {
       ids.push(node.id);
     }

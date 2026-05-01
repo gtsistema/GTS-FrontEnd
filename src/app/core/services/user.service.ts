@@ -15,7 +15,7 @@ export interface AppUser {
 export interface LoggedUser {
   username: string;
   perfil: string;
-  /** Claim `Permission` do token (ex.: estacionamento.visualizar). */
+  /** Claim `Permission` do token (ex.: Estacionamento.visualizar). */
   permissionKeys: string[];
   email?: string;
   /** Claim `nameid` (id do usuário no servidor). */

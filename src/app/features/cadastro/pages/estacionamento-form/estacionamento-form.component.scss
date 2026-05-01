@@ -866,6 +866,10 @@ select.field__input.ng-invalid.ng-touched {
   font-style: italic;
 }
 
+.cnpj-success {
+  color: var(--success, #22c55e);
+}
+
 .field__error {
   display: block;
   margin-top: var(--space-6);

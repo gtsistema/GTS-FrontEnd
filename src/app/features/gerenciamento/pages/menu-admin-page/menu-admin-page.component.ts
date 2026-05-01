@@ -112,6 +112,7 @@ export class MenuAdminPageComponent implements OnInit {
   protected readonly menuEditId = signal<number | null>(null);
   protected menuFormNome = '';
   protected menuFormIcon = '';
+  protected menuFormRota = '';
   protected menuFormAtivo = true;
 
   /** Modal submenu */
@@ -145,6 +146,7 @@ export class MenuAdminPageComponent implements OnInit {
     this.menuEditId.set(null);
     this.menuFormNome = '';
     this.menuFormIcon = 'menu';
+    this.menuFormRota = '';
     this.menuFormAtivo = true;
     this.menuModalOpen.set(true);
   }
@@ -153,8 +155,21 @@ export class MenuAdminPageComponent implements OnInit {
     this.menuEditId.set(m.id);
     this.menuFormNome = m.nome;
     this.menuFormIcon = m.icone;
+    this.menuFormRota = m.rota ?? '';
     this.menuFormAtivo = m.ativo;
     this.menuModalOpen.set(true);
+  }
+
+  /** Normaliza rota do menu-módulo (`/app/...`). */
+  private normalizeMenuModuleRoute(raw: string, nomeFallback: string): string {
+    const route = raw.trim();
+    if (!route) {
+      const seg = this.slugifyRouteSegment(nomeFallback);
+      return seg ? `/app/${seg}` : '/app';
+    }
+    if (route.startsWith('/app/')) return route.replace(/\/+$/, '') || '/app';
+    if (route.startsWith('/')) return `/app${route}`.replace(/\/{2,}/g, '/').replace(/\/+$/, '');
+    return `/app/${route}`.replace(/\/{2,}/g, '/').replace(/\/+$/, '');
   }
 
   protected salvarMenu(): void {
@@ -163,6 +178,7 @@ export class MenuAdminPageComponent implements OnInit {
     if (this.salvandoMenuModal()) return;
     const id = this.menuEditId();
     const icone = this.menuFormIcon.trim() || 'menu';
+    const rota = this.normalizeMenuModuleRoute(this.menuFormRota, nome);
 
     if (id == null) {
       const dto: MenuCreateInput = {
@@ -170,6 +186,7 @@ export class MenuAdminPageComponent implements OnInit {
         nome,
         descricao: nome,
         ordem: this.admin.menus().length,
+        rota,
         ativo: true,
         subMenus: null,
       };
@@ -193,13 +210,13 @@ export class MenuAdminPageComponent implements OnInit {
 
     /** Id temporário/local (sem registro no servidor): só estado local. */
     if (id <= 0) {
-      this.admin.updateMenu(id, { nome, icone, ativo: this.menuFormAtivo });
+      this.admin.updateMenu(id, { nome, icone, rota, ativo: this.menuFormAtivo });
       this.menuModalOpen.set(false);
       return;
     }
 
-    /** Qualquer menu com id vindo do Buscar deve usar PUT Alterar (nome, ícone, ativo, submenus). */
-    const atualizado: MenuAdmin = { ...m, nome, icone, ativo: this.menuFormAtivo };
+    /** Qualquer menu com id vindo do Buscar deve usar PUT Alterar (nome, ícone, rota, ativo, submenus). */
+    const atualizado: MenuAdmin = { ...m, nome, icone, rota, ativo: this.menuFormAtivo };
     this.salvandoMenuModal.set(true);
     this.menuApi
       .alterar(menuAdminToUpdateInput(atualizado))
@@ -473,11 +490,14 @@ export class MenuAdminPageComponent implements OnInit {
   private buildSubmenuBaseRoute(menuId: number): string {
     const snap = this.admin.getSnapshot();
     const menu = snap.menus.find((x) => x.id === menuId);
+    const menuRota = menu?.rota?.trim();
     const firstSubRoute = menu?.subMenus.find((s) => s.rota?.startsWith('/app/'))?.rota ?? '';
     let base = '/app';
     if (firstSubRoute) {
       const idx = firstSubRoute.lastIndexOf('/');
       base = idx > 0 ? firstSubRoute.slice(0, idx) : '/app';
+    } else if (menuRota && menuRota.startsWith('/app')) {
+      base = menuRota.replace(/\/+$/, '');
     } else if (menu?.nome) {
       const menuSeg = this.slugifyRouteSegment(menu.nome);
       if (menuSeg) base = `/app/${menuSeg}`;
@@ -518,6 +538,7 @@ export class MenuAdminPageComponent implements OnInit {
       nome: menu.nome,
       descricao: menu.nome,
       ordem: menu.ordem,
+      rota: menu.rota?.trim() ? menu.rota.trim() : undefined,
       ativo: menu.ativo,
       subMenus: menu.subMenus.map((s) => ({
         id: s.id > 0 ? s.id : 0,

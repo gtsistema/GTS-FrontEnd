@@ -36,7 +36,7 @@ import { ApiError } from '../../../../core/api/models';
 export class GerenciamentoPageComponent implements OnInit, OnDestroy {
   private gerenciamentoService = inject(GerenciamentoService);
   private perfisService = inject(AcessosPerfisService);
-  private estacionamentoLookup = inject(EstacionamentoLookupService);
+  private EstacionamentoLookup = inject(EstacionamentoLookupService);
   private profileStore = inject(ProfilePermissionsStoreService);
   private permissionCache = inject(PermissionCacheService);
   private toast = inject(ToastService);
@@ -71,8 +71,8 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
 
   form: UsuarioGerenciamentoForm = this.getEmptyForm();
 
-  estacionamentoOptions = signal<EstacionamentoOption[]>([]);
-  estacionamentoCarregando = signal(false);
+  EstacionamentoOptions = signal<EstacionamentoOption[]>([]);
+  EstacionamentoCarregando = signal(false);
   private subs = new Subscription();
   private buscaSub?: Subscription;
 
@@ -126,8 +126,8 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
       login: '',
       senha: '',
       confirmarSenha: '',
-      estacionamentoId: 0,
-      estacionamentoLabel: '',
+      EstacionamentoId: 0,
+      EstacionamentoLabel: '',
       documento: '',
       tipoPessoa: 1,
       pessoaId: null,
@@ -146,20 +146,20 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
   }
 
   private carregarEstacionamentosParaModal(): void {
-    if (this.estacionamentoOptions().length > 0 || this.estacionamentoCarregando()) {
+    if (this.EstacionamentoOptions().length > 0 || this.EstacionamentoCarregando()) {
       return;
     }
-    this.estacionamentoCarregando.set(true);
+    this.EstacionamentoCarregando.set(true);
     this.cdr.markForCheck();
-    this.estacionamentoLookup.list().subscribe({
+    this.EstacionamentoLookup.list().subscribe({
       next: (opts) => {
-        this.estacionamentoCarregando.set(false);
-        this.estacionamentoOptions.set(opts);
+        this.EstacionamentoCarregando.set(false);
+        this.EstacionamentoOptions.set(opts);
         this.cdr.markForCheck();
       },
       error: () => {
-        this.estacionamentoCarregando.set(false);
-        this.toast.error('Não foi possível carregar estacionamentos.');
+        this.EstacionamentoCarregando.set(false);
+        this.toast.error('Não foi possível carregar Estacionamentos.');
         this.cdr.markForCheck();
       }
     });
@@ -261,23 +261,23 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
       login: String(d.userName ?? '').trim(),
       senha: '',
       confirmarSenha: '',
-      estacionamentoId:
-        typeof d.estacionamentoId === 'number' && Number.isFinite(d.estacionamentoId)
-          ? d.estacionamentoId
+      EstacionamentoId:
+        typeof d.EstacionamentoId === 'number' && Number.isFinite(d.EstacionamentoId)
+          ? d.EstacionamentoId
           : 0,
-      estacionamentoLabel: '',
+      EstacionamentoLabel: '',
       documento: p?.documento ?? d.cpfCnpj ?? '',
       tipoPessoa: p?.tipoPessoa === 2 ? 2 : 1,
       pessoaId: typeof p?.id === 'number' ? p.id : null,
       perfilId: (matchPerfil?.id ?? matchPerfil?.name ?? perf?.id ?? perf?.name ?? '') as string,
       ativo: this.form.ativo
     };
-    if (this.form.estacionamentoId != null) {
-      const fromList = this.estacionamentoOptions().find(
-        (o) => o.id === this.form.estacionamentoId
+    if (this.form.EstacionamentoId != null) {
+      const fromList = this.EstacionamentoOptions().find(
+        (o) => o.id === this.form.EstacionamentoId
       );
       if (fromList) {
-        this.form.estacionamentoLabel = fromList.label;
+        this.form.EstacionamentoLabel = fromList.label;
       }
     }
   }
@@ -303,19 +303,19 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
   }
 
   limparEstacionamento(): void {
-    this.form.estacionamentoId = 0;
-    this.form.estacionamentoLabel = '';
+    this.form.EstacionamentoId = 0;
+    this.form.EstacionamentoLabel = '';
     this.cdr.markForCheck();
   }
 
   onEstacionamentoIdChange(v: number | null | undefined): void {
     if (v == null || v === 0) {
-      this.form.estacionamentoId = 0;
-      this.form.estacionamentoLabel = '';
+      this.form.EstacionamentoId = 0;
+      this.form.EstacionamentoLabel = '';
     } else {
-      this.form.estacionamentoId = v;
-      const o = this.estacionamentoOptions().find((e) => e.id === v);
-      this.form.estacionamentoLabel = o?.label ?? '';
+      this.form.EstacionamentoId = v;
+      const o = this.EstacionamentoOptions().find((e) => e.id === v);
+      this.form.EstacionamentoLabel = o?.label ?? '';
     }
     this.cdr.markForCheck();
   }
@@ -415,7 +415,7 @@ export class GerenciamentoPageComponent implements OnInit, OnDestroy {
       ativo: this.form.ativo,
       perfilId: this.form.perfilId || undefined,
       perfilNome,
-      estacionamentoId: typeof this.form.estacionamentoId === 'number' ? this.form.estacionamentoId : 0,
+      EstacionamentoId: typeof this.form.EstacionamentoId === 'number' ? this.form.EstacionamentoId : 0,
       ...(this.editItem()?.id ? { id: this.editItem()!.id } : {})
     };
     const req = this.isEdit()

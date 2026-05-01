@@ -180,11 +180,11 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
     const role = (perfil ?? '').trim().toLowerCase();
     if (role === 'admin' || role === 'administrator') return 'Admin';
     if (role.includes('transportadora')) return 'Transportadora';
-    if (role.includes('estacionamento')) return 'Estacionamento';
+    if (role.includes('Estacionamento')) return 'Estacionamento';
 
     const keys = permissionKeys.map((k) => k.toLowerCase());
     if (keys.some((k) => k.includes('transportadora'))) return 'Transportadora';
-    if (keys.some((k) => k.includes('estacionamento'))) return 'Estacionamento';
+    if (keys.some((k) => k.includes('Estacionamento'))) return 'Estacionamento';
     return perfil?.trim() || 'Operacional';
   }
 

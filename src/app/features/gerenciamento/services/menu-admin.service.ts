@@ -41,16 +41,17 @@ function buildSeedState(): MenuAdminState {
     const menuId = nid++;
     const subs: SubMenuAdmin[] = [];
     if (node.children?.length) {
-      node.children.forEach((c, si) => {
+      let ordem = 0;
+      for (const c of node.children) {
         subs.push({
           id: nid++,
           nome: c.label,
-          ordem: si,
+          ordem: ordem++,
           rota: c.route,
           ativo: true,
           permissions: [],
         });
-      });
+      }
     } else {
       subs.push({
         id: nid++,
@@ -66,6 +67,7 @@ function buildSeedState(): MenuAdminState {
       nome: node.label,
       ordem: mi,
       icone: node.icon,
+      rota: node.route,
       ativo: true,
       subMenus: subs,
       existeNoServidor: false,
@@ -197,7 +199,7 @@ export class MenuAdminService {
 
   updateMenu(
     id: number,
-    patch: Partial<Pick<MenuAdmin, 'nome' | 'icone' | 'ativo'>>
+    patch: Partial<Pick<MenuAdmin, 'nome' | 'icone' | 'ativo' | 'rota'>>
   ): void {
     this.patch((s) => {
       const m = s.menus.find((x) => x.id === id);
@@ -376,14 +378,14 @@ export class MenuAdminService {
   }
 
   /**
-   * Itens para sidebar. Gerenciamento aparece como um único link (`/app/gerenciamento`), sem submenus na barra lateral
-   * (Acessos/Menu/Perfil continuam na própria área de Gerenciamento).
+   * Itens para sidebar. Gerenciamento aparece como um único link (`/app/gerenciamento` → Menu), sem submenus na barra lateral
+   * (Menu/Perfil ficam nas abas; Usuários em `/app/configuracoes/usuarios`.)
    */
   getSidebarMenuItems(): {
     label: string;
     route: string;
     icon: string;
-    children?: { label: string; route: string }[];
+    children?: { label: string; route: string; children?: { label: string; route: string }[] }[];
   }[] {
     const source = this.sessionAccess.hasSessionMenus()
       ? this.buildNavItemsFromSessionMenus()
@@ -401,14 +403,42 @@ export class MenuAdminService {
           route: '/app/gerenciamento',
           icon: item.icon,
         };
+      })
+      .map((item) => this.stripMotoristaFromCadastroSidebar(item));
+  }
+
+  /**
+   * Motorista não aparece na sidebar — acesso só pela tela de Transportadora (aba interna).
+   * Remove `/app/cadastro/motorista` da lista plana ou aninhada vind do admin/API.
+   */
+  private stripMotoristaFromCadastroSidebar<T extends {
+    route: string;
+    children?: { route: string; children?: { route: string }[] }[];
+  }>(item: T): T {
+    const base = item.route.replace(/\/+$/, '').toLowerCase();
+    if (base !== '/app/cadastro' || !('children' in item) || !item.children?.length) {
+      return item;
+    }
+    const motoristaNorm = '/app/cadastro/motorista';
+    const norm = (r: string) => r.replace(/\/+$/, '').toLowerCase();
+    const children = item.children
+      .filter((c) => norm(c.route) !== motoristaNorm)
+      .map((c) => {
+        if (!c.children?.length) return c;
+        const nested = c.children.filter((n) => norm(n.route) !== motoristaNorm);
+        return nested.length ? { ...c, children: nested } : { ...c, children: undefined };
       });
+    return {
+      ...item,
+      children: children.length ? children : undefined,
+    } as T;
   }
 
   private buildNavItemsFromSessionMenus(): {
     label: string;
     route: string;
     icon: string;
-    children?: { label: string; route: string }[];
+    children?: { label: string; route: string; children?: { label: string; route: string }[] }[];
   }[] {
     return this.sessionAccess
       .menus()
@@ -424,11 +454,28 @@ export class MenuAdminService {
         if (activeSubs.length === 0) {
           return {
             label: menuLabel,
-            route: resolveAppRouteFromNome(menuLabel, null),
+            route: resolveAppRouteFromNome(menuLabel, m.rota ?? null),
             icon,
           };
         }
-        const base = resolveAppRouteFromNome(menuLabel, m.rota ?? null);
+
+        if (activeSubs.length === 1) {
+          const sub = activeSubs[0];
+          const subLabel = sub.descricao?.trim() || menuLabel;
+          return {
+            label: menuLabel,
+            route: resolveAppRouteFromNome(subLabel, sub.rota),
+            icon,
+          };
+        }
+
+        const first = activeSubs[0];
+        const firstRoute = resolveAppRouteFromNome(first.descricao?.trim() || menuLabel, first.rota);
+        const rawParent = m.rota?.trim();
+        const base =
+          rawParent && rawParent.startsWith('/app')
+            ? rawParent.replace(/\/+$/, '')
+            : firstRoute.replace(/\/[^/]*$/, '') || '/app';
         return {
           label: menuLabel,
           route: base,
@@ -445,7 +492,7 @@ export class MenuAdminService {
     label: string;
     route: string;
     icon: string;
-    children?: { label: string; route: string }[];
+    children?: { label: string; route: string; children?: { label: string; route: string }[] }[];
   }[] {
     return this.state()
       .menus.filter((m) => m.ativo)
@@ -455,20 +502,33 @@ export class MenuAdminService {
         if (m.subMenus.length > 0 && subs.length === 0) {
           return {
             label: m.nome,
-            route: resolveAppRouteFromNome(m.nome, null),
+            route: resolveAppRouteFromNome(m.nome, m.rota ?? null),
             icon: resolveMaterialSymbolIconFromModule(m.nome, m.icone),
           };
         }
         if (subs.length === 0) {
           return {
             label: m.nome,
-            route: resolveAppRouteFromNome(m.nome, null),
+            route: resolveAppRouteFromNome(m.nome, m.rota ?? null),
             icon: resolveMaterialSymbolIconFromModule(m.nome, m.icone),
           };
         }
+        if (subs.length === 1) {
+          return {
+            label: m.nome,
+            route: resolveAppRouteFromNome(subs[0].nome, subs[0].rota),
+            icon: resolveMaterialSymbolIconFromModule(m.nome, m.icone),
+          };
+        }
+        const firstRota = resolveAppRouteFromNome(subs[0].nome, subs[0].rota);
+        const rawParent = m.rota?.trim();
+        const base =
+          rawParent && rawParent.startsWith('/app')
+            ? rawParent.replace(/\/+$/, '')
+            : firstRota.replace(/\/[^/]*$/, '') || '/app';
         return {
           label: m.nome,
-          route: resolveAppRouteFromNome(m.nome, null),
+          route: base,
           icon: resolveMaterialSymbolIconFromModule(m.nome, m.icone),
           children: subs.map((s) => ({
             label: s.nome,
@@ -482,11 +542,16 @@ export class MenuAdminService {
   /** Identifica o nó de menu cujas rotas são de Gerenciamento (sidebar: item único, sem filhos). */
   private isGerenciamentoNavItem(item: {
     route: string;
-    children?: { route: string }[];
+    children?: { route: string; children?: { route: string }[] }[];
   }): boolean {
     if (item.route.startsWith('/app/gerenciamento')) {
       return true;
     }
-    return item.children?.some((c) => c.route.startsWith('/app/gerenciamento')) ?? false;
+    return (
+      item.children?.some((c) => {
+        if (c.route.startsWith('/app/gerenciamento')) return true;
+        return c.children?.some((n) => n.route.startsWith('/app/gerenciamento')) ?? false;
+      }) ?? false
+    );
   }
 }

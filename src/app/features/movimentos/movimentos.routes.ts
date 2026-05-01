@@ -26,5 +26,20 @@ export const MOVIMENTOS_ROUTES: Routes = [
         component: EntradaSaidaFormComponent
       }
     ]
-  }
+  },
+  {
+    path: 'operacao',
+    redirectTo: 'entrada-saida',
+    pathMatch: 'full',
+  },
+  {
+    path: 'historico',
+    redirectTo: 'entrada-saida',
+    pathMatch: 'full',
+  },
+  {
+    path: '**',
+    redirectTo: 'entrada-saida',
+    pathMatch: 'full',
+  },
 ];

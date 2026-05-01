@@ -1,9 +1,10 @@
 import { Injectable } from '@angular/core';
-import { Observable, catchError, map, of } from 'rxjs';
+import { Observable, catchError, forkJoin, map, of } from 'rxjs';
 import { AcessosUsuariosService, UsuarioListItem } from '../../cadastro/services/acessos-usuarios.service';
 import { AcessosPerfisService, ApplicationRole } from '../../cadastro/services/acessos-perfis.service';
 import { UsuarioGerenciamentoItem, GerenciamentoFiltros } from '../models/gerenciamento.types';
 import type { UsuarioDetalheOutput } from '../../../core/api/types/usuario-api.types';
+import { EstacionamentoLookupService, LookupOption } from '../../cadastro/services/estacionamento-lookup.service';
 
 /**
  * Orquestra listagem, CRUD e perfis da tela de Acessos (Gerenciamento).
@@ -14,13 +15,17 @@ import type { UsuarioDetalheOutput } from '../../../core/api/types/usuario-api.t
 export class GerenciamentoService {
   constructor(
     private usuariosService: AcessosUsuariosService,
-    private perfisService: AcessosPerfisService
+    private perfisService: AcessosPerfisService,
+    private EstacionamentoLookup: EstacionamentoLookupService
   ) {}
 
   /** GET /api/auth/Usuario + filtros em memória. */
   buscar(filtros: GerenciamentoFiltros): Observable<UsuarioGerenciamentoItem[]> {
-    return this.usuariosService.buscar().pipe(
-      map((body) => this.normalizeList(body, filtros))
+    return forkJoin({
+      usuariosBody: this.usuariosService.buscar(),
+      estacionamentos: this.EstacionamentoLookup.list().pipe(catchError(() => of([] as LookupOption[])))
+    }).pipe(
+      map(({ usuariosBody, estacionamentos }) => this.normalizeList(usuariosBody, filtros, estacionamentos))
     );
   }
 
@@ -51,11 +56,18 @@ export class GerenciamentoService {
 
   private normalizeList(
     body: unknown,
-    filtros: GerenciamentoFiltros
+    filtros: GerenciamentoFiltros,
+    estacionamentos: LookupOption[]
   ): UsuarioGerenciamentoItem[] {
+    const estMap = new Map<number, string>();
+    for (const e of estacionamentos) {
+      if (typeof e.id === 'number' && Number.isFinite(e.id)) {
+        estMap.set(e.id, e.label);
+      }
+    }
     const raw = this.normalizeListRaw(body);
     return raw
-      .map((item) => this.toGerenciamentoItem(item))
+      .map((item) => this.toGerenciamentoItem(item, estMap))
       .filter((item) => this.passaFiltros(item, filtros));
   }
 
@@ -101,7 +113,21 @@ export class GerenciamentoService {
     return [];
   }
 
-  private toGerenciamentoItem(item: UsuarioListItem): UsuarioGerenciamentoItem {
+  private toGerenciamentoItem(item: UsuarioListItem, estMap: Map<number, string>): UsuarioGerenciamentoItem {
+    const rawItem = item as UsuarioListItem & {
+      estacionamentoId?: number | null;
+      estacionamento?: string | null;
+      Estacionamento?: string | null;
+    };
+    const EstacionamentoId = item.EstacionamentoId ?? rawItem.estacionamentoId ?? null;
+    const estacionamentoDaApi = String(
+      rawItem.estacionamento ?? rawItem.Estacionamento ?? ''
+    ).trim();
+    const EstacionamentoNome =
+      estacionamentoDaApi ||
+      (typeof EstacionamentoId === 'number' && EstacionamentoId > 0
+        ? estMap.get(EstacionamentoId) ?? null
+        : null);
     return {
       id: item.id,
       userName: item.userName,
@@ -109,7 +135,8 @@ export class GerenciamentoService {
       email: item.email,
       emailOuLogin: (item.emailOuLogin ?? item.email ?? item.userName) as string,
       perfil: item.perfil ?? item.role ?? null,
-      estacionamentoId: item.estacionamentoId ?? null,
+      EstacionamentoId,
+      EstacionamentoNome,
       ativo: item.ativo ?? true
     };
   }

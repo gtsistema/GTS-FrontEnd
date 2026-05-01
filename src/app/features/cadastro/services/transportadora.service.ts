@@ -7,7 +7,8 @@ import {
   TransportadoraListItemDTO,
   TransportadoraBuscarParams,
   PagedResultDTO,
-  TransportadoraObterPorIdResultDTO
+  TransportadoraObterPorIdResultDTO,
+  TransportadoraPostPayload
 } from '../models/transportadora.dto';
 
 /** Base da API. Contrato: GET/POST/PUT em `/api/Transportadora`, GET/DELETE em `/api/Transportadora/{id}`. */
@@ -100,17 +101,22 @@ export class TransportadoraService {
 
   private mapToDto(r: TransportadoraObterPorIdResultDTO & Record<string, unknown>): TransportadoraDTO {
     const get = (key: string) => r[key] ?? r[key.charAt(0).toUpperCase() + key.slice(1)];
-    const end = r.endereco as Record<string, unknown> | undefined;
+    const pessoa = get('pessoa') as Record<string, unknown> | undefined;
+    const end = (r.endereco as Record<string, unknown> | undefined) ??
+      ((pessoa?.['enderecos'] as Record<string, unknown>[] | undefined)?.[0]);
+    const contato = (pessoa?.['contatos'] as Record<string, unknown>[] | undefined)?.[0];
+    const getPessoa = (key: string) => pessoa?.[key] ?? pessoa?.[key.charAt(0).toUpperCase() + key.slice(1)];
     const getEnd = (key: string) => end?.[key] ?? end?.[key.charAt(0).toUpperCase() + key.slice(1)];
+    const getContato = (key: string) => contato?.[key] ?? contato?.[key.charAt(0).toUpperCase() + key.slice(1)];
     return {
       id: Number(get('id')) || 0,
-      razaoSocial: String(get('razaoSocial') ?? ''),
-      nomeFantasia: String(get('nomeFantasia') ?? ''),
-      cnpj: String(get('cnpj') ?? ''),
+      razaoSocial: String(get('razaoSocial') ?? getPessoa('nomeRazaoSocial') ?? ''),
+      nomeFantasia: String(get('nomeFantasia') ?? getPessoa('nomeFantasia') ?? ''),
+      cnpj: String(get('cnpj') ?? getPessoa('documento') ?? ''),
       inscricaoEstadual: get('inscricaoEstadual') != null ? String(get('inscricaoEstadual')) : undefined,
-      email: String(get('email') ?? ''),
-      telefone: get('telefone') != null ? String(get('telefone')) : undefined,
-      ativo: get('ativo') !== false,
+      email: String(get('email') ?? getPessoa('email') ?? ''),
+      telefone: String(get('telefone') ?? getContato('numero') ?? ''),
+      ativo: (get('ativo') ?? getPessoa('ativo')) !== false,
       responsavelNome: get('responsavelNome') != null ? String(get('responsavelNome')) : undefined,
       responsavelCpf: get('responsavelCpf') != null ? String(get('responsavelCpf')) : undefined,
       responsavelCelular: get('responsavelCelular') != null ? String(get('responsavelCelular')) : undefined,
@@ -133,20 +139,29 @@ export class TransportadoraService {
   }
 
   /** POST /api/Transportadora */
-  gravar(dto: TransportadoraDTO): Observable<TransportadoraDTO> {
-    const payload = this.dtoToPayload(dto);
+  gravar(payload: TransportadoraPostPayload): Observable<TransportadoraDTO> {
     return this.http.post<TransportadoraDTO>(TRANSPORTADORA, payload).pipe(
       timeout(15000),
-      map((res) => (res && typeof res === 'object' ? { ...dto, id: (res as { id?: number }).id ?? (res as { Id?: number }).Id } : dto)),
+      map((res) => {
+        const returnedId = res && typeof res === 'object'
+          ? (res as { id?: number }).id ?? (res as { Id?: number }).Id
+          : undefined;
+        return this.mapPayloadToDto(payload, returnedId);
+      }),
       catchError((err) => throwError(() => err))
     );
   }
 
   /** PUT /api/Transportadora */
-  alterar(dto: TransportadoraDTO): Observable<TransportadoraDTO> {
-    const payload = this.dtoToPayload(dto);
+  alterar(payload: TransportadoraPostPayload): Observable<TransportadoraDTO> {
     return this.http.put<TransportadoraDTO>(TRANSPORTADORA, payload).pipe(
       timeout(15000),
+      map((res) => {
+        const returnedId = res && typeof res === 'object'
+          ? (res as { id?: number }).id ?? (res as { Id?: number }).Id
+          : undefined;
+        return this.mapPayloadToDto(payload, returnedId);
+      }),
       catchError((err) => throwError(() => err))
     );
   }
@@ -159,47 +174,28 @@ export class TransportadoraService {
     );
   }
 
-  /**
-   * Monta o payload para Gravar/Alterar.
-   * Campos obrigatórios sempre enviados; opcionais só quando preenchidos. Id só em alteração.
-   */
-  private dtoToPayload(dto: TransportadoraDTO): Record<string, unknown> {
-    const payload: Record<string, unknown> = {
-      razaoSocial: dto.razaoSocial ?? '',
-      nomeFantasia: dto.nomeFantasia ?? '',
-      cnpj: (dto.cnpj ?? '').replace(/\D/g, ''),
-      email: dto.email ?? '',
-      ativo: dto.ativo !== false
+  private mapPayloadToDto(payload: TransportadoraPostPayload, returnedId?: number): TransportadoraDTO {
+    const endereco = payload.pessoa.enderecos?.[0];
+    const contato = payload.pessoa.contatos?.[0];
+    return {
+      id: returnedId ?? payload.id,
+      razaoSocial: payload.pessoa.nomeRazaoSocial ?? '',
+      nomeFantasia: payload.pessoa.nomeFantasia ?? '',
+      cnpj: payload.pessoa.documento ?? '',
+      email: payload.pessoa.email ?? '',
+      telefone: contato?.numero ? contato.numero : undefined,
+      ativo: payload.pessoa.ativo !== false,
+      endereco: endereco
+        ? {
+            cep: endereco.cep ?? '',
+            logradouro: endereco.logradouro ?? '',
+            numero: endereco.numero ?? '',
+            bairro: endereco.bairro ?? '',
+            cidade: endereco.cidade ?? '',
+            estado: endereco.estado ?? '',
+            complemento: endereco.complemento ?? ''
+          }
+        : undefined
     };
-    if (dto.id != null && dto.id !== 0) {
-      payload['id'] = dto.id;
-    }
-    if (dto.inscricaoEstadual != null && dto.inscricaoEstadual.trim() !== '') {
-      payload['inscricaoEstadual'] = dto.inscricaoEstadual.trim();
-    }
-    if (dto.telefone != null && dto.telefone.trim() !== '') {
-      payload['telefone'] = dto.telefone.trim();
-    }
-    if (dto.responsavelNome?.trim()) payload['responsavelNome'] = dto.responsavelNome.trim();
-    if (dto.responsavelCpf != null && dto.responsavelCpf.trim() !== '') {
-      payload['responsavelCpf'] = dto.responsavelCpf.replace(/\D/g, '');
-    }
-    if (dto.responsavelCelular?.trim()) payload['responsavelCelular'] = dto.responsavelCelular.trim();
-    if (dto.responsavelEmail?.trim()) payload['responsavelEmail'] = dto.responsavelEmail.trim();
-    if (dto.responsavelCargo?.trim()) payload['responsavelCargo'] = dto.responsavelCargo.trim();
-    if (dto.tipoAcesso?.trim()) payload['tipoAcesso'] = dto.tipoAcesso.trim();
-    if (dto.observacaoInterna?.trim()) payload['observacaoInterna'] = dto.observacaoInterna.trim();
-    if (dto.endereco && (dto.endereco.cep?.replace(/\D/g, '') || dto.endereco.logradouro || dto.endereco.cidade)) {
-      payload['endereco'] = {
-        cep: (dto.endereco.cep ?? '').replace(/\D/g, ''),
-        logradouro: dto.endereco.logradouro ?? '',
-        numero: dto.endereco.numero ?? '',
-        bairro: dto.endereco.bairro ?? '',
-        cidade: dto.endereco.cidade ?? '',
-        estado: dto.endereco.estado ?? '',
-        complemento: dto.endereco.complemento ?? ''
-      };
-    }
-    return payload;
   }
 }

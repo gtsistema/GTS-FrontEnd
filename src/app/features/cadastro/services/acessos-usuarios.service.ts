@@ -18,7 +18,10 @@ export interface UsuarioListItem {
   ativo?: boolean;
   perfil?: string | null;
   role?: string | null;
+  EstacionamentoId?: number | null;
   estacionamentoId?: number | null;
+  Estacionamento?: string | null;
+  estacionamento?: string | null;
   cpfCnpj?: string;
 }
 
@@ -39,7 +42,7 @@ export interface UsuarioCreateInput {
   ativo?: boolean;
   perfilId?: string;
   perfilNome?: string;
-  estacionamentoId?: number;
+  EstacionamentoId?: number;
   transportadoraId?: number;
   tipoPessoa?: 1 | 2;
   pessoaId?: number;
@@ -52,6 +55,11 @@ export class AcessosUsuariosService {
   private api = inject(UsuarioApiService);
 
   private mapOutputToListItem(u: UsuarioOutput): UsuarioListItem {
+    const raw = u as UsuarioOutput & {
+      estacionamentoId?: number | null;
+      estacionamento?: string | null;
+      Estacionamento?: string | null;
+    };
     return {
       id: u.id != null ? String(u.id) : undefined,
       nome: u.nome,
@@ -61,7 +69,10 @@ export class AcessosUsuariosService {
       ativo: true,
       role: u.role,
       perfil: u.role,
-      estacionamentoId: u.estacionamentoId ?? null
+      EstacionamentoId: u.EstacionamentoId ?? raw.estacionamentoId ?? null,
+      estacionamentoId: raw.estacionamentoId ?? u.EstacionamentoId ?? null,
+      estacionamento: raw.estacionamento ?? raw.Estacionamento ?? null,
+      Estacionamento: raw.Estacionamento ?? raw.estacionamento ?? null
     };
   }
 
@@ -183,9 +194,9 @@ export class AcessosUsuariosService {
       throw new Error('Informe o nome (pessoa).');
     }
 
-    const estacionamentoId =
-      typeof input.estacionamentoId === 'number' && Number.isFinite(input.estacionamentoId)
-        ? input.estacionamentoId
+    const EstacionamentoId =
+      typeof input.EstacionamentoId === 'number' && Number.isFinite(input.EstacionamentoId)
+        ? input.EstacionamentoId
         : 0;
 
     const perfilNome = String(input.perfilNome ?? input.perfilId ?? '').trim();
@@ -199,7 +210,7 @@ export class AcessosUsuariosService {
 
     const payload: RegisterInput = {
       userName,
-      estacionamentoId,
+      EstacionamentoId,
       pessoa: {
         id: pessoaId,
         nome: nomePessoa,

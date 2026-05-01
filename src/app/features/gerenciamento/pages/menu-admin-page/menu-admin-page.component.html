@@ -1,9 +1,11 @@
 <div class="menu-admin tab-content">
-  <p class="page-description">
-    Gerencie menus, submenus, permissões e ordem (arrastar). O botão
-    <strong>Salvar</strong> envia apenas a <strong>ordem</strong> dos menus e submenus (API
-    OrganizarMenus).
-  </p>
+  <section class="filter-card menu-admin__intro" aria-label="Sobre esta tela">
+    <p class="page-description">
+      Gerencie menus, submenus, permissões e ordem (arrastar). O botão
+      <strong>Salvar</strong> envia apenas a <strong>ordem</strong> dos menus e submenus (API
+      OrganizarMenus).
+    </p>
+  </section>
 
   @if (carregandoLista()) {
     <p class="menu-admin__status" role="status">Carregando menus do servidor…</p>
@@ -55,6 +57,9 @@
           <span class="material-symbols-outlined menu-card__icon">{{ menu.icone }}</span>
           <div class="menu-card__titles">
             <span class="menu-card__name">{{ menu.nome }}</span>
+            @if (menu.rota) {
+              <code class="menu-card__route">{{ menu.rota }}</code>
+            }
           </div>
           <span class="badge badge--toggle" [class.badge--off]="!menu.ativo">
             {{ menu.ativo ? 'Ativo' : 'Inativo' }}
@@ -155,6 +160,17 @@
             [disabled]="salvandoMenuModal()"
           />
         </div>
+        <div class="form-group">
+          <label for="m-rota">Rota</label>
+          <input
+            id="m-rota"
+            class="input-control"
+            [(ngModel)]="menuFormRota"
+            placeholder="/app/configuracoes"
+            [disabled]="salvandoMenuModal()"
+          />
+          <span class="form-hint">Caminho base do módulo no app (ex.: <code>/app/gerenciamento</code>). Se vazio, é gerado a partir do nome.</span>
+        </div>
         @if (menuEditId() !== null) {
           <label class="form-row-check">
             <input type="checkbox" [(ngModel)]="menuFormAtivo" [disabled]="salvandoMenuModal()" />
@@ -251,7 +267,7 @@
                 id="s-perm-custom"
                 class="input-control"
                 [(ngModel)]="novaPermissaoCustom"
-                placeholder="ex.: estacionamento.exportar"
+                placeholder="ex.: Estacionamento.exportar"
                 [disabled]="salvandoSubModal()"
                 (keyup.enter)="adicionarPermissaoCustomizada()"
               />

@@ -191,7 +191,7 @@ export function formValueToEstacionamentoPayload(
   const contaBancariaPayload = temDadosBancarios
     ? [{
         id: Number(value.contaBancariaId ?? 0) || 0,
-        estacionamentoId: value.id ?? 0,
+        EstacionamentoId: value.id ?? 0,
         titular: titularRazaoSocial,
         cpfCnpj: titularCnpj,
         banco: value.banco ?? '',

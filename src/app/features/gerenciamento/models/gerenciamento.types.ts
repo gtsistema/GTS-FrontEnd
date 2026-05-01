@@ -11,7 +11,8 @@ export interface UsuarioGerenciamentoItem {
   email?: string | null;
   emailOuLogin?: string | null;
   perfil?: string | null;
-  estacionamentoId?: number | null;
+  EstacionamentoId?: number | null;
+  EstacionamentoNome?: string | null;
   ativo?: boolean;
 }
 
@@ -28,8 +29,8 @@ export interface UsuarioGerenciamentoForm {
   senha: string;
   confirmarSenha: string;
   /** 0 = sem vínculo (contrato API). */
-  estacionamentoId: number;
-  estacionamentoLabel: string;
+  EstacionamentoId: number;
+  EstacionamentoLabel: string;
   documento: string;
   tipoPessoa: 1 | 2;
   pessoaId: number | null;

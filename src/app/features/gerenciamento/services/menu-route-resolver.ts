@@ -1,4 +1,4 @@
-import { MENU_STRUCTURE } from '../../cadastro/constants/menu-structure';
+import { MENU_STRUCTURE, type MenuSubItem } from '../../cadastro/constants/menu-structure';
 
 function norm(s: string): string {
   return s
@@ -18,6 +18,9 @@ const ALIAS_NOME_PARA_ROTA: Record<string, string> = {
   movimentos: '/app/movimentos/entrada-saida',
   'entrada e saida': '/app/movimentos/entrada-saida',
   entradaesaida: '/app/movimentos/entrada-saida',
+  /** API costuma mandar singular; rota real do SPA é plural */
+  movimento: '/app/movimentos/entrada-saida',
+  relatorio: '/app/relatorios',
   relatorios: '/app/relatorios',
   financeiro: '/app/financeiro',
   configuracoes: '/app/configuracoes',
@@ -28,9 +31,11 @@ const ALIAS_NOME_PARA_ROTA: Record<string, string> = {
   transportadora: '/app/cadastro/transportadora',
   estacionamento: '/app/cadastro/estacionamento',
   motorista: '/app/cadastro/motorista',
+  usuarios: '/app/configuracoes/usuarios',
   /** Submódulo "menu" na API ≈ aba Menu em Gerenciamento */
   menu: '/app/gerenciamento/menu',
-  acessos: '/app/gerenciamento',
+  /** Alias legado / API — gestão de usuários em Configurações */
+  acessos: '/app/configuracoes/usuarios',
   admin: '/app/gerenciamento/menu',
   perfil: '/app/gerenciamento/perfil',
 };
@@ -43,15 +48,22 @@ const ALIAS_PATH_PARA_ROTA: Record<string, string> = {
   '/app/gerenciamento': '/app/gerenciamento',
 };
 
+function matchSubItems(nomeNorm: string, subs: MenuSubItem[] | undefined): string | null {
+  if (!subs?.length) return null;
+  for (const c of subs) {
+    if (norm(c.label) === nomeNorm) return c.route;
+    const nested = matchSubItems(nomeNorm, c.children);
+    if (nested) return nested;
+  }
+  return null;
+}
+
 function tryMatchMenuStructure(nome: string): string | null {
   const key = norm(nome);
   for (const node of MENU_STRUCTURE) {
     if (norm(node.label) === key) return node.route;
-    if (node.children?.length) {
-      for (const c of node.children) {
-        if (norm(c.label) === key) return c.route;
-      }
-    }
+    const fromSubs = matchSubItems(key, node.children);
+    if (fromSubs) return fromSubs;
   }
   return null;
 }
@@ -77,11 +89,12 @@ function normalizeApiRota(raw: string | null | undefined): string | null {
   if (tl === '/app') return null;
 
   if (tl.startsWith('/app/')) {
-    return ALIAS_PATH_PARA_ROTA[t] ?? t;
+    return ALIAS_PATH_PARA_ROTA[tl] ?? t;
   }
 
   const route = `/app${t}`.replace(/\/{2,}/g, '/');
-  return ALIAS_PATH_PARA_ROTA[route] ?? route;
+  const routeL = route.toLowerCase();
+  return ALIAS_PATH_PARA_ROTA[routeL] ?? route;
 }
 
 /**

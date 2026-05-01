@@ -58,6 +58,53 @@ export interface TransportadoraDTO {
   endereco?: TransportadoraEnderecoDTO;
 }
 
+export interface TransportadoraContatoPayload {
+  pessoaId: number;
+  principal: boolean;
+  tipoContato: 1 | 2 | 3 | 4;
+  numero: string;
+  observacao: string;
+}
+
+export interface TransportadoraEnderecoPayload {
+  pessoaId: number;
+  principal: boolean;
+  tipoEndereco: 1 | 2 | 3 | 4;
+  cep: string;
+  logradouro: string;
+  numero: string;
+  complemento: string;
+  bairro: string;
+  cidade: string;
+  estado: string;
+}
+
+export interface TransportadoraPessoaPayload {
+  id: number;
+  descricao: string;
+  dataCriacao: string;
+  dataAtualizacao: string;
+  tipoPessoa: 1 | 2;
+  nomeRazaoSocial: string;
+  nomeFantasia: string;
+  documento: string;
+  email: string;
+  ativo: boolean;
+  enderecos: TransportadoraEnderecoPayload[];
+  contatos: TransportadoraContatoPayload[];
+}
+
+export interface TransportadoraPostPayload {
+  id: number;
+  descricao: string;
+  dataCriacao: string;
+  dataAtualizacao: string;
+  cnh: string;
+  validadeCNH: string;
+  pessoaId: number;
+  pessoa: TransportadoraPessoaPayload;
+}
+
 /** Resposta de ObterPorId (pode vir em result ou direto) */
 export interface TransportadoraObterPorIdResultDTO {
   id: number;

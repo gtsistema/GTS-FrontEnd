@@ -34,6 +34,17 @@ export const routes: Routes = [
 				path: 'dashboard',
 				children: DASHBOARD_ROUTES
 			},
+			// Nome singular vindo da API / links antigos → rota real do SPA
+			{
+				path: 'movimento',
+				redirectTo: 'movimentos',
+				pathMatch: 'full',
+			},
+			{
+				path: 'relatorio',
+				redirectTo: 'relatorios',
+				pathMatch: 'full',
+			},
 			// 3. MOVIMENTOS
 			{
 				path: 'movimentos',
@@ -53,6 +64,12 @@ export const routes: Routes = [
 			{
 				path: 'configuracoes',
 				children: CONFIGURACOES_ROUTES
+			},
+			// Legado / bookmark: /app/usuarios → gestão em Configurações
+			{
+				path: 'usuarios',
+				redirectTo: 'configuracoes/usuarios',
+				pathMatch: 'full',
 			},
 			// 7. GERENCIAMENTO
 			{
