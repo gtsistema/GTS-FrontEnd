@@ -4,12 +4,66 @@
 }
 
 .login-page {
+  position: relative;
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 2rem;
-  background: var(--app-bg);
+  padding-top: max(4.5rem, env(safe-area-inset-top));
+  box-sizing: border-box;
+  background: var(--login-shell-bg, var(--app-bg));
+}
+
+/** Fundo mais cinza no tema claro — melhor contraste com o card branco */
+:host-context(html.theme-light) .login-page {
+  --login-shell-bg: linear-gradient(165deg, #c7d0dc 0%, #b6c1d0 45%, #aab6c8 100%);
+}
+
+.login-page__toolbar {
+  position: absolute;
+  top: max(12px, env(safe-area-inset-top));
+  right: max(16px, env(safe-area-inset-right));
+  z-index: 2;
+}
+
+.theme-switcher__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm, 8px);
+  height: 40px;
+  padding: 0 var(--space-md, 14px);
+  border: 1px solid rgba(80, 120, 255, 0.22);
+  border-radius: 12px;
+  background: rgba(12, 24, 44, 0.72);
+  color: var(--text, #e8edf7);
+  font-size: var(--font-body, 14px);
+  font-weight: var(--font-weight-body, 500);
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.theme-switcher__btn:hover {
+  background: var(--surface-2, #1e2a45);
+  border-color: rgba(91, 124, 255, 0.38);
+  color: var(--primary, var(--accent));
+}
+
+.theme-switcher__icon {
+  font-size: 1.25rem;
+}
+
+:host-context(html.theme-light) .theme-switcher__btn {
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(15, 23, 42, 0.12);
+  color: var(--text-primary, #0f172a);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+}
+
+:host-context(html.theme-light) .theme-switcher__btn:hover {
+  background: #fff;
+  border-color: rgba(91, 124, 255, 0.35);
+  color: var(--accent);
 }
 
 .card {
@@ -145,6 +199,25 @@ input:focus {
   transform: none;
 }
 
+/** Tema claro: botão principal legível (antes parecia sempre “desativado”) */
+:host-context(html.theme-light) .btn:not(:disabled) {
+  background: var(--accent, #5b7cff);
+  color: #fff;
+  border-color: transparent;
+}
+
+:host-context(html.theme-light) .btn:hover:not(:disabled) {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--accent, #5b7cff) 88%, #000) 0%, var(--accent, #5b7cff) 100%);
+  filter: brightness(1.05);
+  transform: translateY(-1px);
+}
+
+:host-context(html.theme-light) .btn:disabled {
+  background: rgba(15, 23, 42, 0.08);
+  color: rgba(15, 23, 42, 0.35);
+  border-color: rgba(15, 23, 42, 0.12);
+}
+
 
 
 @media (max-width: 520px) {
@@ -160,5 +233,16 @@ input:focus {
   input {
     height: 42px;
     border-radius: 10px;
+  }
+
+  .theme-switcher__label {
+    display: none;
+  }
+
+  .theme-switcher__btn {
+    min-width: 44px;
+    min-height: 44px;
+    justify-content: center;
+    padding: 0 12px;
   }
 }

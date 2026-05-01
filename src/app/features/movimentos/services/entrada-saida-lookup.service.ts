@@ -32,7 +32,7 @@ export class EntradaSaidaLookupService {
   }
 
   buscarTransportadoras(termo: string, numeroPagina: number, tamanhoPagina: number): Observable<PaginatedSearchResult> {
-    return this.transportadoraService.buscar({
+    return this.transportadoraService.listarTransportadoras({
       Termo: termo || undefined,
       NumeroPagina: numeroPagina,
       TamanhoPagina: tamanhoPagina

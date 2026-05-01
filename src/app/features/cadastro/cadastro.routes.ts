@@ -35,6 +35,13 @@ export const CADASTRO_ROUTES: Routes = [
     ]
   },
   {
+    path: 'transportadora/editar/:id',
+    loadComponent: () =>
+      import(
+        './pages/cadastro-transportadora-page/cadastro-transportadora-page.component'
+      ).then((m) => m.CadastroTransportadoraPageComponent)
+  },
+  {
     path: 'transportadora',
     loadComponent: () =>
       import(

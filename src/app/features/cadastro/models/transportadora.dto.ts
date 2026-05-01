@@ -1,3 +1,9 @@
+import type { components } from '../../../core/api/generated/api-types';
+
+/** Contrato Swagger: POST/PUT `/api/Transportadora` */
+export type TransportadoraPostInput = components['schemas']['TransportadoraPostInput'];
+export type TransportadoraPutInput = components['schemas']['TransportadoraPutInput'];
+
 /** Resposta paginada genérica da API */
 export interface PagedResultDTO<T> {
   items: T[];
@@ -35,6 +41,14 @@ export interface TransportadoraEnderecoDTO {
   complemento: string;
 }
 
+/** Contato complementar (UI / GET com lista em `pessoa.contatos`) */
+export interface TransportadoraContatoComplementarDTO {
+  nome?: string;
+  cpf?: string;
+  telefone?: string;
+  email?: string;
+}
+
 /** Dados principais da transportadora (formulário / API) */
 export interface TransportadoraDTO {
   id?: number;
@@ -51,15 +65,15 @@ export interface TransportadoraDTO {
   responsavelCelular?: string;
   responsavelEmail?: string;
   responsavelCargo?: string;
-  /** Acessos (informativo) */
-  tipoAcesso?: string;
-  observacaoInterna?: string;
+  /** Contatos adicionais (além do responsável legal) */
+  contatosComplementares?: TransportadoraContatoComplementarDTO[];
   /** Endereço */
   endereco?: TransportadoraEnderecoDTO;
 }
 
+/** Alinhado a `PessoaContatoInput` — `pessoaId` omitido no POST de novos vínculos. */
 export interface TransportadoraContatoPayload {
-  pessoaId: number;
+  pessoaId?: number;
   principal: boolean;
   tipoContato: 1 | 2 | 3 | 4;
   numero: string;
@@ -67,7 +81,7 @@ export interface TransportadoraContatoPayload {
 }
 
 export interface TransportadoraEnderecoPayload {
-  pessoaId: number;
+  pessoaId?: number;
   principal: boolean;
   tipoEndereco: 1 | 2 | 3 | 4;
   cep: string;
@@ -79,31 +93,8 @@ export interface TransportadoraEnderecoPayload {
   estado: string;
 }
 
-export interface TransportadoraPessoaPayload {
-  id: number;
-  descricao: string;
-  dataCriacao: string;
-  dataAtualizacao: string;
-  tipoPessoa: 1 | 2;
-  nomeRazaoSocial: string;
-  nomeFantasia: string;
-  documento: string;
-  email: string;
-  ativo: boolean;
-  enderecos: TransportadoraEnderecoPayload[];
-  contatos: TransportadoraContatoPayload[];
-}
-
-export interface TransportadoraPostPayload {
-  id: number;
-  descricao: string;
-  dataCriacao: string;
-  dataAtualizacao: string;
-  cnh: string;
-  validadeCNH: string;
-  pessoaId: number;
-  pessoa: TransportadoraPessoaPayload;
-}
+/** @deprecated Use `TransportadoraPostInput`. Mantido para compatibilidade de imports antigos. */
+export type TransportadoraPostPayload = TransportadoraPostInput;
 
 /** Resposta de ObterPorId (pode vir em result ou direto) */
 export interface TransportadoraObterPorIdResultDTO {
@@ -120,8 +111,6 @@ export interface TransportadoraObterPorIdResultDTO {
   responsavelCelular?: string;
   responsavelEmail?: string;
   responsavelCargo?: string;
-  tipoAcesso?: string;
-  observacaoInterna?: string;
   endereco?: TransportadoraEnderecoDTO;
   [key: string]: unknown;
 }

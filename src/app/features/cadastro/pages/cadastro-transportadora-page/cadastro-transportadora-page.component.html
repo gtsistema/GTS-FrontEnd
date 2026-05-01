@@ -97,16 +97,29 @@
               @if (erroForm) {
                 <p class="error-banner">{{ erroForm }}</p>
               }
-              <form [formGroup]="transportadoraForm" (ngSubmit)="salvarTransportadora()" class="form form-compact">
+              <form [formGroup]="transportadoraForm" (ngSubmit)="salvarTransportadora()" class="form form-compact cadastro-transportadora-form">
                 <input type="hidden" formControlName="id" />
 
-                <div class="layout-grid">
-                  <section class="card card--span-5">
+                <div class="cadastro-stack">
+                  <section class="card card--cadastro-section" formGroupName="pessoa">
                     <div class="card__header">
-                      <h2 class="card__title">Dados da transportadora</h2>
+                      <h2 class="card__title">Pessoa (responsável)</h2>
                       <p class="card__description">Campos obrigatórios marcados com *</p>
                     </div>
                     <div class="form-compact__body">
+                      <div class="form-row">
+                        <label for="razaoSocial">Razão Social <span class="required">*</span></label>
+                        <div class="form-row__input">
+                          <input id="razaoSocial" class="field__input" type="text" formControlName="razaoSocial" placeholder="Razão Social" />
+                          @if (transportadoraForm.get('pessoa.razaoSocial')?.invalid && transportadoraForm.get('pessoa.razaoSocial')?.touched) {
+                            <span class="field__error">Obrigatório. Mín. 2 caracteres.</span>
+                          }
+                        </div>
+                      </div>
+                      <div class="form-row">
+                        <label for="nomeFantasia">Nome Fantasia</label>
+                        <input id="nomeFantasia" class="field__input" type="text" formControlName="nomeFantasia" placeholder="Opcional" />
+                      </div>
                       <div class="form-row">
                         <label for="cnpj">CNPJ <span class="required">*</span></label>
                         <div class="form-row__input">
@@ -129,35 +142,23 @@
                           @if (cnpjError) {
                             <span class="field__error">{{ cnpjError }}</span>
                           }
-                          @if (transportadoraForm.get('cnpj')?.invalid && transportadoraForm.get('cnpj')?.touched && !cnpjError) {
+                          @if (transportadoraForm.get('pessoa.cnpj')?.invalid && transportadoraForm.get('pessoa.cnpj')?.touched && !cnpjError) {
                             <span class="field__error">CNPJ obrigatório.</span>
                           }
                         </div>
                       </div>
                       <div class="form-row">
-                        <label for="razaoSocial">Razão Social <span class="required">*</span></label>
+                        <label for="email-pessoa">E-mail <span class="required">*</span></label>
                         <div class="form-row__input">
-                          <input id="razaoSocial" class="field__input" type="text" formControlName="razaoSocial" placeholder="Razão Social" />
-                          @if (transportadoraForm.get('razaoSocial')?.invalid && transportadoraForm.get('razaoSocial')?.touched) {
-                            <span class="field__error">Obrigatório. Mín. 2 caracteres.</span>
+                          <input id="email-pessoa" class="field__input" type="email" formControlName="email" placeholder="email@exemplo.com" />
+                          @if (transportadoraForm.get('pessoa.email')?.invalid && transportadoraForm.get('pessoa.email')?.touched) {
+                            <span class="field__error">Informe um e-mail válido.</span>
                           }
                         </div>
                       </div>
                       <div class="form-row">
-                        <label for="nomeFantasia">Nome Fantasia</label>
-                        <input id="nomeFantasia" class="field__input" type="text" formControlName="nomeFantasia" placeholder="Nome Fantasia" />
-                      </div>
-                      <div class="form-row">
                         <label for="inscricaoEstadual">Inscrição Estadual</label>
                         <input id="inscricaoEstadual" class="field__input" type="text" formControlName="inscricaoEstadual" placeholder="Opcional" />
-                      </div>
-                      <div class="form-row">
-                        <label for="email">E-mail</label>
-                        <input id="email" class="field__input" type="email" formControlName="email" placeholder="email@exemplo.com" />
-                      </div>
-                      <div class="form-row">
-                        <label for="telefone">Telefone</label>
-                        <input id="telefone" class="field__input" type="text" formControlName="telefone" placeholder="(00) 0000-0000" appTelefoneFormat />
                       </div>
                       <div class="form-row form-row--checkbox">
                         <label>Status</label>
@@ -169,52 +170,83 @@
                     </div>
                   </section>
 
-                  <section class="card card--span-7">
-                    <div class="card__header">
-                      <h2 class="card__title">Responsável principal</h2>
-                    </div>
-                    <div class="form-compact__body">
-                      <div class="form-row">
-                        <label for="responsavelNome">Nome completo</label>
-                        <input id="responsavelNome" class="field__input" type="text" formControlName="responsavelNome" placeholder="Nome do responsável" />
+                  <section class="card card--cadastro-section card--contatos">
+                    <button
+                      type="button"
+                      class="card__header card__header--collapsible"
+                      (click)="toggleContatosSection()"
+                      [attr.aria-expanded]="contatosSectionExpanded"
+                    >
+                      <div class="card__header-text">
+                        <h2 class="card__title">Contatos (Responsável legal e complementares)</h2>
                       </div>
-                      <div class="form-row">
-                        <label for="responsavelCpf">CPF</label>
-                        <input id="responsavelCpf" class="field__input" type="text" formControlName="responsavelCpf" placeholder="000.000.000-00" maxlength="14" appCpfFormat />
-                      </div>
-                      <div class="form-row">
-                        <label for="responsavelCelular">Celular</label>
-                        <input id="responsavelCelular" class="field__input" type="text" formControlName="responsavelCelular" placeholder="(00) 00000-0000" appTelefoneFormat />
-                      </div>
-                      <div class="form-row">
-                        <label for="responsavelEmail">E-mail</label>
-                        <input id="responsavelEmail" class="field__input" type="email" formControlName="responsavelEmail" placeholder="email@exemplo.com" />
-                      </div>
-                      <div class="form-row">
-                        <label for="responsavelCargo">Cargo / Função</label>
-                        <input id="responsavelCargo" class="field__input" type="text" formControlName="responsavelCargo" placeholder="Ex.: Gerente" />
-                      </div>
+                      <span class="material-symbols-outlined card__collapse-icon" aria-hidden="true">{{ contatosSectionExpanded ? 'expand_less' : 'expand_more' }}</span>
+                    </button>
+                    <div class="form-compact__body" [hidden]="!contatosSectionExpanded">
+                        <div class="contato-bloco" formGroupName="responsavelLegal">
+                          <p class="contato-bloco__subtitle">Responsável legal</p>
+                          <div class="form-row">
+                            <label for="rl-nome">Nome</label>
+                            <input id="rl-nome" class="field__input" type="text" formControlName="nome" placeholder="Nome do responsável" />
+                          </div>
+                          <div class="form-row">
+                            <label for="rl-cpf">CPF</label>
+                            <input id="rl-cpf" class="field__input" type="text" formControlName="cpf" placeholder="000.000.000-00" maxlength="14" appCpfFormat />
+                          </div>
+                          <div class="form-row">
+                            <label for="rl-tel">Telefone</label>
+                            <input id="rl-tel" class="field__input" type="text" formControlName="telefone" placeholder="(00) 00000-0000" appTelefoneFormat />
+                          </div>
+                          <div class="form-row">
+                            <label for="rl-email">E-mail</label>
+                            <div class="form-row__input">
+                              <input id="rl-email" class="field__input" type="email" formControlName="email" placeholder="email@exemplo.com" />
+                              @if (transportadoraForm.get('responsavelLegal.email')?.invalid && transportadoraForm.get('responsavelLegal.email')?.touched) {
+                                <span class="field__error">E-mail inválido.</span>
+                              }
+                            </div>
+                          </div>
+                        </div>
+
+                        <div formArrayName="contatosComplementares">
+                          @for (ctrl of contatosComplementares.controls; track $index) {
+                            <div class="contato-bloco contato-bloco--complementar" [formGroupName]="$index">
+                              <div class="contato-bloco__head">
+                                <span class="contato-bloco__subtitle">Contato complementar</span>
+                                <button type="button" class="btn btn-danger btn--outline btn--sm" (click)="removerContatoComplementar($index)">Remover</button>
+                              </div>
+                              <div class="form-row">
+                                <label [attr.for]="'cc-nome-' + $index">Nome</label>
+                                <input [id]="'cc-nome-' + $index" class="field__input" type="text" formControlName="nome" placeholder="Nome" />
+                              </div>
+                              <div class="form-row">
+                                <label [attr.for]="'cc-cpf-' + $index">CPF</label>
+                                <input [id]="'cc-cpf-' + $index" class="field__input" type="text" formControlName="cpf" placeholder="000.000.000-00" maxlength="14" appCpfFormat />
+                              </div>
+                              <div class="form-row">
+                                <label [attr.for]="'cc-tel-' + $index">Telefone</label>
+                                <input [id]="'cc-tel-' + $index" class="field__input" type="text" formControlName="telefone" placeholder="(00) 00000-0000" appTelefoneFormat />
+                              </div>
+                              <div class="form-row">
+                                <label [attr.for]="'cc-email-' + $index">E-mail</label>
+                                <div class="form-row__input">
+                                  <input [id]="'cc-email-' + $index" class="field__input" type="email" formControlName="email" placeholder="email@exemplo.com" />
+                                  @if (ctrl.get('email')?.invalid && ctrl.get('email')?.touched) {
+                                    <span class="field__error">E-mail inválido.</span>
+                                  }
+                                </div>
+                              </div>
+                            </div>
+                          }
+                        </div>
+
+                        <button type="button" class="btn btn-secondary btn--outline btn--add-contato" (click)="adicionarContatoComplementar()">
+                          + Adicionar contato complementar
+                        </button>
                     </div>
                   </section>
 
-                  <section class="card card--span-5">
-                    <div class="card__header">
-                      <h2 class="card__title">Acessos</h2>
-                      <p class="card__description card__description--small">Acesso criado pelo admin. Tipo: Unidade única.</p>
-                    </div>
-                    <div class="form-compact__body">
-                      <div class="form-row">
-                        <label for="tipoAcesso">Tipo de acesso</label>
-                        <input id="tipoAcesso" class="field__input field__input--readonly" type="text" formControlName="tipoAcesso" placeholder="Unidade única" readonly />
-                      </div>
-                      <div class="form-row">
-                        <label for="observacaoInterna">Observação interna</label>
-                        <input id="observacaoInterna" class="field__input" type="text" formControlName="observacaoInterna" placeholder="Opcional" />
-                      </div>
-                    </div>
-                  </section>
-
-                  <section class="card card--span-7" formGroupName="endereco">
+                  <section class="card card--cadastro-section" formGroupName="endereco">
                     <div class="card__header">
                       <h2 class="card__title">Endereço</h2>
                     </div>
@@ -262,7 +294,7 @@
                   </div>
                   <div class="form-actions-bar__right">
                     <button type="button" class="btn btn-secondary" (click)="voltarLista()">Cancelar</button>
-                    <button type="submit" class="btn btn-primary" [disabled]="salvando">{{ salvando ? 'Salvando...' : 'Salvar tudo' }}</button>
+                    <button type="submit" class="btn btn-primary" [disabled]="salvando">{{ salvando ? 'Salvando...' : 'Salvar cadastro' }}</button>
                   </div>
                 </div>
               </form>
@@ -292,7 +324,7 @@
           </div>
 
           @if (transportadoraId == null) {
-            <p class="frota-hint">Você já pode cadastrar as placas. Ao salvar a transportadora, a frota pendente será enviada junto.</p>
+            <p class="frota-hint">Salve o cadastro da transportadora na aba <strong>Cadastro</strong> antes de salvar veículos nesta aba. Cada veículo é enviado em uma requisição própria para a API.</p>
           }
 
           @if (transportadoraId != null || veiculos.length > 0) {
@@ -302,9 +334,7 @@
               <section class="card frota-list-card">
                 <div class="card__header">
                   <h2 class="card__title">Frota cadastrada</h2>
-                  <p class="card__description">
-                    {{ transportadoraId != null ? 'Veículos vinculados a esta transportadora.' : 'Veículos pendentes para salvar junto com a transportadora.' }}
-                  </p>
+                  <p class="card__description">Veículos vinculados a esta transportadora.</p>
                 </div>
                 <div class="table-wrap">
                   <table class="data-table">
@@ -365,7 +395,7 @@
             </button>
           </div>
           @if (transportadoraId == null) {
-            <p class="frota-hint">Você já pode adicionar motoristas e continuar o preenchimento antes de salvar a transportadora.</p>
+            <p class="frota-hint">Salve o cadastro da transportadora na aba <strong>Cadastro</strong> antes de salvar motoristas nesta aba. Cada motorista é enviado em uma requisição própria para a API.</p>
           }
           @if (loadingCondutores) {
             <p class="loading-msg">Carregando motoristas...</p>
@@ -425,7 +455,7 @@
         <form [formGroup]="veiculoForm" (ngSubmit)="salvarVeiculo()">
           <div class="modal-body modal-body--frota-compact">
             @if (transportadoraId == null) {
-              <p class="modal-frota-hint" role="alert">Este veículo ficará pendente e será salvo junto quando você salvar a transportadora na aba <strong>Cadastro</strong>.</p>
+              <p class="modal-frota-hint" role="alert">Salve primeiro o cadastro da transportadora na aba <strong>Cadastro</strong>. Depois disso, use <strong>Salvar veículo</strong> para enviar apenas os dados do veículo à API.</p>
             }
             <div class="form-row">
               <label for="frota-placa">Placa <span class="required">*</span></label>
@@ -495,7 +525,7 @@
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" (click)="fecharModalFrota()">Fechar</button>
             <button type="submit" class="btn btn-primary" [disabled]="veiculoForm.invalid || salvandoVeiculo">
-              {{ salvandoVeiculo ? 'Salvando...' : 'Salvar frota' }}
+              {{ salvandoVeiculo ? 'Salvando...' : 'Salvar veículo' }}
             </button>
           </div>
         </form>
@@ -516,10 +546,10 @@
           <h2 id="modal-condutor-title">{{ condutorEditId ? 'Editar motorista' : 'Novo motorista' }}</h2>
           <button type="button" class="modal-close" aria-label="Fechar" (click)="fecharModalCondutor()">&times;</button>
         </div>
-        <form [formGroup]="condutorForm" (ngSubmit)="salvarCondutor()">
+        <form [formGroup]="motoristaForm" (ngSubmit)="salvarMotorista()">
           <div class="modal-body modal-body--frota-compact">
             @if (transportadoraId == null) {
-              <p class="modal-frota-hint" role="alert">Você pode cadastrar motoristas agora. Eles permanecem na tela durante o preenchimento.</p>
+              <p class="modal-frota-hint" role="alert">Salve primeiro o cadastro da transportadora na aba <strong>Cadastro</strong>. Depois disso, use <strong>Salvar motorista</strong> para enviar apenas os dados do motorista à API.</p>
             }
             <div class="form-row">
               <label for="cond-nome">Nome completo <span class="required">*</span></label>
@@ -551,7 +581,9 @@
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" (click)="fecharModalCondutor()">Fechar</button>
-            <button type="submit" class="btn btn-primary" [disabled]="condutorForm.invalid">Salvar</button>
+            <button type="submit" class="btn btn-primary" [disabled]="motoristaForm.invalid || salvandoMotorista">
+              {{ salvandoMotorista ? 'Salvando...' : 'Salvar motorista' }}
+            </button>
           </div>
         </form>
       </div>

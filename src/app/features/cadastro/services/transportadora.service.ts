@@ -1,6 +1,6 @@
-import { Injectable } from '@angular/core';
+import { Injectable, isDevMode } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, catchError, map, of, throwError, timeout } from 'rxjs';
+import { Observable, catchError, map, of, tap, throwError, timeout } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import {
   TransportadoraDTO,
@@ -8,8 +8,9 @@ import {
   TransportadoraBuscarParams,
   PagedResultDTO,
   TransportadoraObterPorIdResultDTO,
-  TransportadoraPostPayload
+  TransportadoraContatoComplementarDTO
 } from '../models/transportadora.dto';
+import { decodeTrspc1Meta, TRSPC1_PREFIX } from '../mappers/transportadora-contato.mapper';
 
 /** Base da API. Contrato: GET/POST/PUT em `/api/Transportadora`, GET/DELETE em `/api/Transportadora/{id}`. */
 const API_BASE = environment.API_BASE_URL;
@@ -22,10 +23,9 @@ export class TransportadoraService {
   constructor(private http: HttpClient) {}
 
   /**
-   * GET /api/Transportadora?RazaoSocial|Descricao|... — listagem.
-   * `Termo` do legado mapeia para `Descricao` (OpenAPI).
+   * GET /api/Transportadora — listagem paginada.
    */
-  buscar(params: TransportadoraBuscarParams): Observable<PagedResultDTO<TransportadoraListItemDTO>> {
+  listarTransportadoras(params: TransportadoraBuscarParams): Observable<PagedResultDTO<TransportadoraListItemDTO>> {
     const query = new URLSearchParams();
     const termo = params.Termo?.trim();
     if (termo) query.set('Descricao', termo);
@@ -35,9 +35,77 @@ export class TransportadoraService {
     const url = `${TRANSPORTADORA}?${query.toString()}`;
     return this.http.get<unknown>(url).pipe(
       timeout(15000),
+      tap((body) => {
+        if (isDevMode()) {
+          console.log('RETORNO API', body);
+        }
+      }),
       map((body) => this.normalizeBuscarResponse(body, params.NumeroPagina, params.TamanhoPagina)),
       catchError((err) => throwError(() => err))
     );
+  }
+
+  /** @deprecated Use `listarTransportadoras`. */
+  buscar(params: TransportadoraBuscarParams): Observable<PagedResultDTO<TransportadoraListItemDTO>> {
+    return this.listarTransportadoras(params);
+  }
+
+  /**
+   * GET /api/Transportadora/{id} — detalhe para o formulário + corpo bruto para merge no PUT.
+   */
+  obterTransportadoraPorIdComCorpo(
+    id: number
+  ): Observable<{ dto: TransportadoraDTO; raw: Record<string, unknown> } | null> {
+    return this.http.get<unknown>(`${TRANSPORTADORA}/${id}`).pipe(
+      timeout(15000),
+      map((body) => {
+        const result = this.unwrapTransportadoraObterPorIdBody(body);
+        if (
+          result &&
+          typeof result === 'object' &&
+          (result.id != null || (result as Record<string, unknown>)['Id'] != null)
+        ) {
+          const raw = result as Record<string, unknown>;
+          return { dto: this.mapToDto(result), raw };
+        }
+        return null;
+      }),
+      catchError(() => of(null))
+    );
+  }
+
+  /**
+   * GET /api/Transportadora/{id} — apenas DTO mapeado (telas que não precisam do merge PUT).
+   */
+  obterTransportadoraPorId(id: number): Observable<TransportadoraDTO | null> {
+    return this.obterTransportadoraPorIdComCorpo(id).pipe(map((x) => x?.dto ?? null));
+  }
+
+  /** @deprecated Use `obterTransportadoraPorId`. */
+  obterPorId(id: number): Observable<TransportadoraDTO | null> {
+    return this.obterTransportadoraPorId(id);
+  }
+
+  /**
+   * Suporta envelope simples ou aninhado (`result.result...`), alinhado ao GET de listagem.
+   */
+  private unwrapTransportadoraObterPorIdBody(
+    body: unknown
+  ): (TransportadoraObterPorIdResultDTO & Record<string, unknown>) | null {
+    let cur: unknown = body;
+    for (let depth = 0; depth < 8 && cur != null && typeof cur === 'object'; depth++) {
+      const o = cur as Record<string, unknown>;
+      if (o['id'] != null || o['Id'] != null) {
+        return o as TransportadoraObterPorIdResultDTO & Record<string, unknown>;
+      }
+      const inner = o['result'];
+      if (inner != null && typeof inner === 'object') {
+        cur = inner;
+        continue;
+      }
+      break;
+    }
+    return null;
   }
 
   private normalizeBuscarResponse(
@@ -53,16 +121,26 @@ export class TransportadoraService {
       total = raw.length;
     } else if (raw && typeof raw === 'object') {
       const r = raw as Record<string, unknown>;
-      if (Array.isArray(r['results'])) {
+      /** Envelope comum: { success, message, result: { results, rowCount, ... } } */
+      const wrapped = r['result'];
+      if (wrapped && typeof wrapped === 'object' && !Array.isArray(wrapped)) {
+        const inner = wrapped as Record<string, unknown>;
+        if (Array.isArray(inner['results'])) {
+          list = inner['results'];
+          const rc = inner['rowCount'] ?? inner['RowCount'];
+          total = rc != null && String(rc).trim() !== '' ? Number(rc) : list.length;
+        }
+      }
+      if (list.length === 0 && Array.isArray(r['results'])) {
         list = r['results'];
         total = Number((r as { rowCount?: number }).rowCount) ?? list.length;
-      } else if (Array.isArray(r['items'])) {
+      } else if (list.length === 0 && Array.isArray(r['items'])) {
         list = r['items'];
         total = Number(r['totalCount']) ?? list.length;
-      } else if (Array.isArray(r['itens'])) {
+      } else if (list.length === 0 && Array.isArray(r['itens'])) {
         list = r['itens'];
         total = Number((r as { totalRegistros?: number }).totalRegistros) ?? list.length;
-      } else if (Array.isArray(r['result'])) {
+      } else if (list.length === 0 && Array.isArray(r['result'])) {
         list = r['result'];
         total = list.length;
       }
@@ -76,27 +154,13 @@ export class TransportadoraService {
     return {
       id: Number(get('id') ?? get('Id')) || 0,
       razaoSocial: String(get('razaoSocial') ?? get('RazaoSocial') ?? ''),
-      nomeFantasia: String(get('nomeFantasia') ?? get('NomeFantasia') ?? ''),
+      nomeFantasia: String(
+        get('nomeFantasia') ?? get('NomeFantasia') ?? get('fantasia') ?? get('Fantasia') ?? ''
+      ),
       cnpj: String(get('cnpj') ?? get('Cnpj') ?? ''),
       email: String(get('email') ?? get('Email') ?? ''),
       ativo: get('ativo') !== false && get('Ativo') !== false
     };
-  }
-
-  /** GET /api/Transportadora/{id} */
-  obterPorId(id: number): Observable<TransportadoraDTO | null> {
-    return this.http.get<unknown>(`${TRANSPORTADORA}/${id}`).pipe(
-      timeout(15000),
-      map((body) => {
-        const res = body as Record<string, unknown> | TransportadoraObterPorIdResultDTO;
-        const result = (res && typeof res === 'object' && 'result' in res ? (res as Record<string, unknown>)['result'] : res) as TransportadoraObterPorIdResultDTO | undefined;
-        if (result && typeof result === 'object' && (result.id != null || (result as Record<string, unknown>)['Id'] != null)) {
-          return this.mapToDto(result);
-        }
-        return null;
-      }),
-      catchError(() => of(null))
-    );
   }
 
   private mapToDto(r: TransportadoraObterPorIdResultDTO & Record<string, unknown>): TransportadoraDTO {
@@ -104,10 +168,53 @@ export class TransportadoraService {
     const pessoa = get('pessoa') as Record<string, unknown> | undefined;
     const end = (r.endereco as Record<string, unknown> | undefined) ??
       ((pessoa?.['enderecos'] as Record<string, unknown>[] | undefined)?.[0]);
-    const contato = (pessoa?.['contatos'] as Record<string, unknown>[] | undefined)?.[0];
     const getPessoa = (key: string) => pessoa?.[key] ?? pessoa?.[key.charAt(0).toUpperCase() + key.slice(1)];
     const getEnd = (key: string) => end?.[key] ?? end?.[key.charAt(0).toUpperCase() + key.slice(1)];
-    const getContato = (key: string) => contato?.[key] ?? contato?.[key.charAt(0).toUpperCase() + key.slice(1)];
+
+    const contatosRaw = (pessoa?.['contatos'] as Record<string, unknown>[] | undefined) ?? [];
+    const sorted = this.ordenarContatosPrincipalPrimeiro(contatosRaw);
+    const legal = sorted[0];
+    const complementRows = sorted.slice(1);
+
+    const obsLegal = String(legal?.['observacao'] ?? legal?.['Observacao'] ?? '');
+    const metaLegal = decodeTrspc1Meta(obsLegal);
+    const numeroLegal = String(legal?.['numero'] ?? legal?.['Numero'] ?? '').trim();
+    const primeiroContatoEhNovoFormato =
+      obsLegal.startsWith(TRSPC1_PREFIX) || complementRows.length > 0;
+
+    const pickMetaOuFlat = (metaVal: string | undefined, flatKey: string): string | undefined => {
+      const m = metaVal?.trim();
+      if (m) return m;
+      const f = get(flatKey);
+      return f != null && String(f).trim() !== '' ? String(f).trim() : undefined;
+    };
+
+    const complementares: TransportadoraContatoComplementarDTO[] = complementRows.map((row) => {
+      const meta = decodeTrspc1Meta(String(row['observacao'] ?? row['Observacao'] ?? ''));
+      const tel = String(row['numero'] ?? row['Numero'] ?? '').trim();
+      return {
+        nome: meta.n?.trim() || undefined,
+        cpf: meta.c?.trim() || undefined,
+        email: meta.e?.trim() || undefined,
+        telefone: tel || undefined
+      };
+    });
+
+    const telefoneRaiz = get('telefone') != null ? String(get('telefone')).trim() : '';
+    const celularFlat =
+      get('responsavelCelular') != null ? String(get('responsavelCelular')).trim() : '';
+
+    let telefoneDto: string | undefined;
+    let responsavelCelularDto: string | undefined;
+
+    if (primeiroContatoEhNovoFormato) {
+      telefoneDto = numeroLegal || undefined;
+      responsavelCelularDto = numeroLegal || celularFlat || undefined;
+    } else {
+      telefoneDto = numeroLegal || telefoneRaiz || undefined;
+      responsavelCelularDto = celularFlat || undefined;
+    }
+
     return {
       id: Number(get('id')) || 0,
       razaoSocial: String(get('razaoSocial') ?? getPessoa('nomeRazaoSocial') ?? ''),
@@ -115,15 +222,14 @@ export class TransportadoraService {
       cnpj: String(get('cnpj') ?? getPessoa('documento') ?? ''),
       inscricaoEstadual: get('inscricaoEstadual') != null ? String(get('inscricaoEstadual')) : undefined,
       email: String(get('email') ?? getPessoa('email') ?? ''),
-      telefone: String(get('telefone') ?? getContato('numero') ?? ''),
+      telefone: telefoneDto,
       ativo: (get('ativo') ?? getPessoa('ativo')) !== false,
-      responsavelNome: get('responsavelNome') != null ? String(get('responsavelNome')) : undefined,
-      responsavelCpf: get('responsavelCpf') != null ? String(get('responsavelCpf')) : undefined,
-      responsavelCelular: get('responsavelCelular') != null ? String(get('responsavelCelular')) : undefined,
-      responsavelEmail: get('responsavelEmail') != null ? String(get('responsavelEmail')) : undefined,
-      responsavelCargo: get('responsavelCargo') != null ? String(get('responsavelCargo')) : undefined,
-      tipoAcesso: get('tipoAcesso') != null ? String(get('tipoAcesso')) : undefined,
-      observacaoInterna: get('observacaoInterna') != null ? String(get('observacaoInterna')) : undefined,
+      responsavelNome: pickMetaOuFlat(metaLegal.n, 'responsavelNome'),
+      responsavelCpf: pickMetaOuFlat(metaLegal.c, 'responsavelCpf'),
+      responsavelCelular: responsavelCelularDto,
+      responsavelEmail: pickMetaOuFlat(metaLegal.e, 'responsavelEmail'),
+      responsavelCargo: pickMetaOuFlat(metaLegal.g, 'responsavelCargo'),
+      contatosComplementares: complementares.length > 0 ? complementares : undefined,
       endereco: end && typeof end === 'object'
         ? {
             cep: String(getEnd('cep') ?? ''),
@@ -138,62 +244,136 @@ export class TransportadoraService {
     };
   }
 
-  /** POST /api/Transportadora */
-  gravar(payload: TransportadoraPostPayload): Observable<TransportadoraDTO> {
-    return this.http.post<TransportadoraDTO>(TRANSPORTADORA, payload).pipe(
+  private ordenarContatosPrincipalPrimeiro(contatos: Record<string, unknown>[]): Record<string, unknown>[] {
+    return [...contatos].sort((a, b) => {
+      const pa = a['principal'] === true || a['Principal'] === true ? 1 : 0;
+      const pb = b['principal'] === true || b['Principal'] === true ? 1 : 0;
+      return pb - pa;
+    });
+  }
+
+  /**
+   * POST /api/Transportadora
+   */
+  criarTransportadora(payload: Record<string, unknown>): Observable<TransportadoraDTO> {
+    if (isDevMode()) {
+      console.log('PAYLOAD TRANSPORTADORA', payload);
+    }
+    return this.http.post<unknown>(TRANSPORTADORA, payload).pipe(
       timeout(15000),
-      map((res) => {
-        const returnedId = res && typeof res === 'object'
-          ? (res as { id?: number }).id ?? (res as { Id?: number }).Id
-          : undefined;
-        return this.mapPayloadToDto(payload, returnedId);
-      }),
+      map((res) => this.normalizeSalvarResponse(payload, res)),
       catchError((err) => throwError(() => err))
     );
   }
 
-  /** PUT /api/Transportadora */
-  alterar(payload: TransportadoraPostPayload): Observable<TransportadoraDTO> {
-    return this.http.put<TransportadoraDTO>(TRANSPORTADORA, payload).pipe(
+  /** @deprecated Use `criarTransportadora`. */
+  gravar(payload: Record<string, unknown>): Observable<TransportadoraDTO> {
+    return this.criarTransportadora(payload);
+  }
+
+  /**
+   * PUT /api/Transportadora
+   */
+  atualizarTransportadora(payload: Record<string, unknown>): Observable<TransportadoraDTO> {
+    if (isDevMode()) {
+      console.log('PAYLOAD TRANSPORTADORA', payload);
+    }
+    return this.http.put<unknown>(TRANSPORTADORA, payload).pipe(
       timeout(15000),
-      map((res) => {
-        const returnedId = res && typeof res === 'object'
-          ? (res as { id?: number }).id ?? (res as { Id?: number }).Id
-          : undefined;
-        return this.mapPayloadToDto(payload, returnedId);
-      }),
+      map((res) => this.normalizeSalvarResponse(payload, res)),
       catchError((err) => throwError(() => err))
     );
   }
 
-  /** DELETE /api/Transportadora/{id} */
-  excluir(id: number): Observable<void> {
+  /** @deprecated Use `atualizarTransportadora`. */
+  alterar(payload: Record<string, unknown>): Observable<TransportadoraDTO> {
+    return this.atualizarTransportadora(payload);
+  }
+
+  /**
+   * DELETE /api/Transportadora/{id}
+   */
+  excluirTransportadora(id: number): Observable<void> {
     return this.http.delete<void>(`${TRANSPORTADORA}/${id}`).pipe(
       timeout(15000),
       catchError((err) => throwError(() => err))
     );
   }
 
-  private mapPayloadToDto(payload: TransportadoraPostPayload, returnedId?: number): TransportadoraDTO {
-    const endereco = payload.pessoa.enderecos?.[0];
-    const contato = payload.pessoa.contatos?.[0];
+  /** @deprecated Use `excluirTransportadora`. */
+  excluir(id: number): Observable<void> {
+    return this.excluirTransportadora(id);
+  }
+
+  private normalizeSalvarResponse(payload: Record<string, unknown>, res: unknown): TransportadoraDTO {
+    const returnedId =
+      res && typeof res === 'object'
+        ? (res as { id?: number }).id ?? (res as { Id?: number }).Id
+        : undefined;
+    return this.mapPayloadToDto(payload, returnedId != null ? Number(returnedId) : undefined);
+  }
+
+  /**
+   * Suporta body novo `{ transportadora: { … } }` ou legado `{ pessoa: { … } }`.
+   */
+  private mapPayloadToDto(payload: Record<string, unknown>, returnedId?: number): TransportadoraDTO {
+    const body =
+      (payload['transportadora'] as Record<string, unknown> | undefined) ??
+      (payload as Record<string, unknown>);
+    const pessoaNested = body['pessoa'] as Record<string, unknown> | undefined;
+    const pessoa =
+      pessoaNested && typeof pessoaNested === 'object'
+        ? pessoaNested
+        : (body as Record<string, unknown>);
+    const enderecos = pessoa['enderecos'] as Record<string, unknown>[] | undefined;
+    const endereco = enderecos?.[0];
+    const contatos =
+      (pessoa['contatos'] as { principal?: boolean; observacao?: string; numero?: string }[] | undefined) ?? [];
+    const sorted = [...contatos].sort(
+      (a, b) => (b.principal === true ? 1 : 0) - (a.principal === true ? 1 : 0)
+    );
+    const legal = sorted[0];
+    const compPayload = sorted.slice(1);
+
+    const metaLegal = decodeTrspc1Meta(legal?.observacao ?? '');
+    const complementares: TransportadoraContatoComplementarDTO[] = compPayload.map((row) => {
+      const meta = decodeTrspc1Meta(row.observacao ?? '');
+      return {
+        nome: meta.n,
+        cpf: meta.c,
+        email: meta.e,
+        telefone: row.numero ?? undefined
+      };
+    });
+
+    const pid = Number(body['id'] ?? payload['id'] ?? 0) || 0;
+
     return {
-      id: returnedId ?? payload.id,
-      razaoSocial: payload.pessoa.nomeRazaoSocial ?? '',
-      nomeFantasia: payload.pessoa.nomeFantasia ?? '',
-      cnpj: payload.pessoa.documento ?? '',
-      email: payload.pessoa.email ?? '',
-      telefone: contato?.numero ? contato.numero : undefined,
-      ativo: payload.pessoa.ativo !== false,
+      id: returnedId ?? pid,
+      razaoSocial: String(pessoa['nomeRazaoSocial'] ?? ''),
+      nomeFantasia: String(pessoa['nomeFantasia'] ?? ''),
+      cnpj: String(pessoa['documento'] ?? ''),
+      email: String(pessoa['email'] ?? ''),
+      telefone:
+        legal?.numero != null && String(legal.numero).trim() !== ''
+          ? String(legal.numero)
+          : undefined,
+      ativo: pessoa['ativo'] !== false,
+      responsavelNome: metaLegal.n,
+      responsavelCpf: metaLegal.c,
+      responsavelCelular: legal?.numero != null ? String(legal.numero) : undefined,
+      responsavelEmail: metaLegal.e,
+      responsavelCargo: metaLegal.g,
+      contatosComplementares: complementares.length > 0 ? complementares : undefined,
       endereco: endereco
         ? {
-            cep: endereco.cep ?? '',
-            logradouro: endereco.logradouro ?? '',
-            numero: endereco.numero ?? '',
-            bairro: endereco.bairro ?? '',
-            cidade: endereco.cidade ?? '',
-            estado: endereco.estado ?? '',
-            complemento: endereco.complemento ?? ''
+            cep: String(endereco['cep'] ?? ''),
+            logradouro: String(endereco['logradouro'] ?? ''),
+            numero: String(endereco['numero'] ?? ''),
+            bairro: String(endereco['bairro'] ?? ''),
+            cidade: String(endereco['cidade'] ?? ''),
+            estado: String(endereco['estado'] ?? ''),
+            complemento: String(endereco['complemento'] ?? '')
           }
         : undefined
     };

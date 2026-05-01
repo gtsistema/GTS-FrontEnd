@@ -1,10 +1,12 @@
-import { ChangeDetectorRef, Component } from '@angular/core';
+import { ChangeDetectorRef, Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators, FormGroup } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { AuthService } from '../../../../core/services/auth.service';
 import { ToastService } from '../../../../core/api/services/toast.service';
+import { ThemeService, ThemeMode } from '../../../../core/services/theme.service';
 
 @Component({
   selector: 'app-login-page',
@@ -14,8 +16,14 @@ import { ToastService } from '../../../../core/api/services/toast.service';
   styleUrls: ['./login-page.component.scss']
 })
 export class LoginPageComponent {
+  private themeService = inject(ThemeService);
+  private destroyRef = inject(DestroyRef);
+
   readonly form: FormGroup;
   loading = false;
+
+  private themeMode = signal<ThemeMode>('dark');
+  readonly currentMode = computed(() => this.themeMode());
 
   constructor(
     private fb: FormBuilder,
@@ -24,10 +32,19 @@ export class LoginPageComponent {
     private toast: ToastService,
     private cdr: ChangeDetectorRef
   ) {
+    this.themeMode.set(this.themeService.getCurrentTheme().mode);
+    this.themeService.theme$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((t) => this.themeMode.set(t.mode));
     this.form = this.fb.group({
       username: ['', [Validators.required, Validators.minLength(3)]],
       password: ['', [Validators.required, Validators.minLength(5)]],
     });
+  }
+
+  toggleTheme(): void {
+    const next = this.themeMode() === 'dark' ? 'light' : 'dark';
+    this.themeService.setThemeMode(next);
   }
 
   get username() {

@@ -167,13 +167,114 @@
   .layout-grid .card--span-7 {
     grid-column: span 1;
   }
+
+  .layout-grid .card--span-full {
+    grid-column: 1 / -1;
+  }
 }
 
 @media (max-width: 1023px) {
   .layout-grid .card--span-5,
-  .layout-grid .card--span-7 {
+  .layout-grid .card--span-7,
+  .layout-grid .card--span-full {
     grid-column: 1 / -1;
   }
+}
+
+/* ========== Aba Cadastro: cards empilhados (referência) ========== */
+.cadastro-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-16);
+  margin-bottom: var(--space-16);
+  min-width: 0;
+}
+
+.card--cadastro-section {
+  width: 100%;
+}
+
+.card__header--collapsible {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-12);
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+}
+
+.card__header--collapsible:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.card__header-text .card__title {
+  margin: 0;
+}
+
+.card__collapse-icon {
+  flex-shrink: 0;
+  font-size: 22px;
+  opacity: 0.88;
+}
+
+.contato-bloco {
+  padding-bottom: var(--space-12);
+  margin-bottom: var(--space-12);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.contato-bloco:last-of-type {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.contato-bloco--complementar {
+  padding-top: var(--space-8);
+}
+
+.contato-bloco__subtitle {
+  margin: 0 0 var(--space-10) 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.contato-bloco__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-12);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-10);
+}
+
+.contato-bloco__head .contato-bloco__subtitle {
+  margin: 0;
+}
+
+.btn--sm {
+  height: 32px;
+  padding: 0 12px;
+  font-size: 0.875rem;
+}
+
+.btn--add-contato {
+  width: 100%;
+  margin-top: var(--space-8);
+}
+
+.card--contatos .form-compact__body[hidden] {
+  display: none !important;
 }
 
 /* ========== Botões (mesmo padrão Estacionamento) */
@@ -297,12 +398,6 @@
   font-size: var(--label-size);
   color: var(--muted);
   line-height: 1.4;
-}
-
-.card__description--small {
-  font-size: 0.75rem;
-  color: var(--muted);
-  opacity: 0.9;
 }
 
 .card .form-grid {
@@ -443,12 +538,6 @@
 
 .field__input::placeholder {
   color: var(--muted);
-}
-
-.field__input--readonly {
-  background: rgba(255, 255, 255, 0.04);
-  color: var(--muted);
-  cursor: default;
 }
 
 .field__error {
@@ -906,6 +995,48 @@
 
 .modal-content--frota .modal-close:hover {
   background: #252f4a;
+  color: var(--text);
+}
+
+/* Tema claro: modal frota legível (tokens globais; não altera dark) */
+:host-context(html.theme-light) .modal-content--frota .modal-body .input-control {
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  color: var(--input-text);
+}
+
+:host-context(html.theme-light) .modal-content--frota .modal-body .input-control:hover {
+  background: var(--surface-2);
+  border-color: var(--border);
+}
+
+:host-context(html.theme-light) .modal-content--frota .modal-body .input-control:focus {
+  background: var(--input-bg);
+  border-color: var(--focus);
+  box-shadow: var(--focus-ring);
+}
+
+:host-context(html.theme-light) .modal-content--frota .modal-body select.input-control,
+:host-context(html.theme-light) .modal-content--frota .modal-body .input-control--select {
+  color: var(--input-text);
+  background-color: var(--input-bg);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none' stroke='%2364748b' stroke-width='2'%3E%3Cpath d='M2 4l4 4 4-4'/%3E%3C/svg%3E");
+  color-scheme: light;
+}
+
+:host-context(html.theme-light) .modal-content--frota .modal-body select.input-control option,
+:host-context(html.theme-light) .modal-content--frota .modal-body .input-control--select option {
+  background: var(--surface);
+  color: var(--text);
+}
+
+:host-context(html.theme-light) .modal-content--frota .modal-footer {
+  border-top-color: var(--border-subtle);
+  background: var(--surface-2);
+}
+
+:host-context(html.theme-light) .modal-content--frota .modal-close:hover {
+  background: var(--table-row-hover);
   color: var(--text);
 }
 

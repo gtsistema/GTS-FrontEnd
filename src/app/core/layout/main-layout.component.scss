@@ -75,21 +75,21 @@
   min-height: 0;
   overflow-x: hidden;
   transition: margin-left 0.3s ease;
-  border-left: 1px solid rgba(80, 120, 255, 0.12);
-  box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.04);
+  border-left: 1px solid var(--layout-right-border, rgba(80, 120, 255, 0.12));
+  box-shadow: var(--layout-right-inset, inset 1px 0 0 rgba(255, 255, 255, 0.04));
 }
 
-/* Topbar: fundo sólido, sem blur/glass */
+/* Topbar: cores via tokens do tema (--topbar-bg definido em styles.css por tema) */
 .top-bar {
   min-height: var(--topbar-height, 56px);
   height: auto;
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  background: linear-gradient(180deg, rgba(10, 21, 40, 0.92), rgba(12, 25, 47, 0.88));
-  border-bottom: 1px solid rgba(80, 120, 255, 0.16);
-  box-shadow: 0 10px 24px rgba(3, 8, 20, 0.28);
-  color: var(--text);
+  background: var(--topbar-bg);
+  border-bottom: 1px solid var(--topbar-border);
+  box-shadow: var(--topbar-shadow);
+  color: var(--topbar-text, var(--text));
 }
 
 .top-bar__inner {
@@ -353,4 +353,10 @@
   .user-access-panel__tipo {
     max-width: 140px;
   }
+}
+
+/* Tema claro: painel do usuário legível sobre topbar clara */
+:host-context(html.theme-light) .user-access-panel {
+  border: 1px solid var(--border);
+  background: var(--surface-2);
 }

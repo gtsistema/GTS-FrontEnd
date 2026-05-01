@@ -1,10 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import {
   formValueToEstacionamentoPayload,
+  montarPayloadEstacionamento,
   buildAgencia,
   buildConta,
   type FormValue
 } from './estacionamento-form.mapper';
+import type { EstacionamentoPayloadMergeContext } from '../../models/estacionamento.dto';
 
 describe('Estacionamento-form.mapper', () => {
   const baseFormValue: FormValue = {
@@ -50,6 +52,12 @@ describe('Estacionamento-form.mapper', () => {
     expect(payload).toHaveProperty('cobrancaPorcentagem', 10);
     expect(payload).toHaveProperty('cobrancaValor', 0);
     expect(payload).toHaveProperty('pessoa');
+    expect(Array.isArray(payload['contaBancaria'])).toBe(true);
+    expect((payload['contaBancaria'] as unknown[]).length).toBe(0);
+    const pessoaRoot = payload['pessoa'] as Record<string, unknown>;
+    expect(pessoaRoot['descricao']).toBe('Fantasia');
+    expect(typeof pessoaRoot['dataCriacao']).toBe('string');
+    expect(typeof pessoaRoot['dataAtualizacao']).toBe('string');
   });
 
   it('deve enviar documento da pessoa apenas com dígitos', () => {
@@ -128,16 +136,62 @@ describe('Estacionamento-form.mapper', () => {
     expect(buildConta('12345', '')).toBe('12345');
   });
 
-  it('payload envia agencia e conta montados a partir de numero e digito', () => {
+  it('payload envia contaBancaria com agencia/conta fracionados (Swagger ContaBancariaInput)', () => {
     const value: FormValue = {
       ...baseFormValue,
+      id: 5,
       agenciaNumero: '1216',
       agenciaDigito: '0',
       contaNumero: '12345',
       contaDigito: '6'
     };
     const payload = formValueToEstacionamentoPayload(value);
-    expect(payload['agencia']).toBe('1216-0');
-    expect(payload['conta']).toBe('12345-6');
+    const conta = payload['contaBancaria'] as Array<Record<string, unknown>> | undefined;
+    expect(Array.isArray(conta)).toBe(true);
+    expect(conta?.[0]?.['agencia']).toBe('1216');
+    expect(conta?.[0]?.['agenciaDigito']).toBe('0');
+    expect(conta?.[0]?.['conta']).toBe('12345');
+    expect(conta?.[0]?.['contaDigito']).toBe('6');
+    expect(conta?.[0]?.['estacionamentoId']).toBe(5);
+    expect(String(conta?.[0]?.['descricao'] ?? '').length).toBeGreaterThan(0);
+    expect(typeof conta?.[0]?.['dataCriacao']).toBe('string');
+    expect(typeof conta?.[0]?.['dataAtualizacao']).toBe('string');
+  });
+
+  it('montarPayloadEstacionamento com merge preserva dataCriacao do estacionamento e mescla conta da API', () => {
+    const merge: EstacionamentoPayloadMergeContext = {
+      estacionamentoDataCriacao: '2021-06-10T12:00:00.000Z',
+      contaBancariaPreserved: {
+        id: 77,
+        descricao: 'Conta API',
+        dataCriacao: '2021-07-01T08:00:00.000Z',
+        campoExtraDaApi: 'mantido'
+      },
+      pessoaDescricao: 'Descr merge',
+      pessoaDataCriacao: '2021-05-01T10:00:00.000Z'
+    };
+    const value: FormValue = {
+      ...baseFormValue,
+      id: 10,
+      pessoaId: 20,
+      agenciaNumero: '1216',
+      contaNumero: '143591',
+      contaDigito: '',
+      banco: '001',
+      tipoConta: 'corrente',
+      chavePix: '06006431157'
+    };
+    const payload = montarPayloadEstacionamento(value, [], [], merge);
+    expect(payload['dataCriacao']).toBe('2021-06-10T12:00:00.000Z');
+    expect(payload['id']).toBe(10);
+    expect(payload['pessoaId']).toBe(20);
+    const pessoa = payload['pessoa'] as Record<string, unknown>;
+    expect(pessoa['descricao']).toBe('Descr merge');
+    expect(pessoa['dataCriacao']).toBe('2021-05-01T10:00:00.000Z');
+    const contas = payload['contaBancaria'] as Array<Record<string, unknown>>;
+    expect(contas[0]['id']).toBe(77);
+    expect(contas[0]['dataCriacao']).toBe('2021-07-01T08:00:00.000Z');
+    expect(contas[0]['campoExtraDaApi']).toBe('mantido');
+    expect(contas[0]['estacionamentoId']).toBe(10);
   });
 });
