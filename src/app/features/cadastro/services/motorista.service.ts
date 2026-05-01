@@ -76,34 +76,39 @@ export class MotoristaService {
   }
 
   private normalizeBuscar(body: unknown, numeroPagina: number, tamanhoPagina: number): PagedResultMotoristaDTO {
-    const raw = body as { result?: unknown; results?: unknown[]; items?: unknown[] } | unknown[];
+    const source = this.unwrapBuscarBody(body);
     let list: unknown[] = [];
     let total = 0;
-    if (Array.isArray(raw)) {
-      list = raw;
-      total = raw.length;
-    } else if (raw && typeof raw === 'object') {
-      const obj = raw as Record<string, unknown>;
+    let pagina = numeroPagina;
+    let tamanho = tamanhoPagina;
+
+    if (Array.isArray(source)) {
+      list = source;
+      total = source.length;
+    } else if (source && typeof source === 'object') {
+      const obj = source as Record<string, unknown>;
       if (Array.isArray(obj['results'])) {
         list = obj['results'];
-        total = Number(obj['rowCount']) || list.length;
       } else if (Array.isArray(obj['items'])) {
         list = obj['items'];
-        total = Number(obj['totalCount']) || list.length;
-      } else if (Array.isArray(obj['result'])) {
-        list = obj['result'];
-        total = list.length;
+      } else if (Array.isArray(obj['itens'])) {
+        list = obj['itens'];
       }
+
+      total = Number(obj['rowCount'] ?? obj['totalCount'] ?? obj['totalRegistros']) || list.length;
+      pagina = Number(obj['currentPage'] ?? obj['numeroPagina'] ?? numeroPagina) || numeroPagina;
+      tamanho = Number(obj['pageSize'] ?? obj['tamanhoPagina'] ?? tamanhoPagina) || tamanhoPagina;
     }
+
     const items = list.map((item) => this.mapMotorista(item as Record<string, unknown>));
-    return { items, totalCount: total, numeroPagina, tamanhoPagina };
+    return { items, totalCount: total, numeroPagina: pagina, tamanhoPagina: tamanho };
   }
 
   private mapMotorista(source: Record<string, unknown>): MotoristaListItemDTO {
     const get = (key: string) => source[key] ?? source[key.charAt(0).toUpperCase() + key.slice(1)];
     const pessoa = (get('pessoa') ?? {}) as Record<string, unknown>;
     const getPessoa = (key: string) => pessoa[key] ?? pessoa[key.charAt(0).toUpperCase() + key.slice(1)];
-    const documento = String(getPessoa('documento') ?? '');
+    const documento = String(getPessoa('documento') ?? get('cpf') ?? '');
     const transportadoraId = Number(get('transportadoraId') ?? getPessoa('transportadoraId'));
     const validadeCnhRaw = get('validadeCNH') ?? get('validadeCnh');
     return {
@@ -116,6 +121,24 @@ export class MotoristaService {
       vencimentoCnh: this.normalizeDate(validadeCnhRaw),
       ativo: getPessoa('ativo') !== false && get('ativo') !== false
     };
+  }
+
+  private unwrapBuscarBody(body: unknown): unknown {
+    let current: unknown = body;
+    for (let i = 0; i < 2; i++) {
+      if (!current || typeof current !== 'object' || Array.isArray(current)) break;
+      const obj = current as Record<string, unknown>;
+      if (obj['result'] != null) {
+        current = obj['result'];
+        continue;
+      }
+      if (obj['Result'] != null) {
+        current = obj['Result'];
+        continue;
+      }
+      break;
+    }
+    return current;
   }
 
   private dtoToPayload(dto: MotoristaDTO): Record<string, unknown> {

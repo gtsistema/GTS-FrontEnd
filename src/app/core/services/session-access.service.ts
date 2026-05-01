@@ -189,5 +189,9 @@ function safeText(value: string | null | undefined): string {
 function isRouteMatch(current: string, allowed: string): boolean {
   const normalizedAllowed = normalizeRoute(allowed);
   if (!normalizedAllowed || normalizedAllowed === '/app') return false;
-  return current === normalizedAllowed || current.startsWith(`${normalizedAllowed}/`);
+  return (
+    current === normalizedAllowed ||
+    current.startsWith(`${normalizedAllowed}/`) ||
+    normalizedAllowed.startsWith(`${current}/`)
+  );
 }

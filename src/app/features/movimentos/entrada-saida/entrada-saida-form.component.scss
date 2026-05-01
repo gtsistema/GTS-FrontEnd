@@ -1,0 +1,134 @@
+:host {
+  display: block;
+}
+
+.es-form-page {
+  padding: var(--content-padding, 16px);
+}
+
+.es-form-page__inner {
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.es-form-page__loading {
+  margin: 1rem 0;
+  color: var(--muted, #94a3b8);
+}
+
+.es-card {
+  border-radius: var(--radius-lg, 12px);
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+  background: var(--surface, #1e293b);
+  box-shadow: 0 0.125rem 0.35rem rgba(0, 0, 0, 0.12);
+}
+
+.es-card__body {
+  padding: 1.25rem 1.5rem;
+}
+
+@media (max-width: 640px) {
+  .es-card__body {
+    padding: 1rem;
+  }
+}
+
+.es-row {
+  display: grid;
+  gap: 1rem;
+}
+
+.es-row--3 {
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 768px) {
+  .es-row--3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .es-row--3 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.es-row--2 {
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 768px) {
+  .es-row--2 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.es-row--mt {
+  margin-top: 1rem;
+}
+
+.es-field__label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-bottom: 0.35rem;
+  color: var(--text, #f1f5f9);
+}
+
+.es-req {
+  color: #f87171;
+}
+
+.es-lookup {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.es-lookup__input {
+  min-width: 0;
+}
+
+.es-ico {
+  font-size: 1.125rem;
+  line-height: 1;
+  vertical-align: middle;
+}
+
+.es-field__error {
+  margin: 0.35rem 0 0;
+  font-size: 0.8125rem;
+  color: #fca5a5;
+}
+
+.es-field__error--block {
+  margin-top: 0.75rem;
+}
+
+.es-textarea {
+  width: 100%;
+  resize: vertical;
+  min-height: 5rem;
+}
+
+.es-actions {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+html.theme-light .es-card {
+  background: #fff;
+  border-color: #e2e8f0;
+  box-shadow: 0 0.125rem 0.35rem rgba(15, 23, 42, 0.06);
+}
+
+html.theme-light .es-field__label {
+  color: #0f172a;
+}

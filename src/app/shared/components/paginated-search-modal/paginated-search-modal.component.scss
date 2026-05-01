@@ -1,0 +1,67 @@
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+.modal-content {
+  width: min(980px, 95vw);
+  max-height: 92vh;
+  overflow: auto;
+  background: #fff;
+  border-radius: 12px;
+  padding: 1rem;
+}
+.busca-topo {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+.lista {
+  border: 1px solid #dbe4ee;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.lista-head {
+  display: grid;
+  gap: 1rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #dbe4ee;
+  border-bottom: 0;
+  border-radius: 8px 8px 0 0;
+  background: #f8fbff;
+  color: #334155;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+.linha {
+  width: 100%;
+  border: 0;
+  background: #fff;
+  display: grid;
+  gap: 1rem;
+  padding: 0.75rem;
+  cursor: pointer;
+  border-bottom: 1px solid #eef2f7;
+}
+.linha:hover { background: #f8fbff; }
+.linha__col { color: #556176; text-align: left; }
+.linha__col--titulo { color: #0f172a; font-weight: 600; }
+.paginacao {
+  margin-top: 0.75rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+}
+.paginacao__acoes { display: flex; gap: 0.5rem; }
+.modal-actions {
+  margin-top: 1rem;
+  display: flex;
+  justify-content: flex-end;
+}

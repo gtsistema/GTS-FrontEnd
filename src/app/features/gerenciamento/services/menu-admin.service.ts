@@ -428,20 +428,7 @@ export class MenuAdminService {
             icon,
           };
         }
-
-        if (activeSubs.length === 1) {
-          const sub = activeSubs[0];
-          const subLabel = sub.descricao?.trim() || menuLabel;
-          return {
-            label: menuLabel,
-            route: resolveAppRouteFromNome(subLabel, sub.rota),
-            icon,
-          };
-        }
-
-        const first = activeSubs[0];
-        const firstRoute = resolveAppRouteFromNome(first.descricao?.trim() || menuLabel, first.rota);
-        const base = firstRoute.replace(/\/[^/]*$/, '') || '/app';
+        const base = resolveAppRouteFromNome(menuLabel, m.rota ?? null);
         return {
           label: menuLabel,
           route: base,
@@ -479,18 +466,9 @@ export class MenuAdminService {
             icon: resolveMaterialSymbolIconFromModule(m.nome, m.icone),
           };
         }
-        if (subs.length === 1) {
-          return {
-            label: m.nome,
-            route: resolveAppRouteFromNome(subs[0].nome, subs[0].rota),
-            icon: resolveMaterialSymbolIconFromModule(m.nome, m.icone),
-          };
-        }
-        const firstRota = resolveAppRouteFromNome(subs[0].nome, subs[0].rota);
-        const base = firstRota.replace(/\/[^/]*$/, '') || '/app';
         return {
           label: m.nome,
-          route: base,
+          route: resolveAppRouteFromNome(m.nome, null),
           icon: resolveMaterialSymbolIconFromModule(m.nome, m.icone),
           children: subs.map((s) => ({
             label: s.nome,

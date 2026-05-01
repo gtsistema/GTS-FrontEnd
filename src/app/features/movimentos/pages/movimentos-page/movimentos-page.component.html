@@ -1,498 +1,99 @@
 <div class="page-container">
   <header class="page-header dk-page-header">
-    <div class="page-header__row page-header__row--1">
-      <div class="page-header__title-wrap">
-        <h1 class="page-title dk-page-title">Movimentos</h1>
-        <p class="page-subtitle dk-page-subtitle">Central de operação (entrada e saída).</p>
-      </div>
-      <span class="page-header__badge">Em desenvolvimento</span>
-    </div>
-    <div class="page-header__row page-header__row--2">
-      <nav class="tabs" role="tablist" aria-label="Abas de Movimentos">
-        <button
-          type="button"
-          class="tab"
-          role="tab"
-          [class.tab--active]="activeTab === 'operacao'"
-          [attr.aria-selected]="activeTab === 'operacao'"
-          (click)="setActiveTab('operacao')"
-        >
-          Operação
-        </button>
-        <button
-          type="button"
-          class="tab"
-          role="tab"
-          [class.tab--active]="activeTab === 'historico'"
-          [attr.aria-selected]="activeTab === 'historico'"
-          (click)="setActiveTab('historico')"
-        >
-          Histórico
-        </button>
-      </nav>
-    </div>
+    <h1 class="page-title dk-page-title">Entrada e Saída</h1>
+    <p class="page-subtitle dk-page-subtitle">Controle operacional de permanência no pátio.</p>
   </header>
 
-  <div class="page-content">
-    @switch (activeTab) {
-      @case ('operacao') {
-        <div class="operacao">
-          <div class="operacao-actions dk-action-bar">
-            <div class="operacao-actions__entrada">
-              <button type="button" class="btn btn-primary" (click)="openEntradaModal()">Entrada</button>
-            </div>
-            <section class="resumo-operacional" aria-label="Filtros rápidos">
-              <div class="resumo-chips">
-                <button
-                  type="button"
-                  class="resumo-chip resumo-chip--noPatio"
-                  [class.resumo-chip--active]="filtroResumo === 'noPatio'"
-                  (click)="setFiltroResumo('noPatio')"
-                >
-                  <span class="resumo-chip__valor">{{ resumoOperacional.noPatioAgora }}</span>
-                  <span class="resumo-chip__label">No pátio</span>
-                </button>
-                <button
-                  type="button"
-                  class="resumo-chip resumo-chip--suspensos"
-                  [class.resumo-chip--active]="filtroResumo === 'suspensos'"
-                  (click)="setFiltroResumo('suspensos')"
-                >
-                  <span class="resumo-chip__valor">{{ resumoOperacional.suspensos }}</span>
-                  <span class="resumo-chip__label">Suspensos</span>
-                </button>
-                <button
-                  type="button"
-                  class="resumo-chip resumo-chip--entradasHoje"
-                  [class.resumo-chip--active]="filtroResumo === 'entradasHoje'"
-                  (click)="setFiltroResumo('entradasHoje')"
-                >
-                  <span class="resumo-chip__valor">{{ resumoOperacional.entradasHoje }}</span>
-                  <span class="resumo-chip__label">Entradas hoje</span>
-                </button>
-                <button
-                  type="button"
-                  class="resumo-chip resumo-chip--agendados"
-                  [class.resumo-chip--active]="filtroResumo === 'agendados'"
-                  (click)="setFiltroResumo('agendados')"
-                >
-                  <span class="resumo-chip__valor">{{ resumoOperacional.agendadosHoje }}</span>
-                  <span class="resumo-chip__label">Agendados</span>
-                </button>
-              </div>
-            </section>
-            <div class="operacao-actions__busca operacao-busca">
-              <input
-                type="text"
-                class="input-control operacao-busca__input"
-                placeholder="Buscar por placa"
-                [(ngModel)]="filtroPlaca"
-              />
-            </div>
-          </div>
-          <section class="card operacao-card operacao-card--full">
-            <h2 class="card__title">{{ tituloTabelaEmAndamento }}</h2>
-            <div class="card__body">
-              <div class="table-wrap dk-table-wrap">
-                <table class="data-table dk-table">
-                  <thead>
-                    <tr>
-                      <th class="th-sortable" (click)="ordenarPor('placa')" role="button" tabindex="0" (keydown.enter)="ordenarPor('placa')">
-                        Placa
-                        @if (ordenacaoColuna('placa'); as dir) {
-                          <span class="th-sort-icon" [attr.aria-label]="dir === 'asc' ? 'Crescente' : 'Decrescente'">{{ dir === 'asc' ? '↑' : '↓' }}</span>
-                        }
-                      </th>
-                      <th class="th-sortable" (click)="ordenarPor('condutor')" role="button" tabindex="0" (keydown.enter)="ordenarPor('condutor')">
-                        Condutor
-                        @if (ordenacaoColuna('condutor'); as dir) {
-                          <span class="th-sort-icon" [attr.aria-label]="dir === 'asc' ? 'Crescente' : 'Decrescente'">{{ dir === 'asc' ? '↑' : '↓' }}</span>
-                        }
-                      </th>
-                      <th class="th-sortable" (click)="ordenarPor('transportadora')" role="button" tabindex="0" (keydown.enter)="ordenarPor('transportadora')">
-                        Transportadora
-                        @if (ordenacaoColuna('transportadora'); as dir) {
-                          <span class="th-sort-icon" [attr.aria-label]="dir === 'asc' ? 'Crescente' : 'Decrescente'">{{ dir === 'asc' ? '↑' : '↓' }}</span>
-                        }
-                      </th>
-                      <th class="th-sortable" (click)="ordenarPor('dataHoraEntrada')" role="button" tabindex="0" (keydown.enter)="ordenarPor('dataHoraEntrada')">
-                        Data e hora de entrada
-                        @if (ordenacaoColuna('dataHoraEntrada'); as dir) {
-                          <span class="th-sort-icon" [attr.aria-label]="dir === 'asc' ? 'Crescente' : 'Decrescente'">{{ dir === 'asc' ? '↑' : '↓' }}</span>
-                        }
-                      </th>
-                      <th>Tempo de permanência</th>
-                      <th class="th-sortable" (click)="ordenarPor('status')" role="button" tabindex="0" (keydown.enter)="ordenarPor('status')">
-                        Status
-                        @if (ordenacaoColuna('status'); as dir) {
-                          <span class="th-sort-icon" [attr.aria-label]="dir === 'asc' ? 'Crescente' : 'Decrescente'">{{ dir === 'asc' ? '↑' : '↓' }}</span>
-                        }
-                      </th>
-                      <th>Ações</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    @for (item of emAndamentoOrdenado; track item.placa + item.dataHoraEntrada) {
-                      <tr>
-                        <td>{{ item.placa }}</td>
-                        <td>{{ item.condutor }}</td>
-                        <td>{{ item.transportadora }}</td>
-                        <td>{{ item.dataHoraEntrada }}</td>
-                        <td><span [attr.aria-hidden]="true" [attr.data-tick]="tickAtualizacao"></span>{{ tempoPermanenciaAgora(item) }}</td>
-                        <td>{{ item.status }}</td>
-                        <td class="acoes-cell">
-                          @if (item.status === 'Suspenso') {
-                            <button type="button" class="btn btn-primary btn--sm" (click)="retomar(item)">
-                              Retomar
-                            </button>
-                          } @else {
-                            <button type="button" class="btn btn-warning btn--sm" (click)="suspender(item)">
-                              Suspender
-                            </button>
-                          }
-                          <button type="button" class="btn btn-danger btn--sm" (click)="registrarSaida(item)">
-                            Saída
-                          </button>
-                        </td>
-                      </tr>
-                      @if ((item.suspensoes?.length ?? 0) > 0) {
-                        <tr class="suspensao-detalhe">
-                          <td [attr.colspan]="7">
-                            <div class="suspensao-historico" aria-label="Histórico de suspensões">
-                              <div class="suspensao-campos">
-                                @for (susp of item.suspensoes ?? []; track $index) {
-                                  <div class="suspensao-campo">
-                                    <span class="suspensao-campo__label">Suspensão</span>
-                                    <span class="suspensao-campo__valor">{{ susp.inicio }}</span>
-                                    <span class="suspensao-campo__label">Retorno</span>
-                                    <span class="suspensao-campo__valor">{{ susp.fim ?? '—' }}</span>
-                                  </div>
-                                }
-                              </div>
-                            </div>
-                          </td>
-                        </tr>
-                      }
-                    }
-                  </tbody>
-                </table>
-              </div>
-              @if (emAndamentoOrdenado.length === 0) {
-                <p class="empty-msg">
-                  @if (filtroPlaca.trim()) {
-                    Nenhum veículo encontrado com essa placa.
-                  } @else if (filtroResumo !== 'todos') {
-                    Nenhum registro para este filtro.
-                  } @else {
-                    Nenhum veículo em andamento no momento.
-                  }
-                </p>
-              }
-            </div>
-          </section>
-        </div>
+  @if (!canVisualizar) {
+    <p class="empty-msg">Sem permissão para visualizar Entrada/Saída.</p>
+  } @else {
+    <section class="filtros card">
+      <div class="filtros-grid filtros-grid--single">
+        <input class="input-control filtro-input" placeholder="Buscar por descrição" [(ngModel)]="filtro.descricao" (keydown.enter)="buscar()" />
+        <label class="check-open">
+          <input type="checkbox" [(ngModel)]="filtro.somenteEmAberto" />
+          Somente em aberto
+        </label>
+        <button class="btn btn-primary btn--strong" type="button" (click)="buscar()">Buscar</button>
+        <button class="btn btn-success btn--strong" type="button" [disabled]="!canGravar" (click)="abrirNovo()">Novo</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Descrição</th>
+              <th>Placa</th>
+              <th>Motorista</th>
+              <th>Transportadora</th>
+              <th>Entrada</th>
+              <th>Saída</th>
+              <th>Status</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of registros; track item.id) {
+              <tr>
+                <td>{{ item.descricao || '—' }}</td>
+                <td>{{ item.placaVeiculo }}</td>
+                <td>{{ item.nomeMotorista }}</td>
+                <td>{{ item.nomeTransportadora }}</td>
+                <td>{{ item.dataHoraEntrada | date: 'dd/MM/yyyy HH:mm' }}</td>
+                <td>{{ item.dataHoraSaida ? (item.dataHoraSaida | date: 'dd/MM/yyyy HH:mm') : '—' }}</td>
+                <td><span class="status-pill" [class.status-pill--finalizado]="item.dataHoraSaida">{{ statusLabel(item) }}</span></td>
+                <td class="acoes-cell">
+                  <button class="btn btn-primary btn--sm" type="button" [disabled]="!canAlterar" (click)="abrirEditar(item.id)">Visualizar/Editar</button>
+                  <button class="btn btn-warning btn--sm" type="button" [disabled]="!!item.dataHoraSaida" (click)="abrirPermanencia(item, 'suspender')">Suspender</button>
+                  <button class="btn btn-secondary btn--sm" type="button" [disabled]="!!item.dataHoraSaida" (click)="abrirPermanencia(item, 'retornar')">Retornar</button>
+                  <button class="btn btn-danger btn--sm" type="button" [disabled]="!!item.dataHoraSaida" (click)="abrirPermanencia(item, 'finalizar')">Finalizar</button>
+                  <button class="btn btn-danger btn--outline btn--sm" type="button" [disabled]="!canExcluir" (click)="excluir(item)">Excluir</button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      @if (loading) {
+        <p class="loading-msg">Carregando...</p>
+      } @else if (registros.length === 0) {
+        <p class="empty-msg">Nenhum registro encontrado.</p>
       }
-      @case ('historico') {
-        <div class="historico">
-          <div class="historico-actions dk-action-bar">
-            <div class="historico-actions__busca">
-              <input
-                type="text"
-                class="input-control historico-busca__input"
-                placeholder="Buscar por placa"
-                [(ngModel)]="filtroPlacaHistorico"
-              />
-            </div>
-            <div class="historico-actions__filtros">
-              <select
-                class="input-control historico-select"
-                [(ngModel)]="filtroPeriodoHistorico"
-              >
-                <option value="hoje">Hoje</option>
-                <option value="semana">Última semana</option>
-                <option value="mes">Este mês</option>
-                <option value="todos">Todos</option>
-              </select>
-              <select
-                class="input-control historico-select"
-                [(ngModel)]="filtroStatusHistorico"
-              >
-                <option value="">Todos os status</option>
-                @for (s of opcoesStatusHistorico; track s) {
-                  @if (s) {
-                    <option [value]="s">{{ s }}</option>
-                  }
-                }
-              </select>
-            </div>
-            <div class="historico-actions__export">
-              <button type="button" class="btn btn-secondary historico-btn-export" (click)="exportarHistorico()">
-                Exportar
-              </button>
-            </div>
+
+      @if (totalPaginas > 1) {
+        <nav class="paginacao" aria-label="Paginação">
+          <span class="paginacao__info">Página {{ numeroPagina }} de {{ totalPaginas }} ({{ totalCount }} registro(s))</span>
+          <div class="paginacao__btns">
+            <button class="btn btn-secondary btn--sm" type="button" [disabled]="numeroPagina <= 1" (click)="irParaPagina(numeroPagina - 1)">Anterior</button>
+            <button class="btn btn-secondary btn--sm" type="button" [disabled]="numeroPagina >= totalPaginas" (click)="irParaPagina(numeroPagina + 1)">Próxima</button>
           </div>
-
-          <section class="historico-resumo" aria-label="Resumo do histórico">
-            <div class="historico-chips">
-              <div class="historico-chip historico-chip--movimentosHoje">
-                <span class="historico-chip__valor">{{ resumoHistorico.movimentosHoje }}</span>
-                <span class="historico-chip__label">Movimentos hoje</span>
-              </div>
-              <div class="historico-chip historico-chip--saidasHoje">
-                <span class="historico-chip__valor">{{ resumoHistorico.saidasHoje }}</span>
-                <span class="historico-chip__label">Saídas hoje</span>
-              </div>
-              <div class="historico-chip historico-chip--suspensoes">
-                <span class="historico-chip__valor">{{ resumoHistorico.suspensoes }}</span>
-                <span class="historico-chip__label">Suspensões</span>
-              </div>
-              <div class="historico-chip historico-chip--tempoMedio">
-                <span class="historico-chip__valor">{{ resumoHistorico.tempoMedio }}</span>
-                <span class="historico-chip__label">Tempo médio</span>
-              </div>
-              <div class="historico-chip historico-chip--faturamento">
-                <span class="historico-chip__valor">{{ resumoHistorico.faturamento }}</span>
-                <span class="historico-chip__label">Faturamento</span>
-              </div>
-            </div>
-          </section>
-
-          <section class="card operacao-card operacao-card--full">
-            <h2 class="card__title">Histórico de movimentos</h2>
-            <div class="card__body">
-              <div class="table-wrap dk-table-wrap">
-                <table class="data-table dk-table historico-table">
-                  <thead>
-                    <tr>
-                      <th>Placa</th>
-                      <th>Motorista</th>
-                      <th>Transportadora</th>
-                      <th>Data de entrada</th>
-                      <th>Data de saída</th>
-                      <th>Tempo estacionado</th>
-                      <th>Status final</th>
-                      <th>Valor</th>
-                      <th>Ações</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    @for (m of historicoFiltrado; track m.placa + m.dataSaida) {
-                      <tr class="historico-row">
-                        <td>{{ m.placa }}</td>
-                        <td>{{ m.motorista }}</td>
-                        <td>{{ m.transportadora }}</td>
-                        <td>{{ m.dataEntrada }}</td>
-                        <td>{{ m.dataSaida }}</td>
-                        <td>{{ m.tempoEstacionado ?? '—' }}</td>
-                        <td>{{ m.statusFinal ?? 'Finalizado' }}</td>
-                        <td>{{ m.valor }}</td>
-                        <td class="acoes-cell" (click)="$event.stopPropagation()">
-                          <div class="historico-menu-wrap" (click)="$event.stopPropagation()">
-                            <button
-                              type="button"
-                              class="historico-menu-btn"
-                              [attr.aria-expanded]="isMenuAberto(m)"
-                              aria-haspopup="true"
-                              aria-label="Abrir menu de ações"
-                              (click)="toggleMenuAcoes(m, $event); $event.stopPropagation()"
-                            >
-                              <svg class="historico-menu-icon" width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-                                <circle cx="8" cy="3" r="1.25"/>
-                                <circle cx="8" cy="8" r="1.25"/>
-                                <circle cx="8" cy="13" r="1.25"/>
-                              </svg>
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    }
-                  </tbody>
-                </table>
-              </div>
-              @if (historicoFiltrado.length === 0) {
-                <p class="empty-msg">
-                  @if (filtroPlacaHistorico.trim() || filtroStatusHistorico.trim()) {
-                    Nenhum movimento encontrado para os filtros aplicados.
-                  } @else {
-                    Nenhum movimento registrado no período.
-                  }
-                </p>
-              }
-            </div>
-          </section>
-
-          @if (movimentoMenuAberto && dropdownPos) {
-            <div
-              class="historico-dropdown historico-dropdown-fixed"
-              role="menu"
-              [style.top.px]="dropdownPos.top"
-              [style.left.px]="dropdownPos.left"
-            >
-              <button type="button" class="historico-dropdown-item" role="menuitem" (click)="acaoVerDetalhes(movimentoMenuAberto)">
-                Ver detalhes
-              </button>
-              <button type="button" class="historico-dropdown-item" role="menuitem" (click)="imprimirComprovante(movimentoMenuAberto)">
-                Imprimir comprovante
-              </button>
-            </div>
-          }
-        </div>
+        </nav>
       }
-    }
-  </div>
+    </section>
+  }
 
-  @if (entradaModalOpen) {
-    <div class="modal-overlay dk-modal-overlay" (click)="closeEntradaModal()" role="presentation">
-      <div
-        class="modal-content dk-modal-content"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="modal-entrada-title"
-        (click)="$event.stopPropagation()"
-      >
-        <div class="modal-header dk-modal-header">
-          <h2 id="modal-entrada-title">Entrada (Check-in)</h2>
-        </div>
-        <div class="modal-body dk-modal-body">
-          <div class="form-group">
-            <label for="modal-op-placa">Placa</label>
-            <input
-              id="modal-op-placa"
-              type="text"
-              class="input-control"
-              placeholder="Ex.: ABC1D23"
-              maxlength="7"
-              [ngModel]="entradaForm.placa"
-              (ngModelChange)="formatarPlaca($event)"
-              (blur)="buscarTransportadoraPorPlaca()"
-            />
-          </div>
-          <div class="form-group">
-            <label for="modal-op-modelo">Modelo do veículo</label>
-            <input
-              id="modal-op-modelo"
-              type="text"
-              class="input-control"
-              placeholder="Modelo do veículo"
-              [(ngModel)]="entradaForm.modeloVeiculo"
-            />
-          </div>
-          <div class="form-group">
-            <label for="modal-op-ano">Ano fabricação</label>
-            <input
-              id="modal-op-ano"
-              type="text"
-              class="input-control"
-              placeholder="Ex.: 2020"
-              maxlength="4"
-              [(ngModel)]="entradaForm.anoFabricacao"
-            />
-          </div>
-          <div class="form-group">
-            <label for="modal-op-eixos">Quantos eixos</label>
-            <select
-              id="modal-op-eixos"
-              class="input-control input-control--select"
-              [(ngModel)]="entradaForm.quantidadeEixos"
-            >
-              <option value="">Selecione</option>
-              @for (n of eixosOpcoes; track n) {
-                <option [value]="n">{{ n }} eixo{{ n > 1 ? 's' : '' }}</option>
-              }
-            </select>
-          </div>
-          <div class="form-group">
-            <label for="modal-op-transportadora">Transportadora</label>
-            <input id="modal-op-transportadora" type="text" class="input-control" placeholder="Transportadora" [(ngModel)]="entradaForm.transportadora" />
-          </div>
-          <div class="form-group">
-            <label for="modal-op-condutor">Condutor</label>
-            <input id="modal-op-condutor" type="text" class="input-control" placeholder="Nome do condutor" [(ngModel)]="entradaForm.condutor" />
-          </div>
-          <div class="form-group">
-            <label for="modal-op-cpf">CPF</label>
-            <input
-              id="modal-op-cpf"
-              type="text"
-              class="input-control"
-              placeholder="000.000.000-00"
-              [ngModel]="entradaForm.cpf"
-              (ngModelChange)="formatarCpf($event)"
-            />
-          </div>
-          <div class="form-group">
-            <label for="modal-op-obs">Observação</label>
-            <input id="modal-op-obs" type="text" class="input-control" placeholder="Observação (opcional)" [(ngModel)]="entradaForm.observacao" />
-          </div>
-        </div>
-        <div class="modal-footer dk-modal-footer">
-          <button type="button" class="btn btn-secondary" (click)="closeEntradaModal()">Fechar</button>
-          <button type="button" class="btn btn-primary" (click)="registrarEntrada()" [disabled]="!entradaForm.placa.trim()">
-            Registrar entrada
+  @if (permanenciaOpen && registroSelecionado) {
+    <div class="modal-overlay" (click)="permanenciaOpen = false">
+      <div class="modal-content" (click)="$event.stopPropagation()">
+        <h2>
+          @if (permanenciaAcao === 'suspender') { Suspender permanência }
+          @if (permanenciaAcao === 'retornar') { Retornar ao pátio }
+          @if (permanenciaAcao === 'finalizar') { Finalizar permanência }
+        </h2>
+        <p>Placa: <strong>{{ placaSelecionada() }}</strong></p>
+        <p>Status: {{ registroSelecionado.finalizado ? 'Finalizado' : (registroSelecionado.permanenciaSuspensa ? 'Suspenso' : 'Em aberto') }}</p>
+        <input class="input-control" type="datetime-local" [(ngModel)]="permanenciaDataHora" />
+        <div class="modal-actions">
+          <button class="btn btn-secondary" type="button" (click)="permanenciaOpen = false">Cancelar</button>
+          <button class="btn btn-primary" type="button" [disabled]="(permanenciaAcao === 'finalizar' && !podeFinalizar()) || ((permanenciaAcao === 'suspender' || permanenciaAcao === 'retornar') && !podeSuspenderOuRetornar())" (click)="confirmarPermanencia()">
+            Confirmar
           </button>
         </div>
       </div>
     </div>
   }
 
-  @if (detalheMovimento) {
-    <div class="modal-overlay dk-modal-overlay" (click)="closeDetalheMovimento()" role="presentation">
-      <div
-        class="modal-content dk-modal-content modal-content--detalhe"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="modal-detalhe-title"
-        (click)="$event.stopPropagation()"
-      >
-        <div class="modal-header dk-modal-header">
-          <h2 id="modal-detalhe-title">Detalhes do movimento</h2>
-          <button type="button" class="modal-close" aria-label="Fechar" (click)="closeDetalheMovimento()">&times;</button>
-        </div>
-        <div class="modal-body dk-modal-body detalhe-body">
-          <dl class="detalhe-list">
-            <div class="detalhe-item">
-              <dt>Placa</dt>
-              <dd>{{ detalheMovimento.placa }}</dd>
-            </div>
-            <div class="detalhe-item">
-              <dt>Motorista</dt>
-              <dd>{{ detalheMovimento.motorista }}</dd>
-            </div>
-            <div class="detalhe-item">
-              <dt>CPF</dt>
-              <dd>{{ detalheMovimento.cpf }}</dd>
-            </div>
-            <div class="detalhe-item">
-              <dt>Transportadora</dt>
-              <dd>{{ detalheMovimento.transportadora }}</dd>
-            </div>
-            <div class="detalhe-item">
-              <dt>Data de entrada</dt>
-              <dd>{{ detalheMovimento.dataEntrada }}</dd>
-            </div>
-            <div class="detalhe-item">
-              <dt>Data de saída</dt>
-              <dd>{{ detalheMovimento.dataSaida }}</dd>
-            </div>
-            <div class="detalhe-item">
-              <dt>Tempo estacionado</dt>
-              <dd>{{ detalheMovimento.tempoEstacionado ?? '—' }}</dd>
-            </div>
-            <div class="detalhe-item">
-              <dt>Status final</dt>
-              <dd>{{ detalheMovimento.statusFinal ?? 'Finalizado' }}</dd>
-            </div>
-            <div class="detalhe-item">
-              <dt>Valor</dt>
-              <dd>{{ detalheMovimento.valor }}</dd>
-            </div>
-          </dl>
-        </div>
-        <div class="modal-footer dk-modal-footer">
-          <button type="button" class="btn btn-secondary" (click)="imprimirComprovante(detalheMovimento)">Imprimir</button>
-          <button type="button" class="btn btn-secondary" (click)="closeDetalheMovimento()">Fechar</button>
-        </div>
-      </div>
-    </div>
-  }
 </div>

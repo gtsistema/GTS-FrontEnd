@@ -42,32 +42,35 @@ export class VeiculoService {
   }
 
   private normalizeBuscar(body: unknown, numeroPagina: number, tamanhoPagina: number): PagedResultVeiculoDTO {
-    const raw = body as { result?: unknown; results?: unknown[]; items?: unknown[] } | unknown[];
+    const source = this.unwrapBuscarBody(body);
     let list: unknown[] = [];
     let total = 0;
-    if (Array.isArray(raw)) {
-      list = raw;
-      total = raw.length;
-    } else if (raw && typeof raw === 'object') {
-      const r = raw as Record<string, unknown>;
+    let pagina = numeroPagina;
+    let tamanho = tamanhoPagina;
+    if (Array.isArray(source)) {
+      list = source;
+      total = source.length;
+    } else if (source && typeof source === 'object') {
+      const r = source as Record<string, unknown>;
       if (Array.isArray(r['results'])) {
         list = r['results'];
-        total = Number((r as { rowCount?: number }).rowCount) ?? list.length;
       } else if (Array.isArray(r['items'])) {
         list = r['items'];
-        total = Number(r['totalCount']) ?? list.length;
-      } else if (Array.isArray(r['result'])) {
-        list = r['result'];
-        total = list.length;
+      } else if (Array.isArray(r['itens'])) {
+        list = r['itens'];
       }
+      total = Number(r['rowCount'] ?? r['totalCount'] ?? r['totalRegistros']) || list.length;
+      pagina = Number(r['currentPage'] ?? r['numeroPagina'] ?? numeroPagina) || numeroPagina;
+      tamanho = Number(r['pageSize'] ?? r['tamanhoPagina'] ?? tamanhoPagina) || tamanhoPagina;
     }
     const items = list.map((row) => this.mapItem(row as Record<string, unknown>));
-    return { items, totalCount: total, numeroPagina, tamanhoPagina };
+    return { items, totalCount: total, numeroPagina: pagina, tamanhoPagina: tamanho };
   }
 
   private mapItem(row: Record<string, unknown>): VeiculoListItemDTO {
     const get = (k: string) => row[k] ?? row[k.charAt(0).toUpperCase() + k.slice(1)];
-    const marca = get('marcaModelo') ?? get('MarcaModelo') ?? get('marca') ?? get('Marca') ?? '';
+    const modeloMarcaApi = get('modeloMarca');
+    const marca = get('marcaModelo') ?? get('MarcaModelo') ?? modeloMarcaApi ?? get('marca') ?? get('Marca') ?? '';
     const modelo = get('modelo') ?? get('Modelo') ?? '';
     const marcaModelo = [String(marca), String(modelo)].filter(Boolean).join(' / ') || String(marca || modelo);
     return {
@@ -75,13 +78,31 @@ export class VeiculoService {
       placa: String(get('placa') ?? get('Placa') ?? ''),
       marcaModelo: marcaModelo || '—',
       cor: get('cor') != null ? String(get('cor')) : undefined,
-      anoFabricacao: get('anoFabricacao') != null ? Number(get('anoFabricacao')) : undefined,
-      anoModelo: get('anoModelo') != null ? Number(get('anoModelo')) : undefined,
+      anoFabricacao: get('anoFabricacao') != null ? Number(get('anoFabricacao')) : (get('ano') != null ? Number(get('ano')) : undefined),
+      anoModelo: get('anoModelo') != null ? Number(get('anoModelo')) : (get('ano') != null ? Number(get('ano')) : undefined),
       tipoVeiculo: get('tipoVeiculo') != null ? String(get('tipoVeiculo')) : undefined,
       centroCusto: get('centroCusto') != null ? String(get('centroCusto')) : undefined,
       ativo: get('ativo') !== false && get('Ativo') !== false,
       transportadoraId: get('transportadoraId') != null ? Number(get('transportadoraId')) : undefined
     };
+  }
+
+  private unwrapBuscarBody(body: unknown): unknown {
+    let current: unknown = body;
+    for (let i = 0; i < 2; i++) {
+      if (!current || typeof current !== 'object' || Array.isArray(current)) break;
+      const obj = current as Record<string, unknown>;
+      if (obj['result'] != null) {
+        current = obj['result'];
+        continue;
+      }
+      if (obj['Result'] != null) {
+        current = obj['Result'];
+        continue;
+      }
+      break;
+    }
+    return current;
   }
 
   /** GET /api/Veiculo/{id} */

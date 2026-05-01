@@ -15,7 +15,9 @@ function norm(s: string): string {
 const ALIAS_NOME_PARA_ROTA: Record<string, string> = {
   dashbord: '/app/dashboard',
   dashboard: '/app/dashboard',
-  movimentos: '/app/movimentos',
+  movimentos: '/app/movimentos/entrada-saida',
+  'entrada e saida': '/app/movimentos/entrada-saida',
+  entradaesaida: '/app/movimentos/entrada-saida',
   relatorios: '/app/relatorios',
   financeiro: '/app/financeiro',
   configuracoes: '/app/configuracoes',
@@ -34,7 +36,9 @@ const ALIAS_NOME_PARA_ROTA: Record<string, string> = {
 };
 
 const ALIAS_PATH_PARA_ROTA: Record<string, string> = {
-  '/app/movimento': '/app/movimentos',
+  '/app/movimento': '/app/movimentos/entrada-saida',
+  '/app/movimentos': '/app/movimentos/entrada-saida',
+  '/app/movimentos/operacao': '/app/movimentos/entrada-saida',
   '/app/relatorio': '/app/relatorios',
   '/app/gerenciamento': '/app/gerenciamento',
 };

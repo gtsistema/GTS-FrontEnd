@@ -1,0 +1,144 @@
+<div class="es-form-page">
+  <div class="es-form-page__inner">
+    <header class="es-form-page__header dk-page-header">
+      <h1 class="es-form-page__title dk-page-title">{{ tituloPagina() }}</h1>
+      <p class="es-form-page__subtitle dk-page-subtitle">Preencha os vínculos obrigatórios e as datas de permanência.</p>
+    </header>
+
+    @if (carregandoRegistro) {
+      <p class="es-form-page__loading">Carregando registro...</p>
+    } @else {
+      <section class="card es-card">
+        <div class="es-card__body">
+          <form [formGroup]="form" (ngSubmit)="salvar()">
+            <div class="es-row es-row--3">
+              <div class="es-field">
+                <label class="es-field__label" for="motoristaDisplay">Motorista <span class="es-req">*</span></label>
+                <div class="es-lookup">
+                  <input
+                    #motoristaInput
+                    id="motoristaDisplay"
+                    type="text"
+                    class="input-control es-lookup__input"
+                    [value]="motoristaTexto"
+                    (input)="onMotoristaCampoInput($event)"
+                    autocomplete="off"
+                    placeholder="Digite parte do nome e use a lupa"
+                  />
+                  <button type="button" class="btn btn-secondary btn--sm" (click)="abrirMotorista()" title="Buscar motorista">
+                    <span class="material-symbols-outlined es-ico" aria-hidden="true">search</span>
+                  </button>
+                  <button type="button" class="btn btn-secondary btn--sm" (click)="limparMotorista()" title="Limpar seleção">
+                    Limpar
+                  </button>
+                </div>
+                @if (motoristaInvalido()) {
+                  <p class="es-field__error">Motorista é obrigatório.</p>
+                }
+              </div>
+
+              <div class="es-field">
+                <label class="es-field__label" for="transportadoraDisplay">Transportadora <span class="es-req">*</span></label>
+                <div class="es-lookup">
+                  <input
+                    id="transportadoraDisplay"
+                    type="text"
+                    class="input-control es-lookup__input"
+                    [value]="transportadoraTexto"
+                    (input)="onTransportadoraCampoInput($event)"
+                    autocomplete="off"
+                    placeholder="Digite o nome e use a lupa"
+                  />
+                  <button type="button" class="btn btn-secondary btn--sm" (click)="abrirTransportadora()" title="Buscar transportadora">
+                    <span class="material-symbols-outlined es-ico" aria-hidden="true">search</span>
+                  </button>
+                  <button type="button" class="btn btn-secondary btn--sm" (click)="limparTransportadora()" title="Limpar seleção">
+                    Limpar
+                  </button>
+                </div>
+                @if (transportadoraInvalida()) {
+                  <p class="es-field__error">Transportadora é obrigatória.</p>
+                }
+              </div>
+
+              <div class="es-field">
+                <label class="es-field__label" for="veiculoDisplay">Veículo <span class="es-req">*</span></label>
+                <div class="es-lookup">
+                  <input
+                    id="veiculoDisplay"
+                    type="text"
+                    class="input-control es-lookup__input"
+                    [value]="veiculoTexto"
+                    (input)="onVeiculoCampoInput($event)"
+                    autocomplete="off"
+                    placeholder="Digite placa/modelo e use a lupa"
+                  />
+                  <button type="button" class="btn btn-secondary btn--sm" (click)="abrirVeiculo()" title="Buscar veículo">
+                    <span class="material-symbols-outlined es-ico" aria-hidden="true">search</span>
+                  </button>
+                  <button type="button" class="btn btn-secondary btn--sm" (click)="limparVeiculo()" title="Limpar seleção">
+                    Limpar
+                  </button>
+                </div>
+                @if (veiculoInvalido()) {
+                  <p class="es-field__error">Veículo é obrigatório.</p>
+                }
+              </div>
+            </div>
+
+            <div class="es-row es-row--2 es-row--mt">
+              <div class="es-field">
+                <label class="es-field__label" for="dataHoraEntrada">Data entrada <span class="es-req">*</span></label>
+                <input id="dataHoraEntrada" type="datetime-local" class="input-control" formControlName="dataHoraEntrada" />
+                @if (form.controls.dataHoraEntrada.touched && form.controls.dataHoraEntrada.invalid) {
+                  <p class="es-field__error">Informe a data/hora de entrada.</p>
+                }
+              </div>
+              <div class="es-field">
+                <label class="es-field__label" for="dataHoraSaida">Data saída</label>
+                <input id="dataHoraSaida" type="datetime-local" class="input-control" formControlName="dataHoraSaida" />
+              </div>
+            </div>
+
+            @if (form.errors?.['dataSaidaMenor']) {
+              <p class="es-field__error es-field__error--block">Data/Hora de saída deve ser maior ou igual à entrada.</p>
+            }
+
+            <div class="es-field es-row--mt">
+              <label class="es-field__label" for="observacao">Observação</label>
+              <textarea id="observacao" class="input-control es-textarea" rows="3" formControlName="observacao" placeholder="Observações opcionais"></textarea>
+            </div>
+
+            <div class="es-actions">
+              <button type="button" class="btn btn-secondary" (click)="cancelar()" [disabled]="salvando">Cancelar</button>
+              <button type="submit" class="btn btn-primary" [disabled]="salvando || form.invalid">
+                {{ salvando ? 'Salvando...' : 'Salvar' }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </section>
+    }
+  </div>
+</div>
+
+<app-modal-busca-motorista
+  [aberto]="motoristaModalAberto"
+  [termoCampo]="motoristaTexto"
+  (fechar)="motoristaModalAberto = false"
+  (itemSelecionado)="onMotoristaSelecionado($event)"
+/>
+
+<app-modal-busca-transportadora
+  [aberto]="transportadoraModalAberto"
+  [termoCampo]="transportadoraTexto"
+  (fechar)="transportadoraModalAberto = false"
+  (itemSelecionado)="onTransportadoraSelecionada($event)"
+/>
+
+<app-modal-busca-veiculo
+  [aberto]="veiculoModalAberto"
+  [termoCampo]="veiculoTexto"
+  (fechar)="veiculoModalAberto = false"
+  (itemSelecionado)="onVeiculoSelecionado($event)"
+/>
