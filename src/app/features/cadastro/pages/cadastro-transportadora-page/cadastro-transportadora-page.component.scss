@@ -1110,6 +1110,24 @@
   padding: 0;
 }
 
+/* Lookup motorista na frota (mesmo padrão da Entrada/saída) */
+.es-lookup {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.es-lookup__input {
+  min-width: 0;
+}
+
+.es-ico {
+  font-size: 1.125rem;
+  line-height: 1;
+  vertical-align: middle;
+}
+
 /* ========== Responsividade (igual Estacionamento) */
 @media (max-width: 768px) {
   .page-header {

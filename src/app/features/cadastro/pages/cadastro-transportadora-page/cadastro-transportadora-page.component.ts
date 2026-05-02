@@ -24,6 +24,8 @@ import {
   montarPayloadTransportadoraApi,
   TransportadoraFormRawValue
 } from '../../mappers/transportadora-payload.mapper';
+import { ModalBuscaMotoristaComponent } from '../../../movimentos/entrada-saida/components/modal-busca-motorista/modal-busca-motorista.component';
+import { PaginatedSearchItem } from '../../../../shared/models/paginated-search.models';
 
 export type TransportadoraTab = 'cadastro' | 'frota' | 'motoristas';
 type TransportadoraSearchField = 'geral' | 'cnpj' | 'razaoSocial' | 'nomeFantasia' | 'email' | 'id';
@@ -39,7 +41,8 @@ const TAMANHO_PAGINA = 50;
     ReactiveFormsModule,
     CnpjFormatDirective,
     CpfFormatDirective,
-    TelefoneFormatDirective
+    TelefoneFormatDirective,
+    ModalBuscaMotoristaComponent
   ],
   templateUrl: './cadastro-transportadora-page.component.html',
   styleUrls: ['./cadastro-transportadora-page.component.scss']
@@ -97,6 +100,9 @@ export class CadastroTransportadoraPageComponent implements OnInit {
   veiculoForm!: FormGroup;
   veiculoEditId: number | null = null;
   salvandoVeiculo = false;
+  /** Lookup de motorista no modal frota (mesmo padrão da tela Entrada/saída). */
+  frotaMotoristaModalAberto = false;
+  frotaMotoristaTexto = '';
   /** Opções para quantidade de eixos (modal frota). */
   eixosOpcoes: number[] = [2, 3, 4, 5, 6, 7, 8, 9];
   /** Opções para veículo leve/pesado. */
@@ -729,7 +735,7 @@ export class CadastroTransportadoraPageComponent implements OnInit {
     this.veiculoForm = this.fb.group({
       id: [null as number | null],
       placa: ['', [Validators.required, Validators.minLength(7)]],
-      condutorId: [null as number | null],
+      motoristaId: [null as number | null],
       veiculoModeloId: [null as number | null],
       marca: [''],
       modelo: [''],
@@ -776,12 +782,11 @@ export class CadastroTransportadoraPageComponent implements OnInit {
             const idx = marcaModelo.indexOf(' ');
             const marca = idx >= 0 ? marcaModelo.slice(0, idx) : marcaModelo;
             const modelo = idx >= 0 ? marcaModelo.slice(idx + 1) : '';
-            const dtoExt = dto as unknown as Record<string, unknown>;
             this.veiculoEditId = dto.id ?? null;
             this.veiculoForm.patchValue({
               id: dto.id,
               placa: dto.placa,
-              condutorId: dtoExt['condutorId'] ?? null,
+              motoristaId: dto.motoristaId ?? null,
               veiculoModeloId: dto.veiculoModeloId,
               marca,
               modelo,
@@ -790,12 +795,13 @@ export class CadastroTransportadoraPageComponent implements OnInit {
               anoFabricacao: dto.anoFabricacao,
               anoModelo: dto.anoModelo,
               tipoVeiculo: dto.tipoVeiculo,
-              quantidadeEixos: dtoExt['quantidadeEixos'] ?? '',
-              tipoPeso: dtoExt['tipoPeso'] ?? '',
+              quantidadeEixos: dto.quantidadeEixos != null ? String(dto.quantidadeEixos) : '',
+              tipoPeso: dto.tipoPeso ?? '',
               transportadoraId: dto.transportadoraId ?? this.transportadoraId,
               centroCusto: dto.centroCusto,
               ativo: dto.ativo
             });
+            this.aplicarTextoMotoristaFrota(dto);
             this.cdr.markForCheck();
           });
         }
@@ -804,10 +810,12 @@ export class CadastroTransportadoraPageComponent implements OnInit {
 
   abrirNovoVeiculo(): void {
     this.veiculoEditId = null;
+    this.frotaMotoristaModalAberto = false;
+    this.frotaMotoristaTexto = '';
     this.veiculoForm.reset({
       id: null,
       placa: '',
-      condutorId: null,
+      motoristaId: null,
       veiculoModeloId: null,
       marca: '',
       modelo: '',
@@ -855,11 +863,10 @@ export class CadastroTransportadoraPageComponent implements OnInit {
       if (dto) {
         const { marca, modelo } = patchMarcaModelo(dto.marcaModelo);
         this.veiculoEditId = dto.id ?? null;
-        const dtoExt = dto as unknown as Record<string, unknown>;
         this.veiculoForm.patchValue({
           id: dto.id,
           placa: dto.placa,
-          condutorId: dtoExt['condutorId'] ?? null,
+          motoristaId: dto.motoristaId ?? null,
           veiculoModeloId: dto.veiculoModeloId,
           marca,
           modelo,
@@ -868,12 +875,13 @@ export class CadastroTransportadoraPageComponent implements OnInit {
           anoFabricacao: dto.anoFabricacao,
           anoModelo: dto.anoModelo,
           tipoVeiculo: dto.tipoVeiculo,
-          quantidadeEixos: dtoExt['quantidadeEixos'] ?? '',
-          tipoPeso: dtoExt['tipoPeso'] ?? '',
+          quantidadeEixos: dto.quantidadeEixos != null ? String(dto.quantidadeEixos) : '',
+          tipoPeso: dto.tipoPeso ?? '',
           transportadoraId: dto.transportadoraId ?? this.transportadoraId,
           centroCusto: dto.centroCusto,
           ativo: dto.ativo
         });
+        this.aplicarTextoMotoristaFrota(dto);
         this.ensureTransportadoraListForFrota();
         this.showVeiculoForm = true;
         this.cdr.markForCheck();
@@ -893,10 +901,13 @@ export class CadastroTransportadoraPageComponent implements OnInit {
       return;
     }
     const marcaModelo = [v.marca, v.modelo].filter(Boolean).join(' ').trim() || undefined;
+    const motoristaId =
+      v.motoristaId != null && Number(v.motoristaId) > 0 ? Number(v.motoristaId) : undefined;
     const dto: VeiculoDTO = {
       id: v.id && v.id > 0 ? v.id : undefined,
       transportadoraId,
       placa: (v.placa ?? '').replace(/\s/g, '').toUpperCase(),
+      motoristaId,
       veiculoModeloId: v.veiculoModeloId || undefined,
       marcaModelo: marcaModelo ?? v.marcaModelo,
       cor: v.cor,
@@ -937,6 +948,50 @@ export class CadastroTransportadoraPageComponent implements OnInit {
   /** Fecha o modal Cadastrar frota (Fechar, X ou clique fora). */
   fecharModalFrota(): void {
     this.showVeiculoForm = false;
+    this.frotaMotoristaModalAberto = false;
+  }
+
+  abrirBuscaMotoristaFrota(): void {
+    this.frotaMotoristaModalAberto = true;
+  }
+
+  onFrotaMotoristaCampoInput(ev: Event): void {
+    const val = (ev.target as HTMLInputElement).value;
+    this.frotaMotoristaTexto = val;
+    this.veiculoForm.patchValue({ motoristaId: null }, { emitEvent: false });
+  }
+
+  onFrotaMotoristaSelecionado(item: PaginatedSearchItem): void {
+    this.veiculoForm.patchValue({ motoristaId: item.id });
+    this.frotaMotoristaTexto = item.titulo;
+    this.frotaMotoristaModalAberto = false;
+    this.cdr.markForCheck();
+  }
+
+  limparMotoristaFrota(): void {
+    this.veiculoForm.patchValue({ motoristaId: null });
+    this.frotaMotoristaTexto = '';
+  }
+
+  /** Preenche o texto do lookup com nome vindo do GET ou GET /Motorista/{id}. */
+  private aplicarTextoMotoristaFrota(dto: VeiculoDTO): void {
+    this.frotaMotoristaTexto = dto.motoristaNome ?? '';
+    const mid = dto.motoristaId;
+    if ((this.frotaMotoristaTexto ?? '').trim()) {
+      this.cdr.markForCheck();
+      return;
+    }
+    if (mid == null || mid <= 0) {
+      this.cdr.markForCheck();
+      return;
+    }
+    this.motoristaService.obterPorId(mid).subscribe({
+      next: (m) => {
+        this.frotaMotoristaTexto = m?.nomeCompleto ?? '';
+        this.cdr.markForCheck();
+      },
+      error: () => this.cdr.markForCheck()
+    });
   }
 
   /** Abre modal de importação de frota por Excel. */
@@ -1128,11 +1183,5 @@ export class CadastroTransportadoraPageComponent implements OnInit {
     });
   }
 
-  condutoresParaFrota(): MotoristaListItemDTO[] {
-    if (this.transportadoraId == null) return [];
-    return this.condutores.filter(
-      (item) => item.ativo && (item.transportadoraId == null || item.transportadoraId === this.transportadoraId)
-    );
-  }
 }
 

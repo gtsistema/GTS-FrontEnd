@@ -1706,35 +1706,16 @@ export interface components {
          * @enum {integer}
          */
         TipoPessoa: 1 | 2;
+        /** Alinhado ao OpenAPI em `/swagger/v1/swagger.json` (Transportadora). */
         TransportadoraPostInput: {
-            /** Format: int32 */
+            /** Format: int32 — id da transportadora; omitir em cadastro novo quando aplicável */
             id?: number;
-            descricao?: string | null;
-            /** Format: date-time */
-            dataCriacao?: string;
-            /** Format: date-time */
-            dataAtualizacao?: string | null;
-            cnh?: string | null;
-            /** Format: date-time */
-            validadeCNH?: string | null;
-            /** Format: int32 */
-            pessoaId?: number;
-            pessoa?: components["schemas"]["PessoaInput"];
+            pessoaJuridica?: components["schemas"]["PessoaInput"];
         };
         TransportadoraPutInput: {
             /** Format: int32 */
             id?: number;
-            descricao?: string | null;
-            /** Format: date-time */
-            dataCriacao?: string;
-            /** Format: date-time */
-            dataAtualizacao?: string | null;
-            cnh?: string | null;
-            /** Format: date-time */
-            validadeCNH?: string | null;
-            /** Format: int32 */
-            pessoaId?: number;
-            pessoa?: components["schemas"]["PessoaInput"];
+            pessoaJuridica?: components["schemas"]["PessoaInput"];
         };
         VeiculoDetalheInput: {
             uf?: string | null;

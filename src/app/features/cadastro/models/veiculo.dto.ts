@@ -17,6 +17,13 @@ export interface VeiculoDTO {
   id?: number;
   transportadoraId?: number;
   placa: string;
+  /** Vínculo com motorista (GET/POST/PUT conforme contrato do backend). */
+  motoristaId?: number;
+  /**
+   * Nome vindo do GET (objeto aninhado ou denormalizado); não reenviar — use só para exibir o lookup.
+   */
+  motoristaNome?: string;
+  descricao?: string | null;
   veiculoModeloId?: number;
   marcaModelo?: string;
   cor?: string;
@@ -25,6 +32,9 @@ export interface VeiculoDTO {
   tipoVeiculo?: string;
   centroCusto?: string;
   ativo: boolean;
+  /** Alguns GET retornam na raiz ou em `veiculoDetalhe` — uso local do formulário de frota. */
+  quantidadeEixos?: string | number | null;
+  tipoPeso?: string | null;
 }
 
 export interface VeiculoBuscarParams {

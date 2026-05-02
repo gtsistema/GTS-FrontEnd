@@ -58,10 +58,10 @@ function ordenarContatosPrincipalPrimeiro(contatos: Record<string, unknown>[]): 
 
 /**
  * Monta o body de POST/PUT /api/Transportadora.
- * Contrato real do backend: `{ transportadora: { id, descricao, datas, tipoPessoa, nomeRazaoSocial, …, enderecos, contatos } }`
- * (campos planos — sem objeto `pessoa` aninhado).
- * - Não inclui `cnh` / `validadeCNH` em cadastro novo (evita 400 por validação).
- * - Em edição, preserva datas de criação e ids vindos de `mergeRaw` quando existirem na resposta da API.
+ * Contrato Swagger (GTS API v1): `TransportadoraPostInput` / `TransportadoraPutInput` =
+ * `{ id?: number, pessoaJuridica: PessoaInput }` — sem wrapper `transportadora`.
+ * `PessoaInput`: dados da PJ + `enderecos[]` + `contatos[]` (ver OpenAPI `PessoaEnderecoInput` / `PessoaContatoInput`).
+ * - Em edição, `id` na raiz = transportadora; `pessoaJuridica.id` = pessoa (quando existir no merge).
  * - Remove `undefined` em profundidade antes do envio.
  */
 export function montarPayloadTransportadoraApi(
@@ -135,14 +135,18 @@ export function montarPayloadTransportadoraApi(
     estado: ufNormalize(end['estado'])
   };
 
-  /** Corpo usado no merge: aceita raiz antiga, `{ transportadora: {...} }` ou transportadora plana. */
+  /** Merge: GET atual `{ id, PessoaJuridica }`, legado `{ transportadora: {...} }` ou `pessoa`. */
   const mergeRaiz =
     mergeRaw && typeof mergeRaw === 'object' ? (mergeRaw as Record<string, unknown>) : null;
   const mergeTa =
     mergeRaiz && mergeRaiz['transportadora'] != null && typeof mergeRaiz['transportadora'] === 'object'
       ? (mergeRaiz['transportadora'] as Record<string, unknown>)
       : mergeRaiz;
-  const mergePessoaNested = mergeTa ? (getRaw(mergeTa, 'pessoa') as Record<string, unknown> | undefined) : undefined;
+  const mergePessoaNested = mergeTa
+    ? ((getRaw(mergeTa, 'pessoa') as Record<string, unknown> | undefined) ??
+        (getRaw(mergeTa, 'pessoaJuridica') as Record<string, unknown> | undefined) ??
+        (mergeTa['PessoaJuridica'] as Record<string, unknown> | undefined))
+    : undefined;
   const mergeSource =
     mergePessoaNested && typeof mergePessoaNested === 'object'
       ? mergePessoaNested
@@ -190,22 +194,19 @@ export function montarPayloadTransportadoraApi(
 
   if (isEdit && mergeTa) {
     const tid = Number(getRaw(mergeTa, 'id') ?? getRaw(mergeTa, 'Id')) || 0;
-    const tpessoaId = Number(getRaw(mergeTa, 'pessoaId') ?? getRaw(mergeTa, 'PessoaId')) || 0;
-    const dcT = getRaw(mergeTa, 'dataCriacao') ?? getRaw(mergeTa, 'DataCriacao');
-    const cnhM = getRaw(mergeTa, 'cnh') ?? getRaw(mergeTa, 'Cnh');
-    const valCnh = getRaw(mergeTa, 'validadeCNH') ?? getRaw(mergeTa, 'ValidadeCNH');
+    const pessoaIdMerge =
+      Number(getRaw(mergeSource ?? {}, 'id') ?? getRaw(mergeSource ?? {}, 'Id')) ||
+      Number(getRaw(mergeTa, 'pessoaId') ?? getRaw(mergeTa, 'PessoaId')) ||
+      0;
 
     const dcP = getRaw(mergeSource ?? {}, 'dataCriacao') ?? getRaw(mergeSource ?? {}, 'DataCriacao');
 
     const dataCriacaoMerged =
-      dcT != null && String(dcT).trim() !== ''
-        ? String(dcT)
-        : dcP != null && String(dcP).trim() !== ''
-          ? String(dcP)
-          : undefined;
+      dcP != null && String(dcP).trim() !== '' && String(dcP).trim() !== '0001-01-01T00:00:00'
+        ? String(dcP)
+        : undefined;
 
-    const innerEdit: Record<string, unknown> = {
-      id: tid,
+    const pessoaJuridicaEdit: Record<string, unknown> = {
       descricao,
       dataAtualizacao: nowIso,
       tipoPessoa: pessoaBase['tipoPessoa'],
@@ -218,23 +219,19 @@ export function montarPayloadTransportadoraApi(
       contatos: pessoaBase['contatos']
     };
     if (dataCriacaoMerged != null) {
-      innerEdit['dataCriacao'] = dataCriacaoMerged;
+      pessoaJuridicaEdit['dataCriacao'] = dataCriacaoMerged;
     }
-    if (tpessoaId > 0) {
-      innerEdit['pessoaId'] = tpessoaId;
-    }
-    if (cnhM != null && String(cnhM).trim() !== '') {
-      innerEdit['cnh'] = String(cnhM).trim();
-    }
-    if (valCnh != null && String(valCnh).trim() !== '') {
-      innerEdit['validadeCNH'] = String(valCnh).trim();
+    if (pessoaIdMerge > 0) {
+      pessoaJuridicaEdit['id'] = pessoaIdMerge;
     }
 
-    return stripUndefinedDeep({ transportadora: innerEdit }) as Record<string, unknown>;
+    return stripUndefinedDeep({
+      id: tid > 0 ? tid : undefined,
+      pessoaJuridica: pessoaJuridicaEdit
+    }) as Record<string, unknown>;
   }
 
-  const innerCreate: Record<string, unknown> = {
-    id: 0,
+  const pessoaJuridicaCreate: Record<string, unknown> = {
     descricao,
     dataCriacao: nowIso,
     dataAtualizacao: nowIso,
@@ -248,5 +245,5 @@ export function montarPayloadTransportadoraApi(
     contatos: pessoaBase['contatos']
   };
 
-  return stripUndefinedDeep({ transportadora: innerCreate }) as Record<string, unknown>;
+  return stripUndefinedDeep({ pessoaJuridica: pessoaJuridicaCreate }) as Record<string, unknown>;
 }

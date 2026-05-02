@@ -111,27 +111,106 @@ export class VeiculoService {
       timeout(15000),
       map((body) => {
         const res = body as Record<string, unknown> | VeiculoDTO;
-        const result = (res && 'result' in res ? (res as Record<string, unknown>)['result'] : res) as Record<string, unknown> | undefined;
-        if (result && typeof result === 'object') {
-          const get = (k: string) => result[k] ?? result[k.charAt(0).toUpperCase() + k.slice(1)];
-          return {
-            id: Number(get('id')) || 0,
-            transportadoraId: get('transportadoraId') != null ? Number(get('transportadoraId')) : undefined,
-            placa: String(get('placa') ?? ''),
-            veiculoModeloId: get('veiculoModeloId') != null ? Number(get('veiculoModeloId')) : undefined,
-            marcaModelo: get('marcaModelo') != null ? String(get('marcaModelo')) : undefined,
-            cor: get('cor') != null ? String(get('cor')) : undefined,
-            anoFabricacao: get('anoFabricacao') != null ? Number(get('anoFabricacao')) : undefined,
-            anoModelo: get('anoModelo') != null ? Number(get('anoModelo')) : undefined,
-            tipoVeiculo: get('tipoVeiculo') != null ? String(get('tipoVeiculo')) : undefined,
-            centroCusto: get('centroCusto') != null ? String(get('centroCusto')) : undefined,
-            ativo: get('ativo') !== false
-          };
-        }
-        return null;
+        const raw =
+          res && typeof res === 'object' && 'result' in res
+            ? (res as Record<string, unknown>)['result']
+            : res;
+        if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+        return this.mapVeiculoDetalheGet(raw as Record<string, unknown>);
       }),
       catchError(() => of(null))
     );
+  }
+
+  /** Mapeia corpo do GET /api/Veiculo/{id} (flat + aninhado `veiculoModelo`, `motorista`). */
+  private mapVeiculoDetalheGet(result: Record<string, unknown>): VeiculoDTO | null {
+    const get = (k: string) => result[k] ?? result[k.charAt(0).toUpperCase() + k.slice(1)];
+    const id = Number(get('id'));
+    if (!id) return null;
+
+    const nestedMotorista = get('motorista') ?? get('Motorista');
+    let motoristaNome: string | undefined;
+    let motoristaId: number | undefined;
+    if (nestedMotorista && typeof nestedMotorista === 'object') {
+      const nm = nestedMotorista as Record<string, unknown>;
+      const ng = (k: string) => nm[k] ?? nm[k.charAt(0).toUpperCase() + k.slice(1)];
+      const mid = ng('id');
+      if (mid != null) motoristaId = Number(mid) || undefined;
+      const nome = String(
+        ng('nomeCompleto') ?? ng('NomeCompleto') ?? ng('descricao') ?? ng('Descricao') ?? ''
+      ).trim();
+      if (nome) motoristaNome = nome;
+    }
+    const flatMotoristaId = get('motoristaId') ?? get('MotoristaId') ?? get('condutorId') ?? get('CondutorId');
+    if (motoristaId == null && flatMotoristaId != null) {
+      motoristaId = Number(flatMotoristaId) || undefined;
+    }
+
+    const vmRaw = get('veiculoModelo') ?? get('VeiculoModelo');
+    let veiculoModeloId = get('veiculoModeloId') ?? get('VeiculoModeloId');
+    const mmFlat = get('marcaModelo') ?? get('MarcaModelo');
+    let marcaModeloCombined = mmFlat != null ? String(mmFlat) : undefined;
+    if (vmRaw && typeof vmRaw === 'object') {
+      const vm = vmRaw as Record<string, unknown>;
+      const vg = (k: string) => vm[k] ?? vm[k.charAt(0).toUpperCase() + k.slice(1)];
+      if (veiculoModeloId == null && vg('id') != null) veiculoModeloId = Number(vg('id'));
+      const marcaRaw = vg('veiculoMarca') ?? vg('VeiculoMarca');
+      let marcaDesc = '';
+      if (marcaRaw && typeof marcaRaw === 'object') {
+        const mr = marcaRaw as Record<string, unknown>;
+        marcaDesc = String(mr['descricao'] ?? mr['Descricao'] ?? '');
+      }
+      const modeloDesc = String(vg('descricao') ?? vg('Descricao') ?? '');
+      const combined = [marcaDesc, modeloDesc].filter(Boolean).join(' ').trim();
+      if (combined) marcaModeloCombined = combined;
+    }
+
+    const ano = get('ano') ?? get('Ano');
+    const anoFabricacaoRaw = get('anoFabricacao') ?? get('AnoFabricacao');
+    const anoModeloRaw = get('anoModelo') ?? get('AnoModelo');
+    const anoNum = ano != null ? Number(ano) : undefined;
+    const anoFabricacao =
+      anoFabricacaoRaw != null ? Number(anoFabricacaoRaw) : anoNum !== undefined ? anoNum : undefined;
+    const anoModelo =
+      anoModeloRaw != null ? Number(anoModeloRaw) : anoNum !== undefined ? anoNum : undefined;
+
+    const descricaoRaw = get('descricao') ?? get('Descricao');
+    const veiculoModeloIdNum =
+      veiculoModeloId != null ? Number(veiculoModeloId) : undefined;
+
+    const vdRaw = get('veiculoDetalhe') ?? get('VeiculoDetalhe');
+    let quantidadeEixos: string | number | null | undefined =
+      (get('quantidadeEixos') ?? get('QuantidadeEixos')) as string | number | null | undefined;
+    let tipoPeso: string | null | undefined = (get('tipoPeso') ?? get('TipoPeso')) as string | null | undefined;
+    if (vdRaw && typeof vdRaw === 'object') {
+      const vd = vdRaw as Record<string, unknown>;
+      const vget = (k: string) => vd[k] ?? vd[k.charAt(0).toUpperCase() + k.slice(1)];
+      if (quantidadeEixos == null) {
+        quantidadeEixos = (vget('quantidadeEixos') ?? vget('QuantidadeEixos')) as string | number | null | undefined;
+      }
+      if (tipoPeso == null) {
+        tipoPeso = (vget('tipoPeso') ?? vget('TipoPeso')) as string | null | undefined;
+      }
+    }
+
+    return {
+      id,
+      transportadoraId: get('transportadoraId') != null ? Number(get('transportadoraId')) : undefined,
+      placa: String(get('placa') ?? ''),
+      motoristaId,
+      motoristaNome,
+      descricao: descricaoRaw != null ? String(descricaoRaw) : undefined,
+      veiculoModeloId: Number.isFinite(veiculoModeloIdNum as number) ? veiculoModeloIdNum : undefined,
+      marcaModelo: marcaModeloCombined,
+      cor: get('cor') != null ? String(get('cor')) : undefined,
+      anoFabricacao,
+      anoModelo,
+      tipoVeiculo: get('tipoVeiculo') != null ? String(get('tipoVeiculo')) : undefined,
+      centroCusto: get('centroCusto') != null ? String(get('centroCusto')) : undefined,
+      ativo: get('ativo') !== false && get('Ativo') !== false,
+      quantidadeEixos: quantidadeEixos != null ? quantidadeEixos : undefined,
+      tipoPeso: tipoPeso != null ? String(tipoPeso) : undefined
+    };
   }
 
   /** POST /api/Veiculo */
@@ -164,12 +243,13 @@ export class VeiculoService {
   /** Payload para POST Gravar e PUT Alterar (backend: placa obrigatória). */
   private dtoToPayload(dto: VeiculoDTO): Record<string, unknown> {
     const placa = (dto.placa ?? '').replace(/\s/g, '').toUpperCase();
-    return {
+    const payload: Record<string, unknown> = {
       id: dto.id,
       transportadoraId: dto.transportadoraId,
       placa: placa || undefined,
       veiculoModeloId: dto.veiculoModeloId,
       marcaModelo: dto.marcaModelo,
+      descricao: dto.descricao ?? undefined,
       cor: dto.cor ?? undefined,
       anoFabricacao: dto.anoFabricacao ?? undefined,
       anoModelo: dto.anoModelo ?? undefined,
@@ -177,5 +257,9 @@ export class VeiculoService {
       centroCusto: dto.centroCusto ?? undefined,
       ativo: dto.ativo
     };
+    if (dto.motoristaId != null && dto.motoristaId > 0) {
+      payload['motoristaId'] = dto.motoristaId;
+    }
+    return payload;
   }
 }

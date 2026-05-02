@@ -471,13 +471,24 @@
               />
             </div>
             <div class="form-row">
-              <label for="frota-condutor">Motorista</label>
-              <select id="frota-condutor" class="input-control input-control--select" formControlName="condutorId">
-                <option [ngValue]="null">Selecione</option>
-                @for (c of condutoresParaFrota(); track c.id) {
-                  <option [ngValue]="c.id">{{ c.nomeCompleto }}</option>
-                }
-              </select>
+              <label for="frota-motorista-display">Motorista</label>
+              <div class="es-lookup">
+                <input
+                  id="frota-motorista-display"
+                  type="text"
+                  class="input-control es-lookup__input"
+                  [value]="frotaMotoristaTexto"
+                  (input)="onFrotaMotoristaCampoInput($event)"
+                  autocomplete="off"
+                  placeholder="Digite parte do nome e use a lupa"
+                />
+                <button type="button" class="btn btn-secondary btn--sm" (click)="abrirBuscaMotoristaFrota()" title="Buscar motorista">
+                  <span class="material-symbols-outlined es-ico" aria-hidden="true">search</span>
+                </button>
+                <button type="button" class="btn btn-secondary btn--sm" (click)="limparMotoristaFrota()" title="Limpar seleção">
+                  Limpar
+                </button>
+              </div>
             </div>
             <div class="form-row">
               <label for="frota-marca">Marca</label>
@@ -635,4 +646,11 @@
       </div>
     </div>
   }
+
+  <app-modal-busca-motorista
+    [aberto]="frotaMotoristaModalAberto"
+    [termoCampo]="frotaMotoristaTexto"
+    (fechar)="frotaMotoristaModalAberto = false"
+    (itemSelecionado)="onFrotaMotoristaSelecionado($event)"
+  />
 </div>

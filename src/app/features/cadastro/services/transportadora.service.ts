@@ -165,7 +165,12 @@ export class TransportadoraService {
 
   private mapToDto(r: TransportadoraObterPorIdResultDTO & Record<string, unknown>): TransportadoraDTO {
     const get = (key: string) => r[key] ?? r[key.charAt(0).toUpperCase() + key.slice(1)];
-    const pessoa = get('pessoa') as Record<string, unknown> | undefined;
+    /** API pode enviar `pessoa` ou `PessoaJuridica` / `pessoaJuridica` (get cobre PascalCase). */
+    const pessoaRaw = (get('pessoa') ?? get('pessoaJuridica')) as unknown;
+    const pessoa =
+      pessoaRaw != null && typeof pessoaRaw === 'object'
+        ? (pessoaRaw as Record<string, unknown>)
+        : undefined;
     const end = (r.endereco as Record<string, unknown> | undefined) ??
       ((pessoa?.['enderecos'] as Record<string, unknown>[] | undefined)?.[0]);
     const getPessoa = (key: string) => pessoa?.[key] ?? pessoa?.[key.charAt(0).toUpperCase() + key.slice(1)];
@@ -314,13 +319,16 @@ export class TransportadoraService {
   }
 
   /**
-   * Suporta body novo `{ transportadora: { … } }` ou legado `{ pessoa: { … } }`.
+   * Suporta `{ pessoaJuridica: … }` (Swagger), legado `{ transportadora: … }` ou `pessoa`.
    */
   private mapPayloadToDto(payload: Record<string, unknown>, returnedId?: number): TransportadoraDTO {
     const body =
       (payload['transportadora'] as Record<string, unknown> | undefined) ??
       (payload as Record<string, unknown>);
-    const pessoaNested = body['pessoa'] as Record<string, unknown> | undefined;
+    const pessoaNested =
+      (body['pessoa'] as Record<string, unknown> | undefined) ??
+      (body['pessoaJuridica'] as Record<string, unknown> | undefined) ??
+      (body['PessoaJuridica'] as Record<string, unknown> | undefined);
     const pessoa =
       pessoaNested && typeof pessoaNested === 'object'
         ? pessoaNested
