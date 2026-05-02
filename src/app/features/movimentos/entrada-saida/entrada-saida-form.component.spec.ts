@@ -5,6 +5,8 @@ import { ToastService } from '../../../core/api/services/toast.service';
 import { PermissionCacheService } from '../../../core/services/permission-cache.service';
 import { EntradaSaidaService } from './entrada-saida.service';
 import { EntradaSaidaFormComponent } from './entrada-saida-form.component';
+import { VeiculoService } from '../../cadastro/services/veiculo.service';
+import { of } from 'rxjs';
 
 describe('EntradaSaidaFormComponent', () => {
   const routerMock = { navigate: vi.fn().mockResolvedValue(true) };
@@ -19,6 +21,10 @@ describe('EntradaSaidaFormComponent', () => {
     update: vi.fn()
   };
 
+  const veiculoServiceMock = {
+    obterPorPlaca: vi.fn().mockReturnValue(of(null))
+  };
+
   const toastMock = { success: vi.fn(), error: vi.fn() };
   const permissionMock = {
     has: (k: string) => k === 'entradasaida.gravar' || k === 'entradasaida.alterar',
@@ -30,6 +36,7 @@ describe('EntradaSaidaFormComponent', () => {
       imports: [EntradaSaidaFormComponent],
       providers: [
         { provide: EntradaSaidaService, useValue: entradaSaidaServiceMock },
+        { provide: VeiculoService, useValue: veiculoServiceMock },
         { provide: ToastService, useValue: toastMock },
         { provide: PermissionCacheService, useValue: permissionMock },
         { provide: Router, useValue: routerMock },
@@ -47,7 +54,7 @@ describe('EntradaSaidaFormComponent', () => {
 
     const input = document.createElement('input');
     input.value = 'Jo';
-    cmp.onMotoristaCampoInput({ target: input } as unknown as Event);
+    cmp.onCampoMotoristaNome({ target: input } as unknown as Event);
 
     expect(cmp.motoristaTexto).toBe('Jo');
     expect(cmp.form.controls.motoristaId.value).toBeNull();

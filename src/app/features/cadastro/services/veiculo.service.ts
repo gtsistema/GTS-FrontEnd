@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Observable, catchError, map, of, throwError, timeout } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import {
@@ -8,6 +8,9 @@ import {
   VeiculoBuscarParams,
   PagedResultVeiculoDTO
 } from '../models/veiculo.dto';
+import { MotoristaPorPlacaAggregateVm } from '../models/motorista-por-placa.vm';
+import { mapMotoristaPorPlacaResponse } from '../mappers/motorista-por-placa.mapper';
+import { normalizePlaca } from '../utils/placa-br';
 
 /**
  * Contrato: GET/POST/PUT `/api/Veiculo`, GET/DELETE `/api/Veiculo/{id}`.
@@ -38,6 +41,26 @@ export class VeiculoService {
       timeout(15000),
       map((body) => this.normalizeBuscar(body, params.NumeroPagina, params.TamanhoPagina)),
       catchError((err) => throwError(() => err))
+    );
+  }
+
+  /**
+   * GET `/api/Veiculo/por-placa/{placa}` — agregado veículo + motorista + transportadora.
+   * 404 → `null` (sem registro). Demais erros propagam para o chamador exibir toast.
+   */
+  obterPorPlaca(placa: string): Observable<MotoristaPorPlacaAggregateVm | null> {
+    const norm = normalizePlaca(placa);
+    if (norm.length < 7) {
+      return of(null);
+    }
+    return this.http.get<unknown>(`${VEICULO}/por-placa/${encodeURIComponent(norm)}`).pipe(
+      timeout(15000),
+      map((body) => mapMotoristaPorPlacaResponse(body)),
+      catchError((err: unknown) => {
+        const status = err instanceof HttpErrorResponse ? err.status : 0;
+        if (status === 404) return of(null);
+        return throwError(() => err);
+      })
     );
   }
 
