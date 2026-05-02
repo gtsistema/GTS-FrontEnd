@@ -1,0 +1,22 @@
+@media (max-width: 768px) {
+  .page-header {
+    padding: 16px 24px 16px;
+  }
+
+  .page-content {
+    padding: 16px 24px;
+  }
+
+  .page-title {
+    font-size: 1.25rem;
+  }
+
+  .tabs {
+    width: 100%;
+  }
+
+  .tab {
+    flex: 1;
+    min-width: 0;
+  }
+}

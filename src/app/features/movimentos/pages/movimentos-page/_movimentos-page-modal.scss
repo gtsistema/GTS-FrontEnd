@@ -1,0 +1,114 @@
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.modal-content {
+  width: min(820px, 92vw);
+  background: #fff;
+  border-radius: 12px;
+  padding: 1rem;
+}
+
+.modal-actions {
+  margin-top: 1rem;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.modal-footer .btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.modal-close {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  background: var(--surface-2, #1e2a45);
+  color: var(--muted);
+  font-size: 1.5rem;
+  line-height: 1;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.modal-close:hover {
+  background: #252f4a;
+  color: var(--text);
+}
+
+/* Modal Detalhes do movimento: mais largo, conteúdo centralizado e confortável */
+.modal-content--detalhe {
+  max-width: 520px;
+  width: 100%;
+}
+
+.modal-content--detalhe .modal-header {
+  padding: 1.125rem 2rem 1rem;
+}
+
+.modal-content--detalhe .modal-footer {
+  padding: 1rem 2rem 1.25rem;
+}
+
+.detalhe-body {
+  padding: 0.5rem 2rem 1.5rem;
+  overflow-y: auto;
+}
+
+.detalhe-list {
+  margin: 0 auto;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0;
+  max-width: 420px;
+}
+
+.detalhe-item {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 1rem 1.5rem;
+  align-items: center;
+  min-height: 2.75rem;
+  padding: 0.625rem 0.75rem;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.02);
+  margin-bottom: 4px;
+}
+
+.detalhe-item:last-child {
+  margin-bottom: 0;
+}
+
+.detalhe-item dt {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--muted);
+  letter-spacing: 0.01em;
+}
+
+.detalhe-item dd {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--text);
+  text-align: right;
+  word-break: break-word;
+  padding-left: 0.75rem;
+  line-height: 1.4;
+}
