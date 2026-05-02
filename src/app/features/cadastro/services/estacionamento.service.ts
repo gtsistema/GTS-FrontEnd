@@ -8,7 +8,8 @@ import {
   ApiResponseDTO,
   EstacionamentoBuscarParams,
   PagedResultDTO,
-  EnderecoDTO
+  EnderecoDTO,
+  EstacionamentoPayloadMergeContext
 } from '../models/estacionamento.dto';
 import { environment } from '../../../../environments/environment';
 import { EstacionamentoPaths } from '../constants/estacionamento-api.paths';
@@ -61,6 +62,8 @@ export interface EstacionamentoFormValue {
   titularCnpj?: string;
   /** Fotos retornadas pela API (base64 ou URL); exibidas no passo Fotos. */
   loadedFotosBase64?: string[];
+  /** Dados do GET para montar PUT completo (datas, conta preservada). */
+  payloadMerge?: EstacionamentoPayloadMergeContext;
 }
 
 @Injectable({
@@ -294,6 +297,27 @@ export class EstacionamentoService {
     );
   }
 
+  /**
+   * GET /api/Estacionamento/{id} — retorna DTO do formulário e o objeto bruto (validar contaBancaria após PUT).
+   */
+  obterPorIdDetalhado(id: number): Observable<{
+    dto: EstacionamentoFormValue | null;
+    raw: EstacionamentoObterPorIdResultDTO | null;
+  }> {
+    return this.http.get<unknown>(`${Estacionamento}/${EstacionamentoPaths.obterPorId(id)}`).pipe(
+      timeout(15000),
+      map((body) => {
+        const result = this.extractObterPorIdPayload(body);
+        if (result && typeof result === 'object' && 'pessoa' in result && result.pessoa) {
+          const r = result as EstacionamentoObterPorIdResultDTO;
+          return { dto: this.mapResultToFormValue(r), raw: r };
+        }
+        return { dto: null, raw: null };
+      }),
+      catchError((err: unknown) => throwError(() => err))
+    );
+  }
+
   private extractObterPorIdPayload(body: unknown): EstacionamentoObterPorIdResultDTO | null {
     const peeled = this.peelApiEnvelope(body);
     if (peeled && typeof peeled === 'object' && 'pessoa' in peeled) {
@@ -331,6 +355,28 @@ export class EstacionamentoService {
           ? 'poupanca'
           : tipoContaRaw;
     const tipoTaxa = r.tipoCobranca === 1 ? 'taxa' : r.tipoCobranca === 2 ? 'mensalidade' : null;
+
+    const pessoaRaw = raw['pessoa'] ?? raw['Pessoa'];
+    const pObj = pessoaRaw && typeof pessoaRaw === 'object' ? (pessoaRaw as Record<string, unknown>) : {};
+
+    const contaClone =
+      contaBancaria && typeof contaBancaria === 'object'
+        ? ({ ...(contaBancaria as Record<string, unknown>) } as Record<string, unknown>)
+        : null;
+
+    const payloadMerge: EstacionamentoPayloadMergeContext = {
+      estacionamentoDataCriacao: r.dataCriacao,
+      estacionamentoDataAtualizacao: r.dataAtualizacao ?? null,
+      contaBancariaPreserved: contaClone,
+      pessoaDescricao:
+        String((pObj['descricao'] ?? pObj['Descricao'] ?? '') || '').trim() ||
+        (p?.nomeFantasia ?? p?.nomeRazaoSocial ?? '') ||
+        null,
+      pessoaDataCriacao: String(pObj['dataCriacao'] ?? pObj['DataCriacao'] ?? p?.dataCriacao ?? ''),
+      pessoaDataAtualizacao:
+        (pObj['dataAtualizacao'] ?? pObj['DataAtualizacao'] ?? p?.dataAtualizacao ?? null) as string | null
+    };
+
     return {
       id: r.id,
       descricao: p?.nomeFantasia ?? '',
@@ -365,7 +411,8 @@ export class EstacionamentoService {
       contaBancariaId: Number(contaBancaria?.['id'] ?? contaBancaria?.['Id']) || null,
       titularRazaoSocial: String(titular ?? ''),
       titularCnpj: String(cpfCnpj ?? ''),
-      loadedFotosBase64: r.fotos ?? []
+      loadedFotosBase64: r.fotos ?? [],
+      payloadMerge
     };
   }
 }

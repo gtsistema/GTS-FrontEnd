@@ -58,7 +58,7 @@ export class PlacaTransportadoraLookupService {
                 } satisfies DadosVeiculoCadastro);
               }
 
-              return this.transportadoraService.obterPorId(transportadoraId).pipe(
+              return this.transportadoraService.obterTransportadoraPorId(transportadoraId).pipe(
                 map((t) => ({
                   transportadora:
                     t?.nomeFantasia?.trim() || t?.razaoSocial?.trim() || '—',

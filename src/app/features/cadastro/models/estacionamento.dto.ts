@@ -67,6 +67,17 @@ export interface PessoaObterPorIdDTO {
   dataAtualizacao: string | null;
 }
 
+/** Contexto vindo do GET /Estacionamento/{id} para preservar datas e ids no PUT completo. */
+export interface EstacionamentoPayloadMergeContext {
+  estacionamentoDataCriacao?: string;
+  estacionamentoDataAtualizacao?: string | null;
+  /** Primeiro item bruto de contaBancaria da API (clone superficial). */
+  contaBancariaPreserved?: Record<string, unknown> | null;
+  pessoaDescricao?: string | null;
+  pessoaDataCriacao?: string;
+  pessoaDataAtualizacao?: string | null;
+}
+
 /** Resultado bruto de GET /api/Estacionamento/{id} (campo result) */
 export interface EstacionamentoObterPorIdResultDTO {
   pessoaId: number;

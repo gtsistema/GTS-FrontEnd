@@ -1,7 +1,24 @@
-import { ChangeDetectorRef, Component, NgZone, OnInit, OnDestroy, inject, DestroyRef } from '@angular/core';
+import {
+  ChangeDetectorRef,
+  Component,
+  NgZone,
+  OnInit,
+  OnDestroy,
+  inject,
+  DestroyRef,
+  isDevMode
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Subscription, combineLatest } from 'rxjs';
-import { debounceTime, distinctUntilChanged, filter, map, switchMap } from 'rxjs';
+import {
+  Subscription,
+  combineLatest,
+  debounceTime,
+  distinctUntilChanged,
+  filter,
+  finalize,
+  map,
+  switchMap
+} from 'rxjs';
 import { startWith } from 'rxjs/operators';
 import { CommonModule } from '@angular/common';
 import {
@@ -12,17 +29,23 @@ import {
   Validators
 } from '@angular/forms';
 import { Router, ActivatedRoute, RouterLink } from '@angular/router';
-import { EstacionamentoService } from '../../services/estacionamento.service';
+import { EstacionamentoService, type EstacionamentoFormValue } from '../../services/estacionamento.service';
 import { EstacionamentoFotosService, type FotoItem } from '../../services/estacionamento-fotos.service';
 import { ViacepService } from '../../services/viacep.service';
 import { EstacionamentoFormStepService } from '../../services/estacionamento-form-step.service';
 import { ToastService } from '../../../../core/api/services/toast.service';
 import { documentoValidator } from '../../validators/documento.validator';
-import { TipoPessoa } from '../../models/estacionamento.dto';
+import { TipoPessoa, type EstacionamentoPayloadMergeContext } from '../../models/estacionamento.dto';
 import { CnpjFormatDirective, formatCnpj } from '../../directives/cnpj-format.directive';
 import { CpfFormatDirective, formatCpf } from '../../directives/cpf-format.directive';
 import { TelefoneFormatDirective, formatTelefone } from '../../directives/telefone-format.directive';
-import { formValueToEstacionamentoPayload } from './estacionamento-form.mapper';
+import {
+  formValueToEstacionamentoPayload,
+  montarPayloadSalvarAbaDadosBancarios,
+  extrairContaBancariaDaRespostaApi,
+  contaBancariaRegistroComDadosRelevantes,
+  type FormValue
+} from './estacionamento-form.mapper';
 import { BANCOS_BRASIL, bancoToOption } from '../../data/bancos-brasil';
 import { CnpjFormValue } from '../../models/brasilapi-cnpj.model';
 import { CnpjLookupResult, CnpjService } from '../../services/cnpj.service';
@@ -49,6 +72,8 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
   id: number | null = null;
   loading = false;
   salvando = false;
+  /** Somente botão Salvar da aba Dados Bancários (edição). */
+  salvandoDadosBancarios = false;
   erro: string | null = null;
   /** Accordion "Dados complementares": inicia fechado. */
   complementaresOpen = false;
@@ -59,6 +84,8 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
   contratoPdfError: string | null = null;
   /** Endereços retornados por ObterPorId; preservados no payload ao alterar. */
   loadedEnderecos: Record<string, unknown>[] = [];
+  /** Merge do GET (datas, conta bruta) para PUT completo sem perder auditoria/ids. */
+  private payloadMerge: EstacionamentoPayloadMergeContext | null = null;
   /** Fotos do backend (listar/upload/deletar via API Azure). Máximo 4. */
   fotoItems: FotoItem[] = [];
   fotoError: string | null = null;
@@ -120,8 +147,9 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
     this.criarFormulario();
     if (this.id) {
       this.stepService.reset(); // edição: tudo na mesma tela, step 1 para estado consistente
-      this.carregar();
+      this.carregarEstacionamentoPorId();
     } else {
+      this.payloadMerge = null;
       this.stepService.reset();
       this.atualizarValidadoresDocumento();
     }
@@ -457,6 +485,156 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
     return digits.length === 14 ? formatCnpj(digits) : raw;
   }
 
+  /** Validação só dos campos da aba Dados Bancários (titular diferente). */
+  get bankTabInvalid(): boolean {
+    if (this.currentStep !== 2) return false;
+    if (this.form.get('titularMesmoResponsavel')?.value === false) {
+      return !!(
+        this.form.get('titularRazaoSocial')?.invalid ||
+        this.form.get('titularCnpj')?.invalid
+      );
+    }
+    return false;
+  }
+
+  /** GET por id — recarrega apenas campos exibidos em Dados Bancários após salvar. */
+  carregarDadosBancarios(): void {
+    if (this.id == null) return;
+    this.EstacionamentoService.obterPorId(this.id).subscribe({
+      next: (dto) => {
+        this.ngZone.run(() => {
+          if (dto) {
+            this.payloadMerge = dto.payloadMerge ?? null;
+            this.aplicarDadosBancariosDoDto(dto);
+            this.atualizarFlagsTitularDoDto(dto);
+          }
+          this.cdr.markForCheck();
+        });
+      },
+      error: () => {
+        this.toast.error('Não foi possível recarregar os dados bancários.');
+      }
+    });
+  }
+
+  /**
+   * Persiste dados bancários com PUT /api/Estacionamento no mesmo body completo do estacionamento
+   * (`contaBancaria` atualizado a partir do formulário + merge do GET).
+   * Cadastro novo sem id: delega a `salvarCadastroEstacionamento` (POST completo).
+   */
+  salvarDadosBancarios(): void {
+    if (this.bankTabInvalid) {
+      this.form.get('titularRazaoSocial')?.markAsTouched();
+      this.form.get('titularCnpj')?.markAsTouched();
+      this.toast.warning('Verifique os dados do titular da conta.');
+      return;
+    }
+    if (this.id == null || this.id <= 0) {
+      this.salvarCadastroEstacionamento(true);
+      return;
+    }
+    if (this.form.get('titularMesmoResponsavel')?.value) {
+      this.syncTitularFromPessoa();
+    }
+    const raw = this.form.getRawValue() as FormValue;
+    const payload = montarPayloadSalvarAbaDadosBancarios(raw, this.loadedEnderecos, this.payloadMerge, this.id);
+    const contaPayload = payload['contaBancaria'] as unknown[] | undefined;
+    const primeiraConta = contaPayload?.[0];
+    if (
+      !Array.isArray(contaPayload) ||
+      contaPayload.length === 0 ||
+      !contaBancariaRegistroComDadosRelevantes(primeiraConta)
+    ) {
+      this.toast.warning('Preencha ao menos um campo de dados bancários.');
+      return;
+    }
+    if (isDevMode()) {
+      console.log('[Estacionamento] PUT dados bancários — payload completo', payload);
+    }
+    this.salvandoDadosBancarios = true;
+    this.erro = null;
+    this.EstacionamentoService.alterar(payload)
+      .pipe(
+        switchMap(() => this.EstacionamentoService.obterPorIdDetalhado(this.id!)),
+        finalize(() => {
+          this.salvandoDadosBancarios = false;
+          this.cdr.markForCheck();
+        })
+      )
+      .subscribe({
+        next: ({ dto, raw }) => {
+          if (isDevMode()) {
+            console.log('[Estacionamento] GET após PUT — contaBancaria', extrairContaBancariaDaRespostaApi(raw));
+          }
+          const lista = extrairContaBancariaDaRespostaApi(raw);
+          const primeira = lista[0];
+          const persistiu =
+            lista.length > 0 && contaBancariaRegistroComDadosRelevantes(primeira);
+          if (!dto || !persistiu) {
+            this.toast.error(
+              'Dados enviados, mas não foram persistidos. Verifique o payload de contaBancaria.'
+            );
+            return;
+          }
+          this.payloadMerge = dto.payloadMerge ?? null;
+          this.aplicarDadosBancariosDoDto(dto);
+          this.atualizarFlagsTitularDoDto(dto);
+          this.toast.success('Dados bancários salvos com sucesso.');
+        },
+        error: (err: unknown) => {
+          const status =
+            err && typeof err === 'object' && 'status' in err
+              ? (err as { status?: number }).status
+              : undefined;
+          const msg =
+            status === 400
+              ? 'Não foi possível salvar. Verifique os dados bancários.'
+              : status === 0
+                ? 'Sem conexão com o servidor.'
+                : 'Não foi possível salvar os dados bancários. Tente novamente.';
+          this.toast.error(msg);
+        }
+      });
+  }
+
+  private aplicarDadosBancariosDoDto(dto: EstacionamentoFormValue): void {
+    const trim = (s: string | null | undefined) => (s == null ? '' : String(s).trim());
+    this.form.patchValue({
+      banco: trim(dto.banco),
+      ...this.parseAgenciaContaDoDto(trim(dto.agencia ?? ''), trim(dto.conta ?? '')),
+      tipoConta: trim(dto.tipoConta),
+      chavePix: trim(dto.chavePix),
+      contaBancariaId: dto.contaBancariaId ?? null,
+      titularRazaoSocial: trim(dto.titularRazaoSocial ?? ''),
+      titularCnpj: trim(dto.titularCnpj ?? '')
+    });
+    this.bancoFiltro = this.form.get('banco')?.value ?? '';
+    const tipoContaVal = this.form.get('tipoConta')?.value ?? '';
+    const tipoContaOp = this.tipoContaOpcoes.find((o) => o.value === tipoContaVal);
+    this.tipoContaFiltro = tipoContaOp ? tipoContaOp.label : '';
+  }
+
+  private atualizarFlagsTitularDoDto(dto: EstacionamentoFormValue): void {
+    const trim = (s: string | null | undefined) => (s == null ? '' : String(s).trim());
+    const titularDto = trim(dto.titularRazaoSocial ?? '');
+    const titularCnpjDto = trim(dto.titularCnpj ?? '');
+    const pessoaRazao = trim(dto.pessoa.nomeRazaoSocial ?? '');
+    const pessoaCnpj = String(dto.pessoa.documento ?? '').replace(/\D/g, '');
+    const titularCnpjDigits = titularCnpjDto.replace(/\D/g, '');
+    const titularDiferente = Boolean(
+      titularDto &&
+      ((titularDto.toLowerCase() !== pessoaRazao.toLowerCase()) || (titularCnpjDigits && titularCnpjDigits !== pessoaCnpj))
+    );
+    if (titularDiferente) {
+      this.form.patchValue({ titularMesmoResponsavel: false }, { emitEvent: false });
+      this.atualizarValidadoresTitular(false);
+    } else {
+      this.form.patchValue({ titularMesmoResponsavel: true }, { emitEvent: false });
+      this.syncTitularFromPessoa();
+      this.atualizarValidadoresTitular(true);
+    }
+  }
+
   private atualizarValidadoresDocumento(): void {
     const doc = this.form.get('pessoa.documento');
     doc?.clearValidators();
@@ -464,7 +642,7 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
     doc?.updateValueAndValidity();
   }
 
-  private carregar(): void {
+  carregarEstacionamentoPorId(): void {
     if (this.id == null) return;
     this.loading = true;
     this.erro = null;
@@ -472,6 +650,7 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
       next: (dto) => {
         this.ngZone.run(() => {
           if (dto) {
+            this.payloadMerge = dto.payloadMerge ?? null;
             this.loadedEnderecos = (dto.enderecos ?? []).map((e) => ({ ...e })) as Record<string, unknown>[];
             this.preencherEnderecosDoDto((dto.enderecos ?? []) as unknown as Record<string, unknown>[]);
             const trim = (s: string | null | undefined) => (s == null ? '' : String(s).trim());
@@ -494,23 +673,8 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
               taxaPercentual: dto.taxaPercentual,
               mensalidadeValor: dto.mensalidadeValor,
               latitude: dto.latitude ?? null,
-              longitude: dto.longitude ?? null,
-              banco: trim(dto.banco),
-              ...this.parseAgenciaContaDoDto(trim(dto.agencia ?? ''), trim(dto.conta ?? '')),
-              tipoConta: trim(dto.tipoConta),
-              chavePix: trim(dto.chavePix),
-              contaBancariaId: dto.contaBancariaId ?? null,
-              titularRazaoSocial: trim(dto.titularRazaoSocial ?? ''),
-              titularCnpj: trim(dto.titularCnpj ?? '')
+              longitude: dto.longitude ?? null
             });
-            // Sincronizar estado dos combos com os dados carregados (exibição ao editar)
-            this.bancoFiltro = this.form.get('banco')?.value ?? '';
-            const tipoContaVal = this.form.get('tipoConta')?.value ?? '';
-            const tipoContaOp = this.tipoContaOpcoes.find((o) => o.value === tipoContaVal);
-            this.tipoContaFiltro = tipoContaOp ? tipoContaOp.label : '';
-            if (this.form.get('titularMesmoResponsavel')?.value === true) {
-              this.syncTitularFromPessoa();
-            }
             this.fotoItems = [];
             this.carregarFotos();
             this.form.get('pessoa')?.patchValue({
@@ -522,23 +686,8 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
               ativo: dto.pessoa.ativo ?? true,
               documento: (dto.pessoa.documento ?? '').replace(/\s/g, '')
             });
-            const titularDto = trim(dto.titularRazaoSocial ?? '');
-            const titularCnpjDto = trim(dto.titularCnpj ?? '');
-            const pessoaRazao = trim(dto.pessoa.nomeRazaoSocial ?? '');
-            const pessoaCnpj = String(dto.pessoa.documento ?? '').replace(/\D/g, '');
-            const titularCnpjDigits = titularCnpjDto.replace(/\D/g, '');
-            const titularDiferente = Boolean(
-              titularDto &&
-              ((titularDto.toLowerCase() !== pessoaRazao.toLowerCase()) || (titularCnpjDigits && titularCnpjDigits !== pessoaCnpj))
-            );
-            if (titularDiferente) {
-              this.form.patchValue({ titularMesmoResponsavel: false }, { emitEvent: false });
-              this.atualizarValidadoresTitular(false);
-            } else {
-              this.form.patchValue({ titularMesmoResponsavel: true }, { emitEvent: false });
-              this.syncTitularFromPessoa();
-              this.atualizarValidadoresTitular(true);
-            }
+            this.aplicarDadosBancariosDoDto(dto);
+            this.atualizarFlagsTitularDoDto(dto);
             const doc = this.form.get('pessoa.documento')?.value;
             if (doc != null && String(doc).replace(/\D/g, '').length === 14) {
               this.form.get('pessoa')?.patchValue({ documento: formatCnpj(String(doc)) });
@@ -574,11 +723,26 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
     });
   }
 
+  /** Enter no formulário: na aba Dados Bancários dispara o salvamento exclusivo da conta. */
+  onFormSubmit(event: Event): void {
+    event.preventDefault();
+    if (this.currentStep === 2) {
+      this.salvarDadosBancarios();
+    }
+  }
+
   /**
    * Salva o Estacionamento (gravar ou alterar conforme id).
    * @param stayOnPage se true, não navega para a lista; atualiza id/rota quando for criação (para Fotos usarem o id do backend).
    */
   onSubmit(stayOnPage = false): void {
+    this.salvarCadastroEstacionamento(stayOnPage);
+  }
+
+  /**
+   * POST /api/Estacionamento (novo) ou PUT completo (edição), com merge do GET quando existir.
+   */
+  private salvarCadastroEstacionamento(stayOnPage = false): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       if (stayOnPage) {
@@ -589,30 +753,35 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
     this.salvando = true;
     this.erro = null;
     // Fotos são gerenciadas apenas pelos endpoints BuscarFotos / UploadFotos / DeletarFotos (Azure); não enviamos no payload Gravar/Alterar.
-    const dto = formValueToEstacionamentoPayload(this.form.value, this.loadedEnderecos, []);
+    const raw = this.form.getRawValue() as FormValue;
+    const dto = formValueToEstacionamentoPayload(raw, this.loadedEnderecos, [], this.payloadMerge);
     const request$ = this.id
-        ? this.EstacionamentoService.alterar(dto)
-        : this.EstacionamentoService.gravar(dto);
-      request$.subscribe({
-        next: (res) => {
-          this.salvando = false;
-          if (stayOnPage) {
-            if (this.id == null && res?.id != null) {
-              this.id = res.id;
-              this.form.patchValue({ id: res.id }, { emitEvent: false });
-              this.router.navigate(['/app/cadastro/estacionamento', res.id], { replaceUrl: true });
-            }
-            this.toast.success(this.id ? 'Alterações salvas.' : 'Cadastro salvo.');
+      ? this.EstacionamentoService.alterar(dto)
+      : this.EstacionamentoService.gravar(dto);
+    request$.subscribe({
+      next: (res) => {
+        this.salvando = false;
+        const criacaoComSucesso = this.id == null && res?.id != null;
+        if (stayOnPage) {
+          if (criacaoComSucesso && res?.id != null) {
+            this.id = res.id;
+            this.form.patchValue({ id: res.id }, { emitEvent: false });
+            this.router.navigate(['/app/cadastro/estacionamento', res.id], { replaceUrl: true });
+            this.carregarEstacionamentoPorId();
+            this.toast.success('Cadastro salvo.');
           } else {
-            this.toast.success(this.id ? 'Estacionamento atualizado com sucesso.' : 'Estacionamento criado com sucesso.');
-            this.router.navigate(['/app/cadastro/estacionamento']);
+            this.toast.success('Alterações salvas.');
           }
-        },
-        error: () => {
-          this.erro = 'Erro ao salvar. Tente novamente.';
-          this.salvando = false;
+        } else {
+          this.toast.success(this.id ? 'Estacionamento atualizado com sucesso.' : 'Estacionamento criado com sucesso.');
+          this.router.navigate(['/app/cadastro/estacionamento']);
         }
-      });
+      },
+      error: () => {
+        this.erro = 'Erro ao salvar. Tente novamente.';
+        this.salvando = false;
+      }
+    });
   }
 
   /**

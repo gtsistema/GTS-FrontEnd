@@ -15,7 +15,7 @@
           <p class="error-banner">{{ erro }}</p>
         }
 
-        <form [formGroup]="form" (ngSubmit)="onSubmit()" class="form form-compact">
+        <form [formGroup]="form" (ngSubmit)="onFormSubmit($event)" class="form form-compact">
           <input type="hidden" formControlName="id" />
           <input type="hidden" formControlName="pessoaId" />
 
@@ -721,9 +721,14 @@
           }
           }
 
-        @if (form.invalid && (currentStep === 1 || currentStep === 2)) {
+        @if (form.invalid && currentStep === 1) {
           <p class="form-invalid-hint" role="alert">
             Corrija os campos destacados em vermelho para habilitar o botão Salvar.
+          </p>
+        }
+        @if (bankTabInvalid && currentStep === 2) {
+          <p class="form-invalid-hint" role="alert">
+            Preencha corretamente o titular da conta ou use o titular do responsável.
           </p>
         }
         <footer class="actions">
@@ -734,8 +739,13 @@
           @if (currentStep === 2) {
             <button type="button" class="btn btn--secondary" (click)="stepAnterior()">Anterior</button>
             <button type="button" class="btn btn--primary" (click)="proximoStep()">Próximo</button>
-            <button type="submit" class="btn btn--primary" [disabled]="form.invalid || salvando">
-              {{ salvando ? 'Salvando...' : 'Salvar' }}
+            <button
+              type="button"
+              class="btn btn--primary"
+              (click)="salvarDadosBancarios()"
+              [disabled]="salvandoDadosBancarios || bankTabInvalid"
+            >
+              {{ salvandoDadosBancarios ? 'Salvando...' : 'Salvar' }}
             </button>
           }
           @if (currentStep === 3) {

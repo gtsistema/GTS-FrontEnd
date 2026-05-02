@@ -3,6 +3,8 @@
  * Backend: resposanvelLegal, responsavelCpf, capacidadeVeiculo, tamanhoTerreno, tipoCobranca (0-3), etc.
  */
 
+import type { EstacionamentoPayloadMergeContext } from '../../models/estacionamento.dto';
+
 export interface FormValue {
   id: number;
   descricao: string;
@@ -99,20 +101,134 @@ function mapTipoContaToBackend(value: string | null | undefined): string {
   return String(value ?? '').trim();
 }
 
+function gContaKey(obj: Record<string, unknown>, k: string): string {
+  const pascal = k.charAt(0).toUpperCase() + k.slice(1);
+  return String(obj[k] ?? obj[pascal] ?? '').trim();
+}
+
+/**
+ * Indica se o registro de conta (payload ou resposta API) tem algum dado bancário relevante.
+ */
+export function contaBancariaRegistroComDadosRelevantes(item: unknown): boolean {
+  if (!item || typeof item !== 'object') return false;
+  const o = item as Record<string, unknown>;
+  return Boolean(
+    gContaKey(o, 'banco') ||
+      gContaKey(o, 'agencia') ||
+      gContaKey(o, 'conta') ||
+      gContaKey(o, 'chavePix') ||
+      gContaKey(o, 'tipoConta') ||
+      gContaKey(o, 'titular') ||
+      gContaKey(o, 'cpfCnpj')
+  );
+}
+
+/** Primeiro nível: lista `contaBancaria` do JSON do GET. */
+export function extrairContaBancariaDaRespostaApi(raw: unknown): unknown[] {
+  if (raw == null || typeof raw !== 'object') return [];
+  const o = raw as Record<string, unknown>;
+  const list = o['contaBancaria'] ?? o['ContaBancaria'];
+  return Array.isArray(list) ? list : [];
+}
+
+/**
+ * Monta um item de `contaBancaria`: merge do que veio no GET (`contaAtual`) com o formulário.
+ * Nomes alinhados ao Swagger (`agencia`, `agenciaDigito`, `conta`, `contaDigito`, …).
+ */
+export function buildContaBancariaMerged(
+  contaAtual: Record<string, unknown> | null | undefined,
+  value: FormValue,
+  estacionamentoId: number,
+  nowIso: string
+): Record<string, unknown> {
+  const base = contaAtual && typeof contaAtual === 'object' ? { ...contaAtual } : {};
+  const agenciaStr = buildAgencia(value.agenciaNumero, value.agenciaDigito);
+  const contaStr = buildConta(value.contaNumero, value.contaDigito);
+  const agenciaSplit = splitNumeroDigito(agenciaStr);
+  const contaSplit = splitNumeroDigito(contaStr);
+  const tipoContaBackend = mapTipoContaToBackend(value.tipoConta);
+  const titularRazaoSocial = String(value.titularRazaoSocial ?? '').trim();
+  const titularCnpj = String(value.titularCnpj ?? '').replace(/\D/g, '');
+
+  const idNum =
+    (Number(value.contaBancariaId ?? 0) || 0) > 0
+      ? Number(value.contaBancariaId)
+      : Number(base['id'] ?? base['Id'] ?? 0) || 0;
+
+  const descricao =
+    String(base['descricao'] ?? base['Descricao'] ?? '').trim() ||
+    titularRazaoSocial ||
+    String(value.pessoa?.nomeFantasia ?? '').trim() ||
+    '';
+
+  const dataCriacao =
+    String(base['dataCriacao'] ?? base['DataCriacao'] ?? '').trim() || nowIso;
+
+  const ativaBase = base['ativa'] ?? base['Ativa'];
+  const ativa = ativaBase === false ? false : true;
+
+  return {
+    ...base,
+    id: idNum,
+    descricao,
+    dataCriacao,
+    dataAtualizacao: nowIso,
+    estacionamentoId: Number(estacionamentoId) || 0,
+    titular: titularRazaoSocial,
+    cpfCnpj: titularCnpj,
+    banco: String(value.banco ?? '').trim(),
+    agencia: agenciaSplit.numero,
+    agenciaDigito: agenciaSplit.digito,
+    conta: contaSplit.numero,
+    contaDigito: contaSplit.digito,
+    tipoConta: tipoContaBackend,
+    ativa,
+    chavePix: String(value.chavePix ?? '').trim()
+  };
+}
+
+/** Compatibilidade / testes — preferir {@link buildContaBancariaMerged}. */
+export function formValueToContaBancariaItem(
+  value: FormValue,
+  estacionamentoId: number
+): Record<string, unknown> | null {
+  const now = new Date().toISOString();
+  const m = buildContaBancariaMerged(null, value, estacionamentoId, now);
+  return contaBancariaRegistroComDadosRelevantes(m) ? m : null;
+}
+
 /** Endereço no formato do backend (para preservar ao editar). */
 export type EnderecoPayload = Record<string, unknown>;
 
+/** Remove propriedades `undefined` em profundidade (JSON não serializa undefined). */
+export function stripUndefinedDeep(value: unknown): unknown {
+  if (value === undefined) return undefined;
+  if (value === null || typeof value !== 'object') return value;
+  if (Array.isArray(value)) {
+    return value.map(stripUndefinedDeep).filter((v) => v !== undefined);
+  }
+  const obj = value as Record<string, unknown>;
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(obj)) {
+    if (v === undefined) continue;
+    const next = stripUndefinedDeep(v);
+    if (next === undefined) continue;
+    out[k] = next;
+  }
+  return out;
+}
+
 /**
- * Gera o payload para POST Gravar / PUT Alterar conforme contrato do backend.
- * @param value valor do formulário
- * @param enderecosCarregados endereços retornados por ObterPorId (preservados na alteração)
- * @param fotosBase64 fotos em base64 para envio ao backend (máx. 4)
+ * Monta o body completo de POST/PUT /api/Estacionamento (merge do GET + formulário).
+ * @param merge contexto de ObterPorId (datas e conta preservada); omitir em cadastro novo.
  */
-export function formValueToEstacionamentoPayload(
+export function montarPayloadEstacionamento(
   value: FormValue,
   enderecosCarregados?: EnderecoPayload[] | null,
-  fotosBase64?: string[]
+  fotosBase64?: string[],
+  merge?: EstacionamentoPayloadMergeContext | null
 ): Record<string, unknown> {
+  const nowIso = new Date().toISOString();
   const doc = String(value.pessoa?.documento ?? '').replace(/\D/g, '');
   const cpf = String(value.responsavelLegalCpf ?? '').replace(/\D/g, '');
   const telefone = String(value.contatoTelefone ?? '').replace(/\D/g, '').trim();
@@ -158,8 +274,24 @@ export function formValueToEstacionamentoPayload(
       }))
     : (enderecosCarregados && enderecosCarregados.length > 0 ? enderecosCarregados : []);
 
+  const pessoaDcMerged =
+    merge?.pessoaDataCriacao != null && String(merge.pessoaDataCriacao).trim() !== ''
+      ? String(merge.pessoaDataCriacao).trim()
+      : nowIso;
+
+  const pessoaDescricao =
+    (merge?.pessoaDescricao != null && String(merge.pessoaDescricao).trim() !== ''
+      ? String(merge.pessoaDescricao).trim()
+      : '') ||
+    String(value.pessoa?.nomeFantasia ?? '').trim() ||
+    String(value.pessoa?.nomeRazaoSocial ?? '').trim() ||
+    '';
+
   const pessoa: Record<string, unknown> = {
     id: value.pessoa?.id ?? 0,
+    descricao: pessoaDescricao,
+    dataCriacao: pessoaDcMerged,
+    dataAtualizacao: nowIso,
     tipoPessoa: value.pessoa?.tipoPessoa ?? 2,
     nomeRazaoSocial: value.pessoa?.nomeRazaoSocial ?? '',
     nomeFantasia: value.pessoa?.nomeFantasia ?? '',
@@ -172,48 +304,28 @@ export function formValueToEstacionamentoPayload(
 
   const tipoCobranca = mapTipoCobranca(value.tipoTaxaMensalidade ?? null);
   const capacidade = value.capacidadeVeiculos != null ? Number(value.capacidadeVeiculos) : 0;
-  const agencia = buildAgencia(value.agenciaNumero, value.agenciaDigito);
-  const conta = buildConta(value.contaNumero, value.contaDigito);
-  const agenciaSplit = splitNumeroDigito(agencia);
-  const contaSplit = splitNumeroDigito(conta);
-  const titularRazaoSocial = String(value.titularRazaoSocial ?? '').trim();
-  const titularCnpj = String(value.titularCnpj ?? '').replace(/\D/g, '');
-  const tipoContaBackend = mapTipoContaToBackend(value.tipoConta);
-  const temDadosBancarios = Boolean(
-    String(value.banco ?? '').trim() ||
-    agencia ||
-    conta ||
-    tipoContaBackend ||
-    String(value.chavePix ?? '').trim() ||
-    titularRazaoSocial ||
-    titularCnpj
-  );
-  const contaBancariaPayload = temDadosBancarios
-    ? [{
-        id: Number(value.contaBancariaId ?? 0) || 0,
-        EstacionamentoId: value.id ?? 0,
-        titular: titularRazaoSocial,
-        cpfCnpj: titularCnpj,
-        banco: value.banco ?? '',
-        agencia: agenciaSplit.numero,
-        agenciaDigito: agenciaSplit.digito,
-        conta: contaSplit.numero,
-        contaDigito: contaSplit.digito,
-        tipoConta: tipoContaBackend,
-        ativa: true,
-        chavePix: value.chavePix ?? ''
-      }]
+  const estacionamentoIdRoot = Number(value.id ?? 0) || 0;
+
+  const preservedConta = merge?.contaBancariaPreserved ?? null;
+  const mergedConta = buildContaBancariaMerged(preservedConta, value, estacionamentoIdRoot, nowIso);
+  const contaBancariaPayload = contaBancariaRegistroComDadosRelevantes(mergedConta)
+    ? [mergedConta]
     : [];
+
+  const estDataCriacao =
+    merge?.estacionamentoDataCriacao != null && String(merge.estacionamentoDataCriacao).trim() !== ''
+      ? String(merge.estacionamentoDataCriacao).trim()
+      : nowIso;
 
   const payload: Record<string, unknown> = {
     id: value.id ?? 0,
     descricao: value.descricao ?? '',
-    dataCriacao: new Date().toISOString(),
-    dataAtualizacao: new Date().toISOString(),
+    dataCriacao: estDataCriacao,
+    dataAtualizacao: nowIso,
     pessoaId: value.pessoaId ?? 0,
     capacidadeVeiculo: capacidade,
     tamanhoTerreno: value.tamanho != null ? String(value.tamanho) : '',
-    resposanvelLegal: value.responsavelLegalNome ?? '', // nome do backend (typo)
+    resposanvelLegal: value.responsavelLegalNome ?? '',
     responsavelCpf: cpf || '',
     possuiSeguranca: value.possuiSeguranca ?? false,
     possuiBanheiro: value.possuiBanheiro ?? false,
@@ -221,21 +333,7 @@ export function formValueToEstacionamentoPayload(
     cobrancaPorcentagem: value.tipoTaxaMensalidade === 'taxa' ? (value.taxaPercentual ?? 0) : 0,
     cobrancaValor: value.tipoTaxaMensalidade === 'mensalidade' ? (value.mensalidadeValor ?? 0) : 0,
     pessoa,
-    banco: value.banco ?? '',
-    agencia,
-    conta,
-    agenciaDigito: agenciaSplit.digito,
-    contaDigito: contaSplit.digito,
-    tipoConta: tipoContaBackend,
-    chavePix: value.chavePix ?? '',
-    titular: titularRazaoSocial,
-    cpfCnpj: titularCnpj,
-    titularRazaoSocial,
-    titularCnpj,
-    ativa: true,
-    // Backend novo também aceita/espera contaBancaria (lista).
-    contaBancaria: contaBancariaPayload,
-    ContaBancaria: contaBancariaPayload
+    contaBancaria: contaBancariaPayload
   };
 
   const fotos = fotosBase64?.filter((f) => typeof f === 'string' && f.length > 0) ?? [];
@@ -243,5 +341,39 @@ export function formValueToEstacionamentoPayload(
     payload['fotos'] = fotos;
   }
 
-  return payload;
+  return stripUndefinedDeep(payload) as Record<string, unknown>;
+}
+
+/**
+ * Alias de {@link montarPayloadEstacionamento} para POST/PUT completo.
+ * @param merge opcional: contexto do GET na edição (datas e conta preservadas).
+ */
+export function formValueToEstacionamentoPayload(
+  value: FormValue,
+  enderecosCarregados?: EnderecoPayload[] | null,
+  fotosBase64?: string[],
+  merge?: EstacionamentoPayloadMergeContext | null
+): Record<string, unknown> {
+  return montarPayloadEstacionamento(value, enderecosCarregados ?? null, fotosBase64 ?? [], merge ?? null);
+}
+
+/**
+ * PUT da aba Dados Bancários: reforça `contaBancaria` com merge explícito (GET + form) e alinha `dataAtualizacao`.
+ */
+export function montarPayloadSalvarAbaDadosBancarios(
+  value: FormValue,
+  enderecosCarregados: EnderecoPayload[] | null | undefined,
+  merge: EstacionamentoPayloadMergeContext | null,
+  estacionamentoId: number
+): Record<string, unknown> {
+  const nowIso = new Date().toISOString();
+  const base = montarPayloadEstacionamento(value, enderecosCarregados ?? null, [], merge);
+  const merged = buildContaBancariaMerged(merge?.contaBancariaPreserved ?? null, value, estacionamentoId, nowIso);
+  if (!contaBancariaRegistroComDadosRelevantes(merged)) {
+    base['contaBancaria'] = [];
+  } else {
+    base['contaBancaria'] = [merged];
+    base['dataAtualizacao'] = nowIso;
+  }
+  return stripUndefinedDeep(base) as Record<string, unknown>;
 }

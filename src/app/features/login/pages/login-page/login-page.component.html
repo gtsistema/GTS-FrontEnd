@@ -1,4 +1,22 @@
 <div class="login-page">
+  <div class="login-page__toolbar">
+    <button
+      type="button"
+      class="theme-switcher__btn"
+      (click)="toggleTheme()"
+      [attr.aria-pressed]="currentMode() === 'light'"
+      [attr.aria-label]="currentMode() === 'dark' ? 'Mudar para tema claro' : 'Mudar para tema escuro'"
+    >
+      @if (currentMode() === 'dark') {
+        <span class="material-symbols-outlined theme-switcher__icon" aria-hidden="true">dark_mode</span>
+        <span class="theme-switcher__label">Claro</span>
+      } @else {
+        <span class="material-symbols-outlined theme-switcher__icon" aria-hidden="true">light_mode</span>
+        <span class="theme-switcher__label">Escuro</span>
+      }
+    </button>
+  </div>
+
   <div class="card" role="main" aria-labelledby="login-title">
     <div class="login-header">
       <h1 class="title">GTSistema</h1>
