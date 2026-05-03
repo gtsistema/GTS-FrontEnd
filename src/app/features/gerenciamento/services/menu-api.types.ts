@@ -62,7 +62,7 @@ export interface MenuUpdateInput {
   subMenus?: SubMenuCreateInput[] | null;
 }
 
-/** Corpo de PUT /api/auth/Menu/OrganizarMenus — apenas ordem de menus e submenus já persistidos. */
+/** Corpo de PUT /api/auth/Menu/OrganizarMenus — ordem dos menus e, por menu, ordem dos submenus (lista de ids por pai). */
 export interface SubMenuOrdemInput {
   id: number;
   ordem: number;

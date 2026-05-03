@@ -25,41 +25,30 @@
   --field-gap: 10px;
 }
 
-// ========== Page (compacto)
-.page {
+// ========== Shell (form dentro do layout Cadastro — mesma pilha que Transportadora)
+.estacionamento-form-wrapper {
   height: 100%;
+  min-height: 0;
+  flex: 1;
   display: flex;
   flex-direction: column;
-}
-
-.header {
-  border-bottom: 1px solid var(--color-border);
-}
-
-.header__inner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-16);
-  flex-wrap: wrap;
-  padding: var(--space-16) 0;
-}
-
-.header__title {
-  margin: 0;
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--color-text);
-}
-
-.page__content {
-  flex: 1;
   padding: var(--container-padding) 0;
   overflow-x: visible;
   overflow-y: auto;
+  align-items: stretch;
+}
+
+/* ========== Pilha de cards (referência: cadastro Transportadora) ========== */
+.cadastro-stack {
   display: flex;
   flex-direction: column;
-  align-items: stretch;
+  gap: var(--space-16);
+  margin-bottom: var(--space-16);
+  min-width: 0;
+}
+
+.card--cadastro-section {
+  width: 100%;
 }
 
 .container {
@@ -94,34 +83,14 @@
   border: 1px solid rgba(244, 67, 54, 0.25);
 }
 
-// ========== Layout grid: 2 colunas desktop, 1 mobile; gap compacto
-.layout-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: var(--space-16);
-  margin-bottom: var(--space-16);
-  min-width: 0;
-  overflow: visible;
+.error-banner__list {
+  margin: calc(var(--space-8) * -1) 0 var(--space-12) 0;
+  padding: 0 var(--space-16) var(--space-8) calc(var(--space-16) + 18px);
+  color: var(--color-error);
+  font-size: var(--label-size);
 }
 
-@media (min-width: 1024px) {
-  .layout-grid {
-    grid-template-columns: 1fr 1fr;
-    gap: var(--space-16);
-  }
-
-  .card--span-5,
-  .card--span-7 {
-    grid-column: span 1;
-  }
-}
-
-@media (max-width: 1023px) {
-  .card--span-5,
-  .card--span-7 {
-    grid-column: 1 / -1;
-  }
-}
+// (layout em duas colunas removido — formulário em pilha única, como Transportadora)
 
 // ========== Cards: surface + borda sutil + sombra leve
 .card {
@@ -313,27 +282,6 @@
   margin-top: var(--space-12);
 }
 
-/* Dados complementares e Contatos lado a lado em telas maiores */
-.complementares-contatos-row {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: var(--space-12);
-  margin-top: var(--space-12);
-  min-width: 0;
-}
-
-.complementares-contatos-row .card--accordion {
-  margin-top: 0;
-  min-width: 0;
-}
-
-@media (min-width: 1024px) {
-  .complementares-contatos-row {
-    grid-template-columns: 1fr 1fr;
-    gap: var(--space-16);
-  }
-}
-
 // Dados complementares: corpo e grid interno
 .complementares-body,
 .contatos-body {
@@ -343,14 +291,8 @@
 .complementares-grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: var(--space-12) var(--space-16);
+  gap: var(--space-16);
   min-width: 0;
-}
-
-@media (min-width: 600px) {
-  .complementares-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
 }
 
 .contatos-grid {
@@ -1259,6 +1201,16 @@ select.field__input.ng-invalid.ng-touched {
   cursor: not-allowed;
 }
 
+.btn-danger.btn--outline {
+  background: transparent;
+  color: var(--danger, #dc3545);
+  border: 1px solid var(--danger, #dc3545);
+}
+
+.btn-danger.btn--outline:hover:not(:disabled) {
+  background: rgba(220, 53, 69, 0.1);
+}
+
 // ========== Actions (footer compacto)
 .actions {
   display: flex;
@@ -1273,10 +1225,6 @@ select.field__input.ng-invalid.ng-touched {
 @media (max-width: 640px) {
   :host {
     --container-padding: 16px;
-  }
-
-  .header__inner {
-    padding: var(--space-12) 0;
   }
 
   .card__header,

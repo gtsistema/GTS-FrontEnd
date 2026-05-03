@@ -30,6 +30,26 @@ export const GERENCIAMENTO_ROUTES: Routes = [
             (m) => m.AcessosPerfisPageComponent
           ),
       },
+      /**
+       * Lista + toolbar iguais a `/app/cadastro/estacionamento` (layout compartilhado).
+       * Novo/Editar continuam nas rotas canônicas em `/app/cadastro/estacionamento/...`.
+       */
+      {
+        path: 'estacionamento',
+        loadComponent: () =>
+          import('../cadastro/estacionamento-layout.component').then(
+            (m) => m.EstacionamentoLayoutComponent
+          ),
+        children: [
+          {
+            path: '',
+            loadComponent: () =>
+              import('../cadastro/pages/estacionamento-list/estacionamento-list.component').then(
+                (m) => m.EstacionamentoListComponent
+              ),
+          },
+        ],
+      },
     ],
   },
 ];

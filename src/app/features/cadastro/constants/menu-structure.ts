@@ -17,7 +17,7 @@ export interface MenuNode {
   children?: MenuSubItem[];
 }
 
-/** Estrutura completa do menu (espelha a sidebar). */
+/** Estrutura completa do menu (seed admin / permissões). A sidebar omite Estacionamento — acesso via `/app/gerenciamento`. */
 export const MENU_STRUCTURE: MenuNode[] = [
   { id: 'menu-dashboard', label: 'Dashboard', route: '/app/dashboard', icon: 'dashboard' },
   { id: 'menu-movimentos', label: 'Entrada e Saída', route: '/app/movimentos/entrada-saida', icon: 'swap_horiz' },
@@ -47,10 +47,7 @@ export const MENU_STRUCTURE: MenuNode[] = [
     label: 'Cadastro',
     route: '/app/cadastro',
     icon: 'playlist_add',
-    children: [
-      { id: 'sub-estacionamento', label: 'Estacionamento', route: '/app/cadastro/estacionamento' },
-      { id: 'sub-transportadora', label: 'Transportadora', route: '/app/cadastro/transportadora' },
-    ],
+    children: [{ id: 'sub-transportadora', label: 'Transportadora', route: '/app/cadastro/transportadora' }],
   },
 ];
 

@@ -52,12 +52,12 @@ export class AndamentosPageComponent {
 
   readonly menuSidebar: MenuLink[] = [
     { label: 'Dashboard', route: '/app/dashboard' },
-    { label: 'Movimentos', route: '/app/movimentos' },
+    { label: 'Entrada e Saída', route: '/app/movimentos/entrada-saida' },
     { label: 'Relatórios', route: '/app/relatorios' },
     { label: 'Financeiro', route: '/app/financeiro' },
-    { label: 'Configurações', route: '/app/configuracoes' },
-    { label: 'Cadastro > Estacionamento', route: '/app/cadastro/Estacionamento' },
+    { label: 'Gerenciamento', route: '/app/gerenciamento' },
     { label: 'Cadastro > Transportadora', route: '/app/cadastro/transportadora' },
+    { label: 'Configurações', route: '/app/configuracoes' },
     { label: 'Configurações > Usuários', route: '/app/configuracoes/usuarios' },
   ];
 

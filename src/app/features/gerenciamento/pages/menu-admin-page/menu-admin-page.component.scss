@@ -147,9 +147,13 @@
   box-shadow: var(--shadow-sm);
 }
 
-.menu-card.cdk-drag-preview {
+.menu-card__header.cdk-drag-preview {
   box-shadow: var(--shadow-md);
   opacity: 0.95;
+  width: min(100%, 720px);
+  background: var(--surface-2, #1e2a45);
+  border-radius: var(--radius-lg, 12px);
+  border: 1px solid var(--border-subtle);
 }
 
 .menu-card__header {
@@ -267,6 +271,11 @@
   border-top: 1px solid var(--border-subtle);
 }
 
+.menu-card__body--collapsed {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
 .menu-card__sub-toolbar {
   padding: 10px 0;
   display: flex;
@@ -278,6 +287,15 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  /* Área de soltar quando o menu destino ainda não tem submenus */
+  min-height: 40px;
+}
+
+.submenu-drop--collapsed {
+  min-height: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
 }
 
 .sub-row {

@@ -31,11 +31,12 @@ export function buildFullAcaoPermissao(subNome: string, uiAcao: string): string 
 
 /** Verifica se a linha de permissão corresponde à ação da UI (nome curto ou string completa da API). */
 export function permissionRowMatchesUi(p: MenuPermissionRow, subNome: string, uiAcao: string): boolean {
-  const target = buildFullAcaoPermissao(subNome, uiAcao);
-  const suffix = UI_TO_API_SUFFIX[uiAcao] ?? uiAcao;
-  const a = p.acao;
+  const target = norm(buildFullAcaoPermissao(subNome, uiAcao));
+  const suffix = norm(UI_TO_API_SUFFIX[uiAcao] ?? uiAcao);
+  const ui = norm(uiAcao);
+  const a = norm(p.acao);
   if (a === target) return true;
-  if (a === uiAcao) return true;
+  if (a === ui) return true;
   if (a.endsWith(`.${suffix}`)) return true;
   return false;
 }

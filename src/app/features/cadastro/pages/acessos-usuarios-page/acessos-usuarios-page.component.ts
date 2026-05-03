@@ -121,6 +121,10 @@ export class AcessosUsuariosPageComponent implements OnDestroy {
   readonly PERMISSION_MODULES = PERMISSION_MODULES;
   readonly PERMISSION_CATALOG = PERMISSION_CATALOG;
 
+  private normalizePermissionKey(value: string | null | undefined): string {
+    return String(value ?? '').trim().toLowerCase();
+  }
+
   /** Permissões do perfil selecionado (store ou catálogo como fallback para sempre exibir a seção). */
   get profilePermissions(): string[] {
     const id = this.form.perfilId;
@@ -137,7 +141,16 @@ export class AcessosUsuariosPageComponent implements OnDestroy {
     const selected = String(value ?? '').trim().toLowerCase();
     if (!selected) return undefined;
     return this.perfisList.find((p) => {
-      const candidates = [p.name, p.perfil, p.nome, p.normalizedName, p.id]
+      const candidates = [
+        p.name,
+        p.perfil,
+        p.nome,
+        p.normalizedName,
+        (p as { descricao?: unknown }).descricao,
+        p.id,
+        p.perfilId,
+        this.perfilDisplayValue(p),
+      ]
         .filter((v) => v != null)
         .map((v) => String(v).trim().toLowerCase());
       return candidates.includes(selected);
@@ -147,16 +160,35 @@ export class AcessosUsuariosPageComponent implements OnDestroy {
   private resolvePerfilNomeForPayload(selectedValue: string): string | undefined {
     const role = this.findPerfilBySelectedValue(selectedValue);
     const nome = String(
-      role?.name ?? role?.perfil ?? role?.nome ?? role?.normalizedName ?? selectedValue ?? ''
+      role?.name ??
+        role?.perfil ??
+        role?.nome ??
+        role?.normalizedName ??
+        (role as { descricao?: unknown })?.descricao ??
+        selectedValue ??
+        ''
     ).trim();
     return nome || undefined;
   }
 
+  perfilDisplayValue(role: ApplicationRole): string {
+    return String(
+      role?.name ??
+        role?.perfil ??
+        role?.nome ??
+        role?.normalizedName ??
+        (role as { descricao?: unknown })?.descricao ??
+        role?.id ??
+        role?.perfilId ??
+        ''
+    ).trim();
+  }
+
   get profilePermissionsByModule(): { module: PermissionModule; keys: string[] }[] {
-    const list = this.profilePermissions;
+    const list = this.profilePermissions.map((k) => k.toLowerCase());
     const result: { module: PermissionModule; keys: string[] }[] = [];
     for (const mod of PERMISSION_MODULES) {
-      const keys = (PERMISSION_CATALOG[mod] ?? []).filter((k) => list.includes(k));
+      const keys = (PERMISSION_CATALOG[mod] ?? []).filter((k) => list.includes(k.toLowerCase()));
       if (keys.length) result.push({ module: mod, keys });
     }
     return result;
@@ -398,16 +430,63 @@ export class AcessosUsuariosPageComponent implements OnDestroy {
   }
 
   private normalizePerfis(body: unknown): ApplicationRole[] {
-    if (Array.isArray(body)) return body as ApplicationRole[];
-    if (body && typeof body === 'object' && 'result' in body) {
-      const r = (body as { result?: unknown }).result;
-      return Array.isArray(r) ? (r as ApplicationRole[]) : [];
+    const list = this.extractRawPerfis(body);
+    return list
+      .map((item) => this.normalizePerfilItem(item))
+      .filter((item): item is ApplicationRole => item !== null);
+  }
+
+  private extractRawPerfis(body: unknown): Record<string, unknown>[] {
+    if (Array.isArray(body)) {
+      return body.filter((item): item is Record<string, unknown> => !!item && typeof item === 'object');
     }
-    if (body && typeof body === 'object' && 'results' in body) {
-      const r = (body as { results?: unknown }).results;
-      return Array.isArray(r) ? (r as ApplicationRole[]) : [];
+    if (!body || typeof body !== 'object') return [];
+    const record = body as Record<string, unknown>;
+    const candidates = ['result', 'results', 'items', 'itens', 'data', 'perfis', 'roles'];
+    for (const key of candidates) {
+      const value = record[key];
+      if (Array.isArray(value)) {
+        return value.filter(
+          (item): item is Record<string, unknown> => !!item && typeof item === 'object'
+        );
+      }
     }
     return [];
+  }
+
+  private normalizePerfilItem(raw: Record<string, unknown>): ApplicationRole | null {
+    const id = this.readId(raw, 'id', 'perfilId', 'roleId');
+    const perfilId = this.readId(raw, 'perfilId', 'id', 'roleId');
+    const display = this.readText(raw, 'name', 'perfil', 'nome', 'normalizedName', 'descricao');
+    if (id == null && perfilId == null && !display) return null;
+    const nome = this.readText(raw, 'nome', 'name', 'perfil', 'descricao');
+    const name = this.readText(raw, 'name', 'nome', 'perfil', 'descricao');
+    const perfil = this.readText(raw, 'perfil', 'name', 'nome', 'descricao');
+    return {
+      ...(id != null ? { id } : {}),
+      ...(perfilId != null ? { perfilId } : {}),
+      ...(name ? { name } : {}),
+      ...(nome ? { nome } : {}),
+      ...(perfil ? { perfil } : {}),
+      normalizedName: this.readText(raw, 'normalizedName', 'descricao') ?? null,
+    };
+  }
+
+  private readText(record: Record<string, unknown>, ...keys: string[]): string | null {
+    for (const key of keys) {
+      const value = record[key];
+      if (typeof value === 'string' && value.trim()) return value.trim();
+    }
+    return null;
+  }
+
+  private readId(record: Record<string, unknown>, ...keys: string[]): number | string | undefined {
+    for (const key of keys) {
+      const value = record[key];
+      if (typeof value === 'number' && Number.isFinite(value)) return value;
+      if (typeof value === 'string' && value.trim()) return value.trim();
+    }
+    return undefined;
   }
 
   onPerfilChange(): void {
@@ -426,8 +505,9 @@ export class AcessosUsuariosPageComponent implements OnDestroy {
     if (this.form.useDefaultPermissions) {
       this.form.userPermissionIds = [...profile];
     } else {
+      const profileSet = new Set(profile.map((p) => this.normalizePermissionKey(p)));
       this.form.userPermissionIds = this.form.userPermissionIds.filter((p) =>
-        profile.includes(p)
+        profileSet.has(this.normalizePermissionKey(p))
       );
     }
     this.cdr.markForCheck();
@@ -442,9 +522,14 @@ export class AcessosUsuariosPageComponent implements OnDestroy {
 
   toggleUserPermission(key: string): void {
     if (this.form.useDefaultPermissions) return;
-    const idx = this.form.userPermissionIds.indexOf(key);
+    const cmp = this.normalizePermissionKey(key);
+    const idx = this.form.userPermissionIds.findIndex(
+      (k) => this.normalizePermissionKey(k) === cmp
+    );
     if (idx >= 0) {
-      this.form.userPermissionIds = this.form.userPermissionIds.filter((k) => k !== key);
+      this.form.userPermissionIds = this.form.userPermissionIds.filter(
+        (k) => this.normalizePermissionKey(k) !== cmp
+      );
     } else {
       this.form.userPermissionIds = [...this.form.userPermissionIds, key];
     }
@@ -452,7 +537,8 @@ export class AcessosUsuariosPageComponent implements OnDestroy {
   }
 
   isUserPermissionChecked(key: string): boolean {
-    return this.form.userPermissionIds.includes(key);
+    const cmp = this.normalizePermissionKey(key);
+    return this.form.userPermissionIds.some((k) => this.normalizePermissionKey(k) === cmp);
   }
 
   selectEstacionamento(opt: EstacionamentoOption): void {

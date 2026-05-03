@@ -2,6 +2,10 @@ import { Injectable, signal } from '@angular/core';
 
 const LS_KEY = 'gts-user-permission-keys';
 
+function normalizePermissionKey(value: string | null | undefined): string {
+  return String(value ?? '').trim().toLowerCase();
+}
+
 /**
  * Cache local de chaves de permissão do usuário logado (preenchido a partir do claim `Permission` do JWT).
  */
@@ -40,10 +44,11 @@ export class PermissionCacheService {
   }
 
   hasAny(required: string[]): boolean {
-    const k = this.keys();
-    if (k.includes('*')) return true;
-    if (k.length === 0) return false;
-    return required.some((r) => k.includes(r));
+    const keys = this.keys().map((k) => normalizePermissionKey(k)).filter(Boolean);
+    if (keys.includes('*')) return true;
+    if (keys.length === 0) return false;
+    const requiredKeys = required.map((r) => normalizePermissionKey(r)).filter(Boolean);
+    return requiredKeys.some((r) => keys.includes(r));
   }
 
   has(key: string): boolean {

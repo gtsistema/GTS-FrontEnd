@@ -45,6 +45,7 @@ const AVISO_SEM_ENDPOINT =
   styleUrls: ['./acessos-perfis-page.component.scss'],
 })
 export class AcessosPerfisPageComponent implements OnInit {
+  private static readonly PERFIL_PADRAO_BLOQUEADO_ID = 1;
   private perfisService = inject(AcessosPerfisService);
   private profilePermissionsStore = inject(ProfilePermissionsStoreService);
   private permissionCache = inject(PermissionCacheService);
@@ -577,6 +578,16 @@ export class AcessosPerfisPageComponent implements OnInit {
     };
   }
 
+  private isPerfilPadraoBloqueado(item: ApplicationRole | null | undefined): boolean {
+    if (!item) return false;
+    const id = this.toOptionalNumber(item.id);
+    const perfilId = this.toOptionalNumber(item.perfilId);
+    return (
+      id === AcessosPerfisPageComponent.PERFIL_PADRAO_BLOQUEADO_ID ||
+      perfilId === AcessosPerfisPageComponent.PERFIL_PADRAO_BLOQUEADO_ID
+    );
+  }
+
   private getPermissionIdToKeyMap(): Map<number, string> {
     const map = new Map<number, string>();
     for (const menu of this.backendMenuCatalog()) {
@@ -623,6 +634,13 @@ export class AcessosPerfisPageComponent implements OnInit {
     this.cdr.markForCheck();
 
     const dto: PerfilUpsertInput = this.toUpsertPayload(kind === 'edit' ? this.editItem() : null);
+    if (kind === 'edit' && this.isPerfilPadraoBloqueado(this.editItem())) {
+      this.saving.set(false);
+      this.saveError.set('Perfil padrão não pode ser alterado.');
+      this.toast.show('Perfil padrão não pode ser alterado.', 'warning');
+      this.cdr.markForCheck();
+      return;
+    }
 
     if (kind === 'edit') {
       const item = this.editItem();

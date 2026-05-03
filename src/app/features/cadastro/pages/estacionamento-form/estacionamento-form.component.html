@@ -1,18 +1,17 @@
-<div class="page">
-  <header class="header">
-    <div class="container header__inner">
-      <h1 class="header__title">{{ id ? 'Editar' : 'Novo' }} Estacionamento</h1>
-      <a class="btn btn--secondary" routerLink="/app/cadastro/estacionamento">Voltar</a>
-    </div>
-  </header>
-
-  <div class="page__content">
-    <div class="container">
+<div class="estacionamento-form-wrapper">
+  <div class="container">
       @if (loading) {
         <p class="loading">Carregando...</p>
       } @else {
         @if (erro) {
           <p class="error-banner">{{ erro }}</p>
+          @if (errosCamposSalvar.length > 0) {
+            <ul class="error-banner__list">
+              @for (msg of errosCamposSalvar; track msg) {
+                <li>{{ msg }}</li>
+              }
+            </ul>
+          }
         }
 
         <form [formGroup]="form" (ngSubmit)="onFormSubmit($event)" class="form form-compact">
@@ -20,8 +19,8 @@
           <input type="hidden" formControlName="pessoaId" />
 
           @if (currentStep === 1) {
-          <div class="layout-grid">
-            <section class="card card--span-5">
+          <div class="cadastro-stack">
+            <section class="card card--cadastro-section">
             <div class="card__header">
               <h2 class="card__title">Estacionamento</h2>
               <p class="card__description">Campos obrigatórios marcados com *</p>
@@ -74,9 +73,9 @@
                 </div>
               </div>
             </div>
-          </section>
+            </section>
 
-            <section class="card card--span-7" formGroupName="pessoa">
+            <section class="card card--cadastro-section" formGroupName="pessoa">
               <div class="card__header">
                 <h2 class="card__title">Pessoa (responsável)</h2>
                 <p class="card__description">Campos obrigatórios marcados com *</p>
@@ -155,10 +154,8 @@
               </div>
             </div>
             </section>
-          </div>
 
-          <div class="complementares-contatos-row">
-          <section class="card card--accordion card--complementares" [class.card--open]="complementaresOpen">
+          <section class="card card--cadastro-section card--accordion card--complementares" [class.card--open]="complementaresOpen">
             <button type="button" class="card__trigger" (click)="toggleComplementares()" [attr.aria-expanded]="complementaresOpen">
               <h2 class="card__title">Dados complementares</h2>
               <span class="card__chevron" aria-hidden="true">{{ complementaresOpen ? '▼' : '▶' }}</span>
@@ -238,7 +235,7 @@
                     <div class="enderecos-actions">
                       <button
                         type="button"
-                        class="btn btn--secondary btn--sm"
+                        class="btn btn-secondary btn--sm"
                         (click)="adicionarEndereco()"
                         aria-label="Adicionar endereço"
                       >
@@ -253,7 +250,7 @@
                             <span class="endereco-block__title">Endereço {{ $index + 1 }}</span>
                             <button
                               type="button"
-                              class="btn btn--ghost btn--sm"
+                              class="btn btn-danger btn--outline btn--sm"
                               (click)="removerEndereco($index)"
                               aria-label="Remover endereço"
                             >
@@ -314,7 +311,7 @@
             }
           </section>
 
-          <section class="card card--accordion card--contatos" [class.card--open]="contatosOpen">
+          <section class="card card--cadastro-section card--accordion card--contatos" [class.card--open]="contatosOpen">
             <button type="button" class="card__trigger" (click)="toggleContatos()" [attr.aria-expanded]="contatosOpen">
               <h2 class="card__title">Contatos (Responsável legal e complementares)</h2>
               <span class="card__chevron" aria-hidden="true">{{ contatosOpen ? '▼' : '▶' }}</span>
@@ -361,7 +358,7 @@
                 <div class="contatos-complementares-actions">
                   <button
                     type="button"
-                    class="btn btn--secondary btn--sm contatos-add-btn"
+                    class="btn btn-secondary btn--sm contatos-add-btn"
                     (click)="adicionarContatoComplementar()"
                     [disabled]="!podeAdicionarContatoComplementar"
                     aria-label="Adicionar contato complementar"
@@ -381,7 +378,7 @@
                       <h3 class="card__subtitle">Contato complementar {{ $index + 1 }}</h3>
                       <button
                         type="button"
-                        class="btn btn--ghost btn--sm"
+                        class="btn btn-danger btn--outline btn--sm"
                         (click)="removerContatoComplementar($index)"
                         aria-label="Remover contato complementar"
                       >
@@ -431,7 +428,8 @@
           }
 
           @if (currentStep === 2) {
-          <section class="card card--dados-bancarios">
+          <div class="cadastro-stack">
+          <section class="card card--cadastro-section card--dados-bancarios">
             <div class="card__header card__header--row">
               <div class="card__header-text">
                 <h2 class="card__title">Dados Bancários</h2>
@@ -468,7 +466,7 @@
                     </div>
                   </div>
                 </div>
-                <button type="button" class="btn btn--secondary btn--sm titular-usar-responsavel" (click)="usarTitularDoResponsavel()">
+                <button type="button" class="btn btn-secondary btn--sm titular-usar-responsavel" (click)="usarTitularDoResponsavel()">
                   Usar titular do responsável
                 </button>
               </div>
@@ -621,10 +619,12 @@
               </div>
             </div>
           </section>
+          </div>
           }
 
           @if (currentStep === 3) {
-          <section class="card">
+          <div class="cadastro-stack">
+          <section class="card card--cadastro-section">
             <div class="card__header">
               <h2 class="card__title">Fotos</h2>
               <p class="card__description">Imagem do Estacionamento (opcional). Máximo {{ maxFotos }} fotos. Listagem, envio e remoção via backend (Azure).</p>
@@ -710,6 +710,7 @@
               </div>
             </div>
           </section>
+          </div>
           @if (fotoAmpliadaUrl) {
             <div class="foto-ampliada" role="dialog" aria-modal="true" aria-label="Foto em tamanho maior">
               <div class="foto-ampliada__backdrop" (click)="fecharFotoAmpliada()"></div>
@@ -733,15 +734,15 @@
         }
         <footer class="actions">
           @if (currentStep === 1) {
-            <button type="button" class="btn btn--secondary" (click)="cancelar()">Cancelar</button>
-            <button type="button" class="btn btn--primary" (click)="proximoStep()">Próximo</button>
+            <button type="button" class="btn btn-secondary" (click)="cancelar()">Cancelar</button>
+            <button type="button" class="btn btn-primary" (click)="proximoStep()">Próximo</button>
           }
           @if (currentStep === 2) {
-            <button type="button" class="btn btn--secondary" (click)="stepAnterior()">Anterior</button>
-            <button type="button" class="btn btn--primary" (click)="proximoStep()">Próximo</button>
+            <button type="button" class="btn btn-secondary" (click)="stepAnterior()">Anterior</button>
+            <button type="button" class="btn btn-primary" (click)="proximoStep()">Próximo</button>
             <button
               type="button"
-              class="btn btn--primary"
+              class="btn btn-primary"
               (click)="salvarDadosBancarios()"
               [disabled]="salvandoDadosBancarios || bankTabInvalid"
             >
@@ -749,11 +750,10 @@
             </button>
           }
           @if (currentStep === 3) {
-            <button type="button" class="btn btn--secondary" (click)="stepAnterior()">Anterior</button>
+            <button type="button" class="btn btn-secondary" (click)="stepAnterior()">Anterior</button>
           }
         </footer>
         </form>
       }
     </div>
-  </div>
 </div>

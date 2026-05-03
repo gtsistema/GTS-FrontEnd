@@ -123,9 +123,9 @@
               (ngModelChange)="onPerfilChange()"
             >
               <option value="">Selecione</option>
-              @for (p of perfisList; track p.id ?? p.name) {
-                <option [value]="p.name ?? p.perfil ?? p.nome ?? p.id">
-                  {{ p.name ?? p.perfil ?? p.nome ?? p.id }}
+              @for (p of perfisList; track p.id ?? p.perfilId ?? p.name ?? p.perfil ?? p.nome ?? p.normalizedName) {
+                <option [value]="perfilDisplayValue(p)">
+                  {{ perfilDisplayValue(p) }}
                 </option>
               }
             </select>

@@ -288,7 +288,11 @@ html.theme-light .es-panel {
 }
 
 html.theme-light .es-panel__title {
-  color: var(--text);
+  color: var(--color-text-primary, var(--text));
+}
+
+html.theme-light .es-field-label {
+  color: var(--color-text-secondary, var(--muted));
 }
 
 html.theme-light .es-inline-alert {

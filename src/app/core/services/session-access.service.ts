@@ -62,7 +62,17 @@ export class SessionAccessService {
     if (current === '/app' || current === '') {
       return true;
     }
-    return allowed.some((route) => isRouteMatch(current, route));
+    if (allowed.some((route) => isRouteMatch(current, route))) {
+      return true;
+    }
+    /** Lista em Gerenciamento espelha o mesmo acesso da rota canônica em Cadastro. */
+    if (current === '/app/gerenciamento/estacionamento') {
+      return allowed.some((route) => {
+        const r = normalizeRoute(route);
+        return r === '/app/cadastro/estacionamento' || r.startsWith('/app/cadastro/estacionamento/');
+      });
+    }
+    return false;
   }
 
   getDefaultRoute(): string | null {

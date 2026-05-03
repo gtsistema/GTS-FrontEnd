@@ -104,6 +104,11 @@ export class MenuAdminPageComponent implements OnInit {
       : e?.error?.message ?? e?.message ?? fallback;
   }
 
+  /** IDs das listas de submenu — conecta arrastar entre menus diferentes (OrganizarMenus no Salvar). */
+  protected submenuDropListConnections(): string[] {
+    return this.admin.menus().map((m) => `submenu-drop-${m.id}`);
+  }
+
   /** Accordion: menus expandidos */
   protected readonly expandedMenuIds = signal<Set<number>>(new Set());
 

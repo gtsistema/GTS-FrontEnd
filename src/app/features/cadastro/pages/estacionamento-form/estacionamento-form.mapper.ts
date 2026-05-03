@@ -167,13 +167,12 @@ export function buildContaBancariaMerged(
   const ativaBase = base['ativa'] ?? base['Ativa'];
   const ativa = ativaBase === false ? false : true;
 
-  return {
+  const out: Record<string, unknown> = {
     ...base,
     id: idNum,
     descricao,
     dataCriacao,
     dataAtualizacao: nowIso,
-    estacionamentoId: Number(estacionamentoId) || 0,
     titular: titularRazaoSocial,
     cpfCnpj: titularCnpj,
     banco: String(value.banco ?? '').trim(),
@@ -185,6 +184,14 @@ export function buildContaBancariaMerged(
     ativa,
     chavePix: String(value.chavePix ?? '').trim()
   };
+
+  const estacionamentoIdNum = Number(estacionamentoId) || 0;
+  if (estacionamentoIdNum > 0) {
+    // Contrato do backend usa EstacionamentoId; só enviar quando já houver id persistido.
+    out['EstacionamentoId'] = estacionamentoIdNum;
+  }
+
+  return out;
 }
 
 /** Compatibilidade / testes — preferir {@link buildContaBancariaMerged}. */

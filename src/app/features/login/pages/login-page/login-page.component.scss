@@ -3,28 +3,90 @@
   font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }
 
+:host-context(html.theme-light) {
+  --accent: var(--color-primary, #5088d0);
+}
+
 .login-page {
   position: relative;
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 2rem;
-  padding-top: max(4.5rem, env(safe-area-inset-top));
+  padding: clamp(1rem, 2.6vw, 2rem);
   box-sizing: border-box;
   background: var(--login-shell-bg, var(--app-bg));
+  isolation: isolate;
+  overflow: auto;
 }
 
-/** Fundo mais cinza no tema claro — melhor contraste com o card branco */
+/** WHITE MODE: fundo #dbeafe + gradiente suave */
 :host-context(html.theme-light) .login-page {
-  --login-shell-bg: linear-gradient(165deg, #c7d0dc 0%, #b6c1d0 45%, #aab6c8 100%);
+  --login-shell-bg: linear-gradient(165deg, #dbeafe 0%, #cfe4fc 48%, #bfdafc 100%);
+}
+
+/** Dark: fundo alinhado ao app */
+:host-context(html.theme-dark) .login-page {
+  --login-shell-bg:
+    radial-gradient(900px 420px at 50% -10%, rgba(79, 107, 255, 0.14), transparent 55%),
+    radial-gradient(700px 380px at 80% 110%, rgba(0, 212, 255, 0.06), transparent 50%),
+    linear-gradient(165deg, #070f1c 0%, #0b1628 100%);
+}
+
+.login-page__stack {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 460px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow: visible;
+  isolation: isolate;
+  animation: login-stack-reveal 0.5s ease-out both;
+}
+
+@keyframes login-stack-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.login-page__logo {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + clamp(1.6rem, 3.4vw, 2.5rem));
+  transform: translateX(-50%);
+  z-index: 1;
+  width: clamp(200px, 24vw, 260px);
+  height: auto;
+  display: block;
+  pointer-events: none;
+}
+
+/** Light: maior presença visual, sem sombras */
+:host-context(html.theme-light) .login-page__logo {
+  opacity: 0.56;
+  filter: saturate(1.28) contrast(1.15);
+}
+
+/** Dark: contraste limpo, sem glow/sombra */
+:host-context(html.theme-dark) .login-page__logo {
+  opacity: 0.44;
+  filter: brightness(0) invert(1) contrast(1.08);
 }
 
 .login-page__toolbar {
   position: absolute;
   top: max(12px, env(safe-area-inset-top));
   right: max(16px, env(safe-area-inset-right));
-  z-index: 2;
+  z-index: 5;
 }
 
 .theme-switcher__btn {
@@ -54,21 +116,22 @@
 }
 
 :host-context(html.theme-light) .theme-switcher__btn {
-  background: rgba(255, 255, 255, 0.92);
-  border-color: rgba(15, 23, 42, 0.12);
-  color: var(--text-primary, #0f172a);
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+  background: rgba(80, 136, 208, 0.35);
+  border: 1px solid #7aa7dc;
+  color: var(--color-text-primary, #0a3890);
+  box-shadow: none;
 }
 
 :host-context(html.theme-light) .theme-switcher__btn:hover {
-  background: #fff;
-  border-color: rgba(91, 124, 255, 0.35);
-  color: var(--accent);
+  background: rgba(80, 136, 208, 0.5);
+  border-color: #7aa7dc;
+  color: var(--color-text-primary, #0a3890);
 }
 
 .card {
+  position: relative;
+  z-index: 2;
   width: 100%;
-  max-width: 640px;
   background: var(--card-bg);
   border-radius: 16px;
   padding: 40px;
@@ -77,15 +140,30 @@
   color: var(--text);
 }
 
+:host-context(html.theme-dark) .card {
+  background: rgba(17, 28, 51, 0.92);
+  border-color: rgba(148, 163, 184, 0.18);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45);
+}
+
 .login-header {
-    text-align: center;
+  text-align: center;
+  margin-bottom: 1.25rem;
 }
 
 .title {
   font-size: var(--font-page-title, 18px);
-  margin: 0 0 0.5rem 0;
+  margin: 0 0 0.35rem 0;
   font-weight: var(--font-weight-page-title, 700);
   color: var(--text-primary);
+}
+
+.login-card__lead {
+  margin: 0 0 0.25rem 0;
+  font-size: var(--font-body, 14px);
+  line-height: 1.45;
+  color: var(--text-muted);
+  font-weight: 400;
 }
 
 .subtitle {
@@ -199,28 +277,38 @@ input:focus {
   transform: none;
 }
 
-/** Tema claro: botão principal legível (antes parecia sempre “desativado”) */
+/** WHITE MODE: botão Entrar — mesmo primário global (Etapa 4 ~50%) */
 :host-context(html.theme-light) .btn:not(:disabled) {
-  background: var(--accent, #5b7cff);
-  color: #fff;
-  border-color: transparent;
+  background: rgba(48, 128, 208, 0.5);
+  color: #0a3890;
+  border: 1px solid #3080d0;
+  border-radius: 8px;
+  box-shadow: none;
 }
 
 :host-context(html.theme-light) .btn:hover:not(:disabled) {
-  background: linear-gradient(90deg, color-mix(in srgb, var(--accent, #5b7cff) 88%, #000) 0%, var(--accent, #5b7cff) 100%);
-  filter: brightness(1.05);
+  background: rgba(48, 128, 208, 0.65);
+  border-color: #3080d0;
+  color: #0a3890;
+  filter: none;
   transform: translateY(-1px);
 }
 
 :host-context(html.theme-light) .btn:disabled {
-  background: rgba(15, 23, 42, 0.08);
-  color: rgba(15, 23, 42, 0.35);
-  border-color: rgba(15, 23, 42, 0.12);
+  background: rgba(48, 128, 208, 0.12);
+  color: rgba(10, 56, 144, 0.42);
+  border-color: var(--color-border-light, #e0ecf8);
+  opacity: 1;
 }
 
 
 
 @media (max-width: 520px) {
+  .login-page__logo {
+    width: clamp(178px, 54vw, 220px);
+    bottom: calc(100% + clamp(1.1rem, 4.5vw, 1.7rem));
+  }
+
   .card {
     padding: var(--space-xl, 20px);
     border-radius: 12px;
@@ -228,6 +316,10 @@ input:focus {
 
   .title {
     font-size: var(--font-page-title, 18px);
+  }
+
+  .login-card__lead {
+    font-size: 13px;
   }
 
   input {

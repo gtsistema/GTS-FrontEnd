@@ -28,12 +28,13 @@ import {
   FormArray,
   Validators
 } from '@angular/forms';
-import { Router, ActivatedRoute, RouterLink } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { EstacionamentoService, type EstacionamentoFormValue } from '../../services/estacionamento.service';
 import { EstacionamentoFotosService, type FotoItem } from '../../services/estacionamento-fotos.service';
 import { ViacepService } from '../../services/viacep.service';
 import { EstacionamentoFormStepService } from '../../services/estacionamento-form-step.service';
 import { ToastService } from '../../../../core/api/services/toast.service';
+import type { ApiError } from '../../../../core/api/models/api-error.model';
 import { documentoValidator } from '../../validators/documento.validator';
 import { TipoPessoa, type EstacionamentoPayloadMergeContext } from '../../models/estacionamento.dto';
 import { CnpjFormatDirective, formatCnpj } from '../../directives/cnpj-format.directive';
@@ -59,7 +60,6 @@ const MAX_CONTATOS_COMPLEMENTARES = 5;
   imports: [
     CommonModule,
     ReactiveFormsModule,
-    RouterLink,
     CnpjFormatDirective,
     CpfFormatDirective,
     TelefoneFormatDirective
@@ -75,6 +75,7 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
   /** Somente botão Salvar da aba Dados Bancários (edição). */
   salvandoDadosBancarios = false;
   erro: string | null = null;
+  errosCamposSalvar: string[] = [];
   /** Accordion "Dados complementares": inicia fechado. */
   complementaresOpen = false;
   /** Accordion "Contatos (Responsável legal e complementares)": inicia fechado. */
@@ -553,6 +554,7 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
     }
     this.salvandoDadosBancarios = true;
     this.erro = null;
+    this.errosCamposSalvar = [];
     this.EstacionamentoService.alterar(payload)
       .pipe(
         switchMap(() => this.EstacionamentoService.obterPorIdDetalhado(this.id!)),
@@ -582,17 +584,18 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
           this.toast.success('Dados bancários salvos com sucesso.');
         },
         error: (err: unknown) => {
-          const status =
-            err && typeof err === 'object' && 'status' in err
-              ? (err as { status?: number }).status
-              : undefined;
-          const msg =
+          const status = this.extractApiError(err)?.status;
+          const fallback =
             status === 400
               ? 'Não foi possível salvar. Verifique os dados bancários.'
               : status === 0
                 ? 'Sem conexão com o servidor.'
                 : 'Não foi possível salvar os dados bancários. Tente novamente.';
-          this.toast.error(msg);
+          const msg = this.extractApiMessage(err, fallback);
+          const fieldErrors = this.extractApiFieldErrors(err);
+          this.erro = msg;
+          this.errosCamposSalvar = fieldErrors;
+          this.toast.error(fieldErrors.length > 0 ? `${msg} ${fieldErrors[0]}` : msg);
         }
       });
   }
@@ -750,8 +753,19 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
       }
       return;
     }
+    const errosMinimosCriacao = this.validarCamposMinimosCriacao();
+    if (errosMinimosCriacao.length > 0) {
+      this.erro = 'Preencha os campos obrigatórios para criar o estacionamento.';
+      this.errosCamposSalvar = errosMinimosCriacao;
+      this.contatosOpen = true;
+      this.complementaresOpen = true;
+      this.toast.warning(errosMinimosCriacao[0]);
+      this.cdr.markForCheck();
+      return;
+    }
     this.salvando = true;
     this.erro = null;
+    this.errosCamposSalvar = [];
     // Fotos são gerenciadas apenas pelos endpoints BuscarFotos / UploadFotos / DeletarFotos (Azure); não enviamos no payload Gravar/Alterar.
     const raw = this.form.getRawValue() as FormValue;
     const dto = formValueToEstacionamentoPayload(raw, this.loadedEnderecos, [], this.payloadMerge);
@@ -777,11 +791,72 @@ export class EstacionamentoFormComponent implements OnInit, OnDestroy {
           this.router.navigate(['/app/cadastro/estacionamento']);
         }
       },
-      error: () => {
-        this.erro = 'Erro ao salvar. Tente novamente.';
+      error: (err: unknown) => {
+        const msg = this.extractApiMessage(err, 'Erro ao salvar. Tente novamente.');
+        const fieldErrors = this.extractApiFieldErrors(err);
+        this.erro = msg;
+        this.errosCamposSalvar = fieldErrors;
         this.salvando = false;
+        this.toast.error(fieldErrors.length > 0 ? `${msg} ${fieldErrors[0]}` : msg);
       }
     });
+  }
+
+  private extractApiError(err: unknown): ApiError | null {
+    if (!err || typeof err !== 'object') return null;
+    if (!('message' in err)) return null;
+    return err as ApiError;
+  }
+
+  private extractApiMessage(err: unknown, fallback: string): string {
+    const api = this.extractApiError(err);
+    const msg = api?.message;
+    return typeof msg === 'string' && msg.trim() ? msg.trim() : fallback;
+  }
+
+  private extractApiFieldErrors(err: unknown): string[] {
+    const api = this.extractApiError(err);
+    const fieldErrors = api?.fieldErrors;
+    if (!fieldErrors) return [];
+    const out: string[] = [];
+    for (const [field, msgs] of Object.entries(fieldErrors)) {
+      for (const m of msgs ?? []) {
+        const text = String(m ?? '').trim();
+        if (!text) continue;
+        out.push(`${field}: ${text}`);
+      }
+    }
+    return out;
+  }
+
+  private validarCamposMinimosCriacao(): string[] {
+    if (this.id != null && this.id > 0) return [];
+    const erros: string[] = [];
+    const responsavelNome = String(this.form.get('responsavelLegalNome')?.value ?? '').trim();
+    const responsavelCpf = String(this.form.get('responsavelLegalCpf')?.value ?? '')
+      .replace(/\D/g, '')
+      .trim();
+    if (!responsavelNome) erros.push('Responsável legal é obrigatório.');
+    if (!responsavelCpf) erros.push('CPF do responsável legal é obrigatório.');
+
+    if (this.enderecosArray.length === 0) {
+      erros.push('Adicione ao menos um endereço principal.');
+      return erros;
+    }
+
+    const principal =
+      (this.enderecosArray.controls.find(
+        (ctrl) => Boolean((ctrl as FormGroup).get('principal')?.value)
+      ) as FormGroup | undefined) ?? (this.enderecosArray.at(0) as FormGroup);
+
+    const getValue = (key: string) => String(principal.get(key)?.value ?? '').trim();
+    if (!getValue('cep')) erros.push('CEP do endereço principal é obrigatório.');
+    if (!getValue('logradouro')) erros.push('Logradouro do endereço principal é obrigatório.');
+    if (!getValue('numero')) erros.push('Número do endereço principal é obrigatório.');
+    if (!getValue('bairro')) erros.push('Bairro do endereço principal é obrigatório.');
+    if (!getValue('cidade')) erros.push('Cidade do endereço principal é obrigatória.');
+    if (!getValue('estado')) erros.push('Estado do endereço principal é obrigatório.');
+    return erros;
   }
 
   /**
